@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>頭痛外来 成績表（患者向け）</title>
+<style>
+:root {
+  --primary: #2f6f6b;
+  --primary-dark: #204d4a;
+  --accent: #e8734a;
+  --bg: #f6f4ef;
+  --card: #ffffff;
+  --text: #2a2a2a;
+  --muted: #767676;
+  --border: #e2ddd2;
+  --danger: #c0392b;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.06);
+  --success: #27ae60;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Hiragino Sans", "Yu Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+  padding-bottom: 20px;
+  -webkit-text-size-adjust: 100%;
+}
+header {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+header h1 { margin: 0; font-size: 1.3rem; }
+header p { margin: 8px 0 0; font-size: 0.85rem; opacity: 0.9; }
+main {
+  max-width: 640px;
+  margin: 0 auto;
+  padding: 16px;
+}
+.card {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 16px;
+}
+.card h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 10px;
+}
+.stat-box {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+.stat-box .label { font-size: 0.85rem; opacity: 0.9; }
+.stat-box .value { font-size: 2.2rem; font-weight: bold; margin-top: 8px; }
+.stat-box .note { font-size: 0.75rem; margin-top: 6px; opacity: 0.8; }
+.status-good { background: linear-gradient(135deg, var(--success), #229954); }
+.status-caution { background: linear-gradient(135deg, #f39c12, #e67e22); }
+.status-alert { background: linear-gradient(135deg, var(--danger), #a93226); }
+.grid-stats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 12px 0;
+}
+.mini-stat {
+  background: #f9f8f6;
+  border-left: 4px solid var(--accent);
+  padding: 12px;
+  border-radius: 6px;
+}
+.mini-stat .label { font-size: 0.75rem; color: var(--muted); }
+.mini-stat .value { font-size: 1.3rem; font-weight: bold; color: var(--primary); margin-top: 4px; }
+.chart-container {
+  position: relative;
+  height: 280px;
+  margin: 20px 0 10px;
+}
+.chart-legend {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.75rem;
+  margin-top: 8px;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.legend-color {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
+.timeline {
+  margin-top: 16px;
+}
+.timeline-item {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 14px;
+  border-bottom: 1px solid var(--border);
+}
+.timeline-item:last-child { border-bottom: none; }
+.timeline-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: var(--primary);
+  margin-top: 6px;
+}
+.timeline-content { flex: 1; }
+.timeline-date { font-size: 0.85rem; font-weight: bold; color: var(--primary); }
+.timeline-scores { font-size: 0.8rem; color: var(--muted); margin-top: 2px; }
+.message {
+  background: #eef5f7;
+  border-left: 4px solid var(--primary);
+  padding: 12px;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  margin: 12px 0;
+}
+.message.good { background: #e8f5e9; border-left-color: var(--success); }
+.message.caution { background: #fff8e1; border-left-color: #f39c12; }
+.message.alert { background: #fdecea; border-left-color: var(--danger); }
+.footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--border);
+}
+.loading {
+  text-align: center;
+  padding: 40px 20px;
+  color: var(--muted);
+}
+.error {
+  background: #fdecea;
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  padding: 16px;
+  border-radius: 8px;
+  text-align: center;
+  font-weight: bold;
+}
+@media (max-width: 480px) {
+  .grid-stats { grid-template-columns: 1fr; }
+  .stat-box .value { font-size: 1.8rem; }
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>⭐ あなたの成績表</h1>
+  <p>頭痛外来での治療効果の推移</p>
+</header>
+
+<main>
+  <div id="loadingMessage" class="loading">
+    📊 成績表を読み込み中...
+  </div>
+
+  <div id="content" style="display:none;">
+    <!-- 最新スコア -->
+    <div class="card">
+      <h2>📈 今回のスコア</h2>
+      <div id="currentScoresHtml"></div>
+    </div>
+
+    <!-- 状態評価 -->
+    <div class="card">
+      <h2>💡 評価と今後</h2>
+      <div id="evaluationHtml"></div>
+    </div>
+
+    <!-- 推移グラフ -->
+    <div class="card">
+      <h2>📊 推移グラフ（初診からの変化）</h2>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div class="chart-legend">
+        <div class="legend-item">
+          <div class="legend-color" style="background:#e8734a;"></div>
+          <span>HIT-6</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#2f6f6b;"></div>
+          <span>MIBS-4</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-color" style="background:#f39c12;"></div>
+          <span>MHD</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- 受診履歴 -->
+    <div class="card">
+      <h2>📅 受診履歴</h2>
+      <div id="timelineHtml" class="timeline"></div>
+    </div>
+
+    <!-- フッター -->
+    <div class="footer">
+      🏥 この成績表は院内システムで自動生成されました。<br>
+      詳しいご説明は受診時に医師にお聞きください。
+    </div>
+  </div>
+
+  <div id="errorMessage" style="display:none;" class="error">
+    ⚠️ 申し訳ございません。成績表を表示できませんでした。<br>
+    医師にお知らせください。
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script>
+// ======== URLからカルテ番号を取得 ========
+function getPatientIdFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  return params.get('id');
+}
+
+// ======== LocalStorageからデータを取得 ========
+function loadPatientData(patientId) {
+  const stored = localStorage.getItem('patientDatabase');
+  if (!stored) return null;
+
+  try {
+    const allPatients = JSON.parse(stored);
+    return allPatients.find(p => p.id === patientId);
+  } catch (e) {
+    console.error('データ読み込みエラー', e);
+    return null;
+  }
+}
+
+// ======== 成績表を表示 ========
+function renderReport(patient) {
+  if (!patient || !patient.visits || patient.visits.length === 0) {
+    showError();
+    return;
+  }
+
+  const visits = patient.visits.sort((a, b) => new Date(a.date) - new Date(b.date));
+  const latest = visits[visits.length - 1];
+  const s = latest.scores;
+
+  // 最新スコア表示
+  renderCurrentScores(s);
+
+  // 評価コメント
+  renderEvaluation(s, visits);
+
+  // グラフ
+  renderTrendChart(visits);
+
+  // タイムライン
+  renderTimeline(visits);
+
+  document.getElementById('content').style.display = 'block';
+  document.getElementById('loadingMessage').style.display = 'none';
+}
+
+// ======== 最新スコア表示 ========
+function renderCurrentScores(scores) {
+  const hit6 = scores.hit6 || '-';
+  const mibs4 = scores.mibs4 || '-';
+  const mhd = scores.mhd || '-';
+  const amd = scores.amd || '-';
+
+  let html = `
+    <div class="grid-stats">
+      <div class="stat-box">
+        <div class="label">HIT-6</div>
+        <div class="value">${hit6}</div>
+        <div class="note">36-78 (低いほど改善)</div>
+      </div>
+      <div class="stat-box">
+        <div class="label">MIBS-4</div>
+        <div class="value">${mibs4}</div>
+        <div class="note">0-12 (低いほど良い)</div>
+      </div>
+    </div>
+    <div class="grid-stats">
+      <div class="mini-stat">
+        <div class="label">頭痛日数(MHD)</div>
+        <div class="value">${mhd}日/月</div>
+      </div>
+      <div class="mini-stat">
+        <div class="label">鎮痛薬使用日数(AMD)</div>
+        <div class="value">${amd}日/月</div>
+      </div>
+    </div>
+  `;
+
+  document.getElementById('currentScoresHtml').innerHTML = html;
+}
+
+// ======== 評価コメント ========
+function renderEvaluation(scores, visits) {
+  let html = '';
+
+  // HIT-6評価
+  if (scores.hit6 !== null) {
+    if (scores.hit6 < 50) {
+      html += '<div class="message good">✅ HIT-6が50未満です。日常生活への頭痛の影響が改善しています。</div>';
+    } else if (scores.hit6 < 60) {
+      html += '<div class="message caution">🟡 HIT-6が中程度です。治療を続けることで改善が期待できます。</div>';
+    } else {
+      html += '<div class="message alert">⚠️ HIT-6が高くなっています。医師にご相談ください。</div>';
+    }
+  }
+
+  // MHD評価
+  if (scores.mhd !== null) {
+    if (scores.mhd < 4) {
+      html += '<div class="message good">✅ 月4日未満の頭痛で、発作性片頭痛と判定されます。</div>';
+    } else if (scores.mhd < 15) {
+      html += '<div class="message caution">🟡 月4日以上15日未満で、慢性片頭痛への移行に注意が必要です。</div>';
+    } else {
+      html += '<div class="message alert">⚠️ 月15日以上で、慢性片頭痛です。医師と治療方針をご相談ください。</div>';
+    }
+  }
+
+  // 初診との比較
+  if (visits.length > 1) {
+    const initial = visits[0].scores;
+    if (scores.hit6 !== null && initial.hit6 !== null) {
+      const diff = initial.hit6 - scores.hit6;
+      if (diff > 5) {
+        html += `<div class="message good">✅ 初診時比で HIT-6 が ${diff} ポイント改善しました。治療の効果が出ています！</div>`;
+      } else if (diff > 0) {
+        html += `<div class="message good">✅ 初診時比で HIT-6 が ${diff} ポイント改善しています。</div>`;
+      }
+    }
+  }
+
+  document.getElementById('evaluationHtml').innerHTML = html || '<p>詳しくは医師にお聞きください。</p>';
+}
+
+// ======== グラフ表示 ========
+function renderTrendChart(visits) {
+  const labels = visits.map(v => v.date);
+  const hit6Data = visits.map(v => v.scores.hit6 || null);
+  const mibs4Data = visits.map(v => v.scores.mibs4 || null);
+  const mhdData = visits.map(v => v.scores.mhd || null);
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'HIT-6',
+          data: hit6Data,
+          borderColor: '#e8734a',
+          backgroundColor: 'rgba(232, 115, 74, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'MIBS-4',
+          data: mibs4Data,
+          borderColor: '#2f6f6b',
+          backgroundColor: 'rgba(47, 111, 107, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        },
+        {
+          label: 'MHD (日/月)',
+          data: mhdData,
+          borderColor: '#f39c12',
+          backgroundColor: 'rgba(243, 156, 18, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 4,
+          pointHoverRadius: 6
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: { beginAtZero: true, max: 80 }
+      }
+    }
+  });
+}
+
+// ======== タイムライン表示 ========
+function renderTimeline(visits) {
+  let html = '';
+  visits.forEach((visit, idx) => {
+    const num = idx + 1;
+    const s = visit.scores;
+    html += `
+      <div class="timeline-item">
+        <div class="timeline-dot"></div>
+        <div class="timeline-content">
+          <div class="timeline-date">第${num}回受診 - ${visit.date}</div>
+          <div class="timeline-scores">
+            HIT6=${s.hit6 || '-'} | MIBS4=${s.mibs4 || '-'} | MHD=${s.mhd || '-'}日/月
+          </div>
+        </div>
+      </div>
+    `;
+  });
+  document.getElementById('timelineHtml').innerHTML = html;
+}
+
+// ======== エラー表示 ========
+function showError() {
+  document.getElementById('loadingMessage').style.display = 'none';
+  document.getElementById('errorMessage').style.display = 'block';
+}
+
+// ======== ページ読み込み ========
+window.addEventListener('load', () => {
+  const patientId = getPatientIdFromURL();
+  if (!patientId) {
+    showError();
+    return;
+  }
+
+  const patient = loadPatientData(patientId);
+  if (!patient) {
+    showError();
+    return;
+  }
+
+  renderReport(patient);
+});
+</script>
+</body>
+</html>

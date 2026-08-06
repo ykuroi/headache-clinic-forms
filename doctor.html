@@ -1,0 +1,736 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>頭痛外来 医師用受信＆成績表生成画面</title>
+<style>
+:root {
+  --primary: #2f6f6b;
+  --primary-dark: #204d4a;
+  --accent: #e8734a;
+  --bg: #f6f4ef;
+  --card: #ffffff;
+  --text: #2a2a2a;
+  --muted: #767676;
+  --border: #e2ddd2;
+  --danger: #c0392b;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Hiragino Sans", "Yu Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+header h1 { margin: 0; font-size: 1.3rem; }
+header p { margin: 8px 0 0; font-size: 0.85rem; opacity: 0.9; }
+main {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+}
+@media (max-width: 1024px) {
+  main { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 10px;
+}
+.qr-input-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+.qr-input-area button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.qr-input-area button:hover {
+  background: var(--primary-dark);
+}
+#qrFileInput { display: none; }
+.frame-list {
+  margin-top: 15px;
+  max-height: 300px;
+  overflow-y: auto;
+  background: #fafaf8;
+  border-radius: 8px;
+  padding: 10px;
+  font-size: 0.8rem;
+  font-family: monospace;
+}
+.frame-item {
+  padding: 5px;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
+}
+.frame-item.success { color: #27ae60; font-weight: bold; }
+.frame-item.error { color: var(--danger); font-weight: bold; }
+.patient-info {
+  background: #f0f8f5;
+  border-left: 4px solid var(--primary);
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+}
+.patient-info .label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.patient-info .value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+.score-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 15px 0;
+}
+.score-box {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 15px;
+  border-radius: 10px;
+  text-align: center;
+}
+.score-box .label { font-size: 0.8rem; opacity: 0.9; }
+.score-box .value { font-size: 2rem; font-weight: bold; margin-top: 8px; }
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 20px 0;
+}
+.chart-legend {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+.patients-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+.patient-card {
+  background: #fafaf8;
+  border-left: 4px solid var(--accent);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.patient-card:hover {
+  background: #f0f0ed;
+  transform: translateX(4px);
+}
+.patient-card .id { font-weight: bold; color: var(--primary); }
+.patient-card .date { font-size: 0.8rem; color: var(--muted); }
+.patient-card .scores { font-size: 0.8rem; margin-top: 4px; }
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+.btn-row button {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+.btn-secondary {
+  background: #e0e0e0;
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-accent:hover {
+  background: #d65a2f;
+}
+.warning {
+  background: #fdecea;
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  font-weight: bold;
+}
+.success {
+  background: #e8f5e9;
+  border: 2px solid #27ae60;
+  color: #27ae60;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  font-weight: bold;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏥 頭痛外来 医師用受信＆成績表生成システム</h1>
+  <p>患者スマホからのQRコード読み取り、推移グラフ表示、成績表QR生成</p>
+</header>
+
+<main>
+  <!-- 左パネル：QRコード受信 -->
+  <div class="panel">
+    <h2>📱 QRコード受信</h2>
+    <div class="qr-input-area">
+      <p>患者スマホからのQRコードをアップロード、または読み込んでください</p>
+      <button onclick="document.getElementById('qrFileInput').click();">📸 QRコード画像を選択</button>
+      <input type="file" id="qrFileInput" accept="image/*">
+      <p style="font-size:0.8rem; color:var(--muted); margin-top:10px;">またはテキスト形式で貼り付け：</p>
+      <textarea id="qrTextInput" placeholder="HZQ1:...から始まるQRデータを貼り付け" style="width:100%; height:80px; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:0.8rem; font-family:monospace;"></textarea>
+      <div class="btn-row">
+        <button class="btn-primary" onclick="parseQRText();">テキストデータを読み込む</button>
+      </div>
+    </div>
+
+    <div id="frameList" class="frame-list" style="display:none;"></div>
+
+    <div id="patientData" style="display:none;">
+      <div class="success">✅ データ受信成功</div>
+      <div class="patient-info">
+        <div class="label">カルテ番号</div>
+        <div class="value" id="displayPatientId"></div>
+      </div>
+      <div class="patient-info">
+        <div class="label">記入日</div>
+        <div class="value" id="displayDate"></div>
+      </div>
+
+      <div style="margin-top:15px;">
+        <strong>今回のスコア：</strong>
+        <div class="score-display">
+          <div class="score-box">
+            <div class="label">HIT-6</div>
+            <div class="value" id="scoreHIT6">-</div>
+          </div>
+          <div class="score-box">
+            <div class="label">GAD-7</div>
+            <div class="value" id="scoreGAD7">-</div>
+          </div>
+          <div class="score-box">
+            <div class="label">PHQ-9</div>
+            <div class="value" id="scorePHQ9">-</div>
+          </div>
+          <div class="score-box">
+            <div class="label">MIBS-4</div>
+            <div class="value" id="scoreMIBS4">-</div>
+          </div>
+          <div class="score-box">
+            <div class="label">MHD</div>
+            <div class="value" id="scoreMHD">-</div>
+          </div>
+          <div class="score-box">
+            <div class="label">AMD</div>
+            <div class="value" id="scoreAMD">-</div>
+          </div>
+        </div>
+      </div>
+
+      <div id="phq9Warning" class="warning" style="display:none;">
+        ⚠️ PHQ-9項目9（希死念慮）に回答あり。要確認。
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="savePatientData();">💾 このデータを保存</button>
+        <button class="btn-secondary" onclick="reset();">🔄 リセット</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右パネル：患者データ一覧・グラフ表示 -->
+  <div class="panel">
+    <h2>📊 患者データ管理</h2>
+
+    <div style="margin-bottom:15px;">
+      <label>患者検索：</label>
+      <input type="text" id="patientSearch" placeholder="カルテ番号を入力..." style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+    </div>
+
+    <div class="patients-list" id="patientsList"></div>
+
+    <div id="graphSection" style="display:none;">
+      <h3 style="margin-top:0; color:var(--primary);">📈 推移グラフ</h3>
+      <div class="chart-container">
+        <canvas id="trendChart"></canvas>
+      </div>
+      <div class="chart-legend" id="chartLegend"></div>
+
+      <h3 style="color:var(--primary);">成績表</h3>
+      <p style="font-size:0.9rem;">このグラフを患者さんのスマホで見せられるQRコードを生成します：</p>
+      <div class="btn-row">
+        <button class="btn-accent" onclick="generateReportQR();">⭐ 患者さん向け成績表QRを生成</button>
+      </div>
+
+      <div id="reportQRSection" style="display:none; margin-top:20px; text-align:center; background:#fafaf8; padding:20px; border-radius:8px;">
+        <h4>患者さんにこのQRコードを見せてください</h4>
+        <div id="reportQRCode" style="display:inline-block;"></div>
+        <p style="font-size:0.8rem; color:var(--muted); margin-top:10px;">このQRコードをスマホで読み取ると、グラフ付きの成績表が表示されます</p>
+        <button class="btn-secondary" onclick="downloadReportQR();" style="width:100%; margin-top:10px;">⬇️ QRコード画像をダウンロード</button>
+      </div>
+
+      <div class="btn-row" style="margin-top:20px;">
+        <button class="btn-secondary" onclick="exportToCSV();">📥 CSVでダウンロード（全患者分）</button>
+      </div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+<script>
+// ======== グローバル状態 ========
+let allPatients = []; // 保存されたすべての患者データ
+let currentReceivedData = null; // 現在受信したデータ
+let trendChart = null;
+
+// ======== LocalStorageからデータ読み込み ========
+function loadPatientsFromStorage() {
+  const stored = localStorage.getItem('patientDatabase');
+  if (stored) {
+    try {
+      allPatients = JSON.parse(stored);
+    } catch (e) {
+      console.error('データ読み込みエラー', e);
+      allPatients = [];
+    }
+  }
+  refreshPatientsList();
+}
+
+// ======== データをLocalStorageに保存 ========
+function savePatientsToStorage() {
+  localStorage.setItem('patientDatabase', JSON.stringify(allPatients));
+}
+
+// ======== QRテキスト読み込み ========
+function parseQRText() {
+  const text = document.getElementById('qrTextInput').value.trim();
+  if (!text) {
+    alert('QRデータを入力してください');
+    return;
+  }
+
+  try {
+    const payload = FE.reassembleFrames([text]);
+    currentReceivedData = payload;
+    displayReceivedData(payload);
+  } catch (e) {
+    alert('QRデータの読み込みに失敗しました:\n' + e.message);
+  }
+}
+
+// ======== 受信データを表示 ========
+function displayReceivedData(payload) {
+  const { id, date, a, s } = payload;
+
+  document.getElementById('displayPatientId').textContent = id || '不明';
+  document.getElementById('displayDate').textContent = date || '不明';
+  document.getElementById('scoreHIT6').textContent = s.hit6 !== null ? s.hit6 : '-';
+  document.getElementById('scoreGAD7').textContent = s.gad7 !== null ? s.gad7 : '-';
+  document.getElementById('scorePHQ9').textContent = s.phq9 !== null ? s.phq9 : '-';
+  document.getElementById('scoreMIBS4').textContent = s.mibs4 !== null ? s.mibs4 : '-';
+  document.getElementById('scoreMHD').textContent = s.mhd !== null ? s.mhd : '-';
+  document.getElementById('scoreAMD').textContent = s.amd !== null ? s.amd : '-';
+
+  if (s.phq9_item9_flag) {
+    document.getElementById('phq9Warning').style.display = 'block';
+  } else {
+    document.getElementById('phq9Warning').style.display = 'none';
+  }
+
+  document.getElementById('patientData').style.display = 'block';
+  document.getElementById('frameList').style.display = 'none';
+}
+
+// ======== 患者データを保存 ========
+function savePatientData() {
+  if (!currentReceivedData) return;
+
+  const { id, date, a, s } = currentReceivedData;
+
+  // 既存患者を検索
+  let patient = allPatients.find(p => p.id === id);
+  if (!patient) {
+    patient = { id, visits: [] };
+    allPatients.push(patient);
+  }
+
+  // 訪問記録を追加
+  patient.visits.push({
+    date,
+    answers: a,
+    scores: s,
+    timestamp: new Date().toISOString()
+  });
+
+  savePatientsToStorage();
+  alert('患者データを保存しました: カルテ番号 ' + id);
+  reset();
+}
+
+// ======== リセット ========
+function reset() {
+  currentReceivedData = null;
+  document.getElementById('patientData').style.display = 'none';
+  document.getElementById('qrTextInput').value = '';
+  document.getElementById('frameList').style.display = 'none';
+  refreshPatientsList();
+}
+
+// ======== 患者一覧を更新 ========
+function refreshPatientsList() {
+  const searchText = document.getElementById('patientSearch').value.toLowerCase();
+  const filtered = allPatients.filter(p => p.id.toLowerCase().includes(searchText));
+
+  const list = document.getElementById('patientsList');
+  list.innerHTML = '';
+
+  filtered.forEach(patient => {
+    const latestVisit = patient.visits[patient.visits.length - 1] || {};
+    const card = document.createElement('div');
+    card.className = 'patient-card';
+    card.onclick = () => selectPatient(patient.id);
+    card.innerHTML = `
+      <div class="id">カルテ番号: ${patient.id}</div>
+      <div class="date">受診回数: ${patient.visits.length} 回</div>
+      <div class="scores">
+        最新: HIT6=${latestVisit.scores?.hit6 || '-'},
+        MIBS4=${latestVisit.scores?.mibs4 || '-'},
+        MHD=${latestVisit.scores?.mhd || '-'}
+      </div>
+    `;
+    list.appendChild(card);
+  });
+
+  if (filtered.length === 0) {
+    list.innerHTML = '<p style="text-align:center; color:var(--muted);">患者データなし</p>';
+  }
+}
+
+// ======== 患者を選択＆グラフ表示 ========
+function selectPatient(patientId) {
+  const patient = allPatients.find(p => p.id === patientId);
+  if (!patient) return;
+
+  displayGraphForPatient(patient);
+  document.getElementById('graphSection').style.display = 'block';
+  document.getElementById('reportQRSection').style.display = 'none';
+}
+
+// ======== グラフ表示 ========
+function displayGraphForPatient(patient) {
+  const visits = patient.visits.sort((a, b) => new Date(a.date) - new Date(b.date));
+
+  const labels = visits.map(v => v.date);
+  const hit6Data = visits.map(v => v.scores.hit6 || null);
+  const mibs4Data = visits.map(v => v.scores.mibs4 || null);
+  const mhdData = visits.map(v => v.scores.mhd || null);
+
+  const ctx = document.getElementById('trendChart').getContext('2d');
+
+  if (trendChart) {
+    trendChart.destroy();
+  }
+
+  trendChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        {
+          label: 'HIT-6 (36-78)',
+          data: hit6Data,
+          borderColor: '#e8734a',
+          backgroundColor: 'rgba(232, 115, 74, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        },
+        {
+          label: 'MIBS-4 (0-12)',
+          data: mibs4Data,
+          borderColor: '#2f6f6b',
+          backgroundColor: 'rgba(47, 111, 107, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        },
+        {
+          label: 'MHD (日/月)',
+          data: mhdData,
+          borderColor: '#f39c12',
+          backgroundColor: 'rgba(243, 156, 18, 0.1)',
+          tension: 0.3,
+          borderWidth: 2,
+          pointRadius: 5,
+          pointHoverRadius: 7
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: false
+        }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 80
+        }
+      }
+    }
+  });
+
+  // 凡例を表示
+  const legend = document.getElementById('chartLegend');
+  legend.innerHTML = `
+    <div class="legend-item">
+      <div class="legend-color" style="background:#e8734a;"></div>
+      <span>HIT-6</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background:#2f6f6b;"></div>
+      <span>MIBS-4</span>
+    </div>
+    <div class="legend-item">
+      <div class="legend-color" style="background:#f39c12;"></div>
+      <span>MHD</span>
+    </div>
+  `;
+
+  window.currentSelectedPatient = patient;
+}
+
+// ======== 患者さん向け成績表QR生成 ========
+function generateReportQR() {
+  const patient = window.currentSelectedPatient;
+  if (!patient) {
+    alert('患者を選択してください');
+    return;
+  }
+
+  // 成績表ページのURL（後で実装）
+  const reportUrl = window.location.origin + window.location.pathname.replace(/[^/]*$/, '') + '患者用_成績表.html?id=' + encodeURIComponent(patient.id);
+
+  const qrSection = document.getElementById('reportQRSection');
+  const qrCode = document.getElementById('reportQRCode');
+  qrCode.innerHTML = '';
+
+  new QRCode(qrCode, {
+    text: reportUrl,
+    width: 250,
+    height: 250,
+    correctLevel: QRCode.CorrectLevel.M
+  });
+
+  qrSection.style.display = 'block';
+  window.reportQRUrl = reportUrl;
+}
+
+// ======== QRコード画像をダウンロード ========
+function downloadReportQR() {
+  const qrCanvas = document.querySelector('#reportQRCode canvas');
+  if (!qrCanvas) {
+    alert('QRコードを先に生成してください');
+    return;
+  }
+
+  const link = document.createElement('a');
+  link.href = qrCanvas.toDataURL();
+  link.download = '成績表_' + window.currentSelectedPatient.id + '.png';
+  link.click();
+}
+
+// ======== CSV出力 ========
+function exportToCSV() {
+  if (allPatients.length === 0) {
+    alert('データがありません');
+    return;
+  }
+
+  let csv = 'カルテ番号,記入日,HIT6,GAD7,PHQ9,MIBS4,MHD,AMD\n';
+
+  allPatients.forEach(patient => {
+    patient.visits.forEach(visit => {
+      const s = visit.scores;
+      csv += `${patient.id},${visit.date},${s.hit6 || ''},${s.gad7 || ''},${s.phq9 || ''},${s.mibs4 || ''},${s.mhd || ''},${s.amd || ''}\n`;
+    });
+  });
+
+  const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = '頭痛外来_全患者データ_' + new Date().toISOString().split('T')[0] + '.csv';
+  link.click();
+}
+
+// ======== 患者検索 ========
+document.getElementById('patientSearch').addEventListener('input', refreshPatientsList);
+
+// ======== 初期化 ========
+window.addEventListener('load', () => {
+  loadPatientsFromStorage();
+});
+
+// ======== QRコード分割フレーム再組立エンジン（初診/再診アンケートから取得） ========
+// ここに FE.reassembleFrames をインポートする必要がある
+// 簡略版を以下に実装
+
+function bytesToBase64(bytes) {
+  const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let out = "";
+  let i;
+  for (i = 0; i + 2 < bytes.length; i += 3) {
+    const n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+    out += B64_CHARS[(n >>> 18) & 63] + B64_CHARS[(n >>> 12) & 63] + B64_CHARS[(n >>> 6) & 63] + B64_CHARS[n & 63];
+  }
+  const rem = bytes.length - i;
+  if (rem === 1) {
+    const n1 = bytes[i] << 16;
+    out += B64_CHARS[(n1 >>> 18) & 63] + B64_CHARS[(n1 >>> 12) & 63] + "==";
+  } else if (rem === 2) {
+    const n2 = (bytes[i] << 16) | (bytes[i + 1] << 8);
+    out += B64_CHARS[(n2 >>> 18) & 63] + B64_CHARS[(n2 >>> 12) & 63] + B64_CHARS[(n2 >>> 6) & 63] + "=";
+  }
+  return out;
+}
+
+function base64ToBytes(b64) {
+  const B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+  let str = b64.replace(/[\r\n\s]/g, "");
+  if (str.length % 4 !== 0) {
+    str += "=".repeat(4 - (str.length % 4));
+  }
+  const padLen = str.slice(-2) === "==" ? 2 : str.slice(-1) === "=" ? 1 : 0;
+  const byteLen = (str.length / 4) * 3 - padLen;
+  const bytes = new Uint8Array(byteLen);
+  let p = 0;
+  for (let i = 0; i < str.length; i += 4) {
+    const c0 = str[i], c1 = str[i + 1], c2 = str[i + 2], c3 = str[i + 3];
+    const e0 = B64_CHARS.indexOf(c0);
+    const e1 = B64_CHARS.indexOf(c1);
+    const e2 = c2 === "=" ? 0 : B64_CHARS.indexOf(c2);
+    const e3 = c3 === "=" ? 0 : B64_CHARS.indexOf(c3);
+    const n = ((e0 & 63) << 18) | ((e1 & 63) << 12) | ((e2 & 63) << 6) | (e3 & 63);
+    if (p < byteLen) bytes[p++] = (n >>> 16) & 255;
+    if (c2 !== "=" && p < byteLen) bytes[p++] = (n >>> 8) & 255;
+    if (c3 !== "=" && p < byteLen) bytes[p++] = n & 255;
+  }
+  return bytes;
+}
+
+function base64ToUtf8(b64) {
+  const bytes = base64ToBytes(b64);
+  return new TextDecoder().decode(bytes);
+}
+
+function simpleHash(str) {
+  let h = 0;
+  for (let i = 0; i < str.length; i++) {
+    h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  }
+  return h.toString(36);
+}
+
+const FE = {
+  reassembleFrames: function (frameList) {
+    const parsed = frameList.map(f => {
+      const m = /^HZQ1:([^:]+):(\d+)\/(\d+):([^:]+):([\s\S]*)$/.exec(f);
+      if (!m) return null;
+      return { sid: m[1], idx: Number(m[2]), total: Number(m[3]), hash: m[4], chunk: m[5] };
+    }).filter(Boolean);
+
+    if (!parsed.length) throw new Error("不正なQRデータです");
+
+    const sid = parsed[0].sid;
+    const total = parsed[0].total;
+    const hash = parsed[0].hash;
+    const byIdx = {};
+
+    parsed.forEach(p => {
+      if (p.sid === sid) byIdx[p.idx] = p.chunk;
+    });
+
+    let full = "";
+    for (let i = 1; i <= total; i++) {
+      if (!byIdx[i]) throw new Error("パート " + i + "/" + total + " が不足しています");
+      full += byIdx[i];
+    }
+
+    if (simpleHash(full) !== hash) throw new Error("データの整合性チェックに失敗しました");
+
+    const json = base64ToUtf8(full);
+    return JSON.parse(json);
+  }
+};
+</script>
+</body>
+</html>
