@@ -1,0 +1,2088 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<meta name="robots" content="noindex, nofollow">
+<title>頭痛外来 初診アンケート</title>
+<style>
+:root{
+  --primary:#2f6f6b;
+  --primary-dark:#204d4a;
+  --accent:#e8734a;
+  --bg:#f6f4ef;
+  --card:#ffffff;
+  --text:#2a2a2a;
+  --muted:#767676;
+  --border:#e2ddd2;
+  --danger:#c0392b;
+  --radius:14px;
+  --shadow:0 2px 10px rgba(0,0,0,0.06);
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",-apple-system,BlinkMacSystemFont,sans-serif;
+  background:var(--bg);
+  color:var(--text);
+  line-height:1.6;
+  padding-bottom:100px;
+  -webkit-text-size-adjust:100%;
+}
+header.app-header{
+  background:var(--primary);
+  color:#fff;
+  padding:18px 20px 22px;
+  position:sticky;
+  top:0;
+  z-index:20;
+  box-shadow:var(--shadow);
+}
+header.app-header h1{
+  margin:0;
+  font-size:1.15rem;
+  font-weight:700;
+}
+header.app-header p{
+  margin:4px 0 0;
+  font-size:0.8rem;
+  opacity:0.9;
+}
+.progress-wrap{
+  background:rgba(255,255,255,0.25);
+  border-radius:6px;
+  height:6px;
+  margin-top:12px;
+  overflow:hidden;
+}
+.progress-bar{
+  background:#fff;
+  height:100%;
+  width:0%;
+  transition:width .25s ease;
+}
+main{
+  max-width:640px;
+  margin:0 auto;
+  padding:16px 14px 40px;
+}
+.id-card{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin-bottom:18px;
+  border:2px solid var(--primary);
+}
+.id-card label{
+  display:block;
+  font-weight:700;
+  font-size:0.95rem;
+  margin-bottom:6px;
+}
+.id-card .hint{
+  font-size:0.78rem;
+  color:var(--muted);
+  margin-top:4px;
+}
+section.qsection{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  margin-bottom:16px;
+  overflow:hidden;
+}
+section.qsection > .sec-head{
+  background:linear-gradient(135deg,var(--primary),var(--primary-dark));
+  color:#fff;
+  padding:12px 16px;
+  font-weight:700;
+  font-size:1rem;
+}
+section.qsection > .sec-body{
+  padding:14px 16px 6px;
+}
+.qblock{
+  padding:14px 0;
+  border-bottom:1px solid var(--border);
+}
+.qblock:last-child{border-bottom:none;}
+.qcode{
+  display:inline-block;
+  background:var(--primary);
+  color:#fff;
+  font-size:0.7rem;
+  padding:1px 7px;
+  border-radius:10px;
+  margin-right:6px;
+  font-weight:700;
+  vertical-align:middle;
+}
+.qtext{
+  font-weight:600;
+  font-size:0.95rem;
+  margin:0 0 10px;
+}
+.qnote{
+  font-size:0.78rem;
+  color:var(--muted);
+  margin:-6px 0 10px;
+}
+.options{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px;
+}
+.opt-btn{
+  border:2px solid var(--border);
+  background:#fff;
+  border-radius:10px;
+  padding:10px 14px;
+  font-size:0.9rem;
+  cursor:pointer;
+  user-select:none;
+  flex:1 1 auto;
+  text-align:center;
+  min-width:44%;
+  transition:all .15s ease;
+}
+.opt-btn.wide{min-width:100%;text-align:left;}
+.opt-btn.selected{
+  border-color:var(--primary);
+  background:var(--primary);
+  color:#fff;
+  font-weight:700;
+}
+.opt-btn:active{transform:scale(0.98);}
+input[type=text],input[type=number],input[type=date],textarea{
+  width:100%;
+  border:2px solid var(--border);
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:1rem;
+  font-family:inherit;
+  background:#fff;
+  color:var(--text);
+}
+textarea{min-height:70px;resize:vertical;}
+.num-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+  margin-bottom:8px;
+  padding:8px 10px;
+  border-radius:8px;
+}
+.num-row input{width:90px;flex:0 0 90px;}
+.num-row .unit{font-size:0.85rem;color:var(--muted);}
+.num-row .num-label{font-size:0.85rem;min-width:96px;font-weight:700;}
+.num-row.color-teal{background:#e3f2f0;border-left:4px solid #2f6f6b;}
+.num-row.color-yellow{background:#fff8e1;border-left:4px solid #f0ad4e;}
+.num-row.color-amber{background:#fdf0e3;border-left:4px solid #e8734a;}
+.num-row.color-green{background:#e8f5e9;border-left:4px solid #27ae60;}
+.scale11{
+  display:grid;
+  grid-template-columns:repeat(11, minmax(0, 1fr));
+  gap:3px;
+  margin-top:4px;
+  width:100%;
+}
+.scale11 .s-btn{
+  width:100%;
+  aspect-ratio:1/1;
+  border:2px solid var(--border);
+  border-radius:7px;
+  background:#fff;
+  font-weight:700;
+  font-size:0.72rem;
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  min-width:0;
+  padding:0;
+}
+.scale11 .s-btn.selected{
+  background:var(--accent);
+  border-color:var(--accent);
+  color:#fff;
+}
+.scale-labels{
+  display:flex;justify-content:space-between;
+  font-size:0.7rem;color:var(--muted);margin-top:4px;
+}
+.slider-container{
+  margin-top:12px;
+  padding:14px 0;
+}
+.slider-input{
+  width:100%;
+  height:48px;
+  -webkit-appearance:none;
+  appearance:none;
+  background:transparent;
+  cursor:pointer;
+  padding:0 8px;
+}
+.slider-input::-webkit-slider-track{
+  height:6px;
+  background:linear-gradient(to right, #d4e7e5, var(--primary));
+  border-radius:3px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.1);
+}
+.slider-input::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  appearance:none;
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  border:3px solid #fff;
+}
+.slider-input::-moz-range-track{
+  height:6px;
+  background:linear-gradient(to right, #d4e7e5, var(--primary));
+  border-radius:3px;
+  box-shadow:0 1px 3px rgba(0,0,0,0.1);
+  border:none;
+}
+.slider-input::-moz-range-thumb{
+  width:44px;
+  height:44px;
+  border-radius:50%;
+  background:var(--primary);
+  cursor:pointer;
+  box-shadow:0 2px 6px rgba(0,0,0,0.15);
+  border:3px solid #fff;
+}
+.slider-input::-moz-range-progress{
+  background:var(--primary);
+  height:6px;
+  border-radius:3px;
+}
+.slider-value-display{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  margin-top:12px;
+  font-size:0.85rem;
+}
+.slider-value-display .current-value{
+  font-weight:700;
+  font-size:1.15rem;
+  color:var(--primary);
+  min-width:60px;
+  text-align:center;
+}
+.slider-value-display .current-label{
+  font-weight:500;
+  color:var(--muted);
+  flex:1;
+  margin-left:12px;
+}
+.slider-labels-row{
+  display:flex;
+  justify-content:space-between;
+  font-size:0.68rem;
+  color:var(--muted);
+  margin-top:6px;
+  padding:0 2px;
+}
+.slider-hint{
+  font-size:0.74rem;
+  color:#999;
+  margin:-6px 0 10px;
+}
+.slider-face-label{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  gap:2px;
+  max-width:100px;
+}
+.slider-face-label .face-emoji{
+  font-size:1.6rem;
+  line-height:1;
+}
+.slider-face-label .face-text{
+  font-size:0.66rem;
+  color:var(--muted);
+  text-align:center;
+  line-height:1.3;
+}
+table.matrix{
+  width:100%;
+  border-collapse:collapse;
+  font-size:0.82rem;
+}
+table.matrix th, table.matrix td{
+  border:1px solid var(--border);
+  padding:6px 4px;
+  text-align:center;
+  vertical-align:middle;
+}
+table.matrix th{
+  background:#f1efe8;
+  font-weight:700;
+  font-size:0.72rem;
+}
+table.matrix td.qcell{
+  text-align:left;
+  font-size:0.82rem;
+  padding-right:6px;
+}
+table.matrix td.qcell .row-code{
+  font-weight:700;
+  color:var(--primary);
+  margin-right:4px;
+}
+.matrix-radio{
+  width:20px;height:20px;accent-color:var(--primary);
+}
+.matrix-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.subscore{
+  text-align:right;
+  font-size:0.85rem;
+  color:var(--primary-dark);
+  font-weight:700;
+  margin-top:8px;
+}
+.footer-nav{
+  position:fixed;
+  bottom:0;left:0;right:0;
+  background:#fff;
+  border-top:1px solid var(--border);
+  padding:10px 16px calc(10px + env(safe-area-inset-bottom));
+  display:flex;
+  gap:10px;
+  z-index:30;
+  box-shadow:0 -2px 10px rgba(0,0,0,0.08);
+}
+.btn{
+  border:none;
+  border-radius:12px;
+  padding:14px 18px;
+  font-size:1rem;
+  font-weight:700;
+  cursor:pointer;
+  flex:1;
+}
+.btn-primary{background:var(--primary);color:#fff;}
+.btn-secondary{background:#eee;color:var(--text);}
+.btn-accent{background:var(--accent);color:#fff;}
+.btn:disabled{opacity:0.4;}
+.warn-banner{
+  background:#fdecea;
+  border:2px solid var(--danger);
+  color:var(--danger);
+  border-radius:10px;
+  padding:12px 14px;
+  font-size:0.85rem;
+  font-weight:700;
+  margin-bottom:14px;
+}
+.result-screen{display:none;}
+.result-screen.active{display:block;}
+.score-grid{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  margin:14px 0;
+}
+.score-card{
+  background:var(--card);
+  border-radius:12px;
+  box-shadow:var(--shadow);
+  padding:14px;
+  text-align:center;
+}
+.score-card .label{font-size:0.75rem;color:var(--muted);font-weight:700;}
+.score-card .value{font-size:1.7rem;font-weight:800;color:var(--primary-dark);margin-top:2px;}
+.score-card .unit{font-size:0.7rem;color:var(--muted);}
+.score-card.flag{background:#fdecea;}
+.score-card.flag .value{color:var(--danger);}
+.qr-wrap{
+  background:#fff;
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:18px;
+  text-align:center;
+  margin:14px 0;
+}
+#qrcanvas-holder{
+  display:flex;justify-content:center;align-items:center;
+  min-height:220px;
+}
+.qr-progress{
+  font-size:0.85rem;color:var(--muted);margin-top:8px;font-weight:700;
+}
+.qr-dots{display:flex;justify-content:center;gap:5px;margin-top:8px;}
+.qr-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);}
+.qr-dots span.on{background:var(--primary);}
+.tabbar{display:flex;gap:8px;margin:14px 0;}
+.tabbar button{
+  flex:1;border:2px solid var(--primary);background:#fff;color:var(--primary);
+  border-radius:10px;padding:10px;font-weight:700;font-size:0.85rem;cursor:pointer;
+}
+.tabbar button.active{background:var(--primary);color:#fff;}
+.output-panel{display:none;}
+.output-panel.active{display:block;}
+textarea.readout{
+  width:100%;min-height:260px;font-size:0.78rem;font-family:ui-monospace,monospace;
+  background:#faf9f5;
+}
+.small-btn-row{display:flex;gap:8px;margin-top:10px;}
+.small-btn{
+  flex:1;border:2px solid var(--primary);background:#fff;color:var(--primary);
+  border-radius:10px;padding:10px;font-weight:700;font-size:0.85rem;cursor:pointer;
+}
+.small-btn.filled{background:var(--primary);color:#fff;}
+.notice{
+  font-size:0.75rem;color:var(--muted);background:#f1efe8;border-radius:10px;padding:10px 12px;margin:10px 0;
+}
+.required-mark{color:var(--danger);font-size:0.75rem;margin-left:2px;}
+.err-msg{color:var(--danger);font-size:0.78rem;margin-top:6px;display:none;font-weight:700;}
+.qblock.has-error .err-msg{display:block;}
+.qblock.has-error .qtext{color:var(--danger);}
+.hidden{display:none !important;}
+.brand-footer{
+  text-align:center;font-size:0.7rem;color:var(--muted);margin-top:26px;
+}
+.privacy-notice{
+  background:var(--card);
+  border-radius:var(--radius);
+  box-shadow:var(--shadow);
+  padding:16px;
+  margin:16px 0 8px;
+  font-size:0.8rem;
+  color:var(--text);
+  line-height:1.7;
+  border-left:4px solid var(--primary);
+}
+.privacy-notice p{margin:0 0 8px;}
+.privacy-notice p:last-child{margin-bottom:0;}
+
+</style>
+</head>
+<body>
+<header class="app-header">
+  <h1>🏥 頭痛外来　初診アンケート</h1>
+  <p>待合室でのご入力にご協力いただき、ありがとうございます。</p>
+  <div class="progress-wrap"><div class="progress-bar" id="progressBar"></div></div>
+</header>
+<main>
+  <div id="formScreen">
+    <div class="id-card">
+      <label for="formDate">記入日</label>
+      <input type="date" id="formDate">
+      <div class="hint">このアンケートにはお名前・カルテ番号などの識別情報は含まれません。回答後に表示されるQRコードを、受付にてスタッフの端末で読み取っていただきます。</div>
+    </div>
+    <div id="qContainer"></div>
+  </div>
+  <div id="resultScreen" class="result-screen"></div>
+</main>
+<div class="footer-nav" id="footerNav">
+  <button class="btn btn-secondary" id="btnBackTop" style="display:none;">戻る</button>
+  <button class="btn btn-primary" id="btnSubmit">回答内容を確認する</button>
+</div>
+<script>
+/* =========================================================================
+   頭痛外来デジタル問診 共通エンジン (Headache Clinic Digital Questionnaire Engine)
+   - フォーム描画 / 回答収集 / スコア自動計算 / QR分割出力 / CSV・テキスト出力
+   患者側の入力・QRコードにはカルテ番号を含めない。医師端末側でQR読み取り後にカルテ番号を入力し照合する。
+   ========================================================================= */
+(function (global) {
+  "use strict";
+
+  var FE = {};
+
+  /* ------------------------------------------------------------------ *
+   * 1. 汎用フォーム描画
+   * ------------------------------------------------------------------ */
+
+  function el(tag, cls, html) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (html !== undefined) e.innerHTML = html;
+    return e;
+  }
+
+  function qblock(q) {
+    var b = el("div", "qblock");
+    b.setAttribute("data-code", q.code);
+    if (q.showIf) b.setAttribute("data-showif", "1");
+    return b;
+  }
+
+  function qHeader(b, q) {
+    if (q.text) {
+      var t = el("p", "qtext");
+      if (q.label) {
+        var tag = el("span", "qcode", q.label);
+        t.appendChild(tag);
+      }
+      t.appendChild(document.createTextNode(q.text + (q.required ? "" : "")));
+      if (q.required) {
+        var r = el("span", "required-mark", "＊必須");
+        t.appendChild(r);
+      }
+      b.appendChild(t);
+    }
+    if (q.note) b.appendChild(el("p", "qnote", q.note));
+  }
+
+  function errMsg(b) {
+    b.appendChild(el("div", "err-msg", "この項目にお答えください"));
+  }
+
+  function makeOptBtn(container, code, value, label, wide, group) {
+    var btn = el("div", "opt-btn" + (wide ? " wide" : ""), label);
+    btn.setAttribute("data-value", value);
+    btn.addEventListener("click", function () {
+      if (group === "single") {
+        Array.prototype.forEach.call(
+          container.querySelectorAll(".opt-btn"),
+          function (o) {
+            o.classList.remove("selected");
+          }
+        );
+        btn.classList.add("selected");
+      } else {
+        btn.classList.toggle("selected");
+      }
+      container.closest(".qblock").classList.remove("has-error");
+      FE._onAnswerChanged();
+    });
+    container.appendChild(btn);
+    return btn;
+  }
+
+  function renderRadio(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var opts = el("div", "options");
+    var wide = q.wide || false;
+    q.options.forEach(function (o) {
+      makeOptBtn(opts, q.code, o.value, o.label, wide, "single");
+    });
+    b.appendChild(opts);
+    if (q.other) {
+      var oi = el("input");
+      oi.type = "text";
+      oi.placeholder = "その他の内容があればご記入ください";
+      oi.className = "other-input";
+      oi.style.marginTop = "8px";
+      oi.setAttribute("data-other-for", q.code);
+      b.appendChild(oi);
+    }
+    errMsg(b);
+    return b;
+  }
+
+  function renderCheckbox(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var opts = el("div", "options");
+    var wide = q.wide || false;
+    q.options.forEach(function (o) {
+      var btn = makeOptBtn(opts, q.code, o.value, o.label, wide, "multi");
+      if (o.exclusive) btn.setAttribute("data-exclusive", "1");
+    });
+    // 排他選択（「なし」等）を選んだら他を解除、他を選んだら排他解除
+    opts.addEventListener("click", function (ev) {
+      var target = ev.target.closest(".opt-btn");
+      if (!target) return;
+      var all = Array.prototype.slice.call(opts.querySelectorAll(".opt-btn"));
+      if (target.getAttribute("data-exclusive") === "1") {
+        if (target.classList.contains("selected")) {
+          all.forEach(function (o) {
+            if (o !== target) o.classList.remove("selected");
+          });
+        }
+      } else {
+        all.forEach(function (o) {
+          if (o.getAttribute("data-exclusive") === "1")
+            o.classList.remove("selected");
+        });
+      }
+    });
+    b.appendChild(opts);
+    if (q.other) {
+      var oi = el("input");
+      oi.type = "text";
+      oi.placeholder = "その他の内容があればご記入ください";
+      oi.className = "other-input";
+      oi.style.marginTop = "8px";
+      oi.setAttribute("data-other-for", q.code);
+      b.appendChild(oi);
+    }
+    errMsg(b);
+    return b;
+  }
+
+  function renderText(q, isArea) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var inp = el(isArea ? "textarea" : "input");
+    if (!isArea) inp.type = "text";
+    inp.setAttribute("data-code", q.code);
+    inp.className = "field-input";
+    if (q.placeholder) inp.placeholder = q.placeholder;
+    inp.addEventListener("input", FE._onAnswerChanged);
+    b.appendChild(inp);
+    errMsg(b);
+    return b;
+  }
+
+  function renderNumberGroup(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    q.fields.forEach(function (f) {
+      var row = el("div", "num-row" + (f.color ? " color-" + f.color : ""));
+      if (f.label) row.appendChild(el("span", "num-label", f.label));
+      var inp = el("input");
+      inp.type = "number";
+      inp.inputMode = "decimal";
+      inp.setAttribute("data-code", f.code);
+      inp.className = "field-input";
+      inp.addEventListener("input", FE._onAnswerChanged);
+      row.appendChild(inp);
+      if (f.unit) row.appendChild(el("span", "unit", f.unit));
+      b.appendChild(row);
+    });
+    errMsg(b);
+    return b;
+  }
+
+  function renderSlider(q) {
+    // 0-10スケール用スライダー
+    var b = qblock(q);
+    qHeader(b, q);
+    if (q.hint) b.appendChild(el("p", "slider-hint", q.hint));
+    var scont = el("div", "slider-container");
+    var inp = el("input");
+    inp.type = "range";
+    inp.className = "slider-input";
+    inp.min = "0";
+    inp.max = "10";
+    inp.value = "5";
+    inp.setAttribute("data-code", q.code);
+    scont.appendChild(inp);
+
+    var valdisp = el("div", "slider-value-display");
+    var curval = el("div", "current-value", "5");
+    var curlbl = el("div", "current-label", "");
+    valdisp.appendChild(curval);
+    valdisp.appendChild(curlbl);
+    scont.appendChild(valdisp);
+
+    var lblrow = el("div", "slider-labels-row");
+    lblrow.innerHTML =
+      "<span class='slider-face-label'><span class='face-emoji'>" + (q.leftFace || "🙂") + "</span><span class='face-text'>" + (q.leftLabel || "0") + "</span></span>" +
+      "<span class='slider-face-label'><span class='face-emoji'>" + (q.rightFace || "😖") + "</span><span class='face-text'>" + (q.rightLabel || "10") + "</span></span>";
+    scont.appendChild(lblrow);
+    b.appendChild(scont);
+
+    inp.addEventListener("input", function () {
+      curval.textContent = inp.value;
+      b.classList.remove("has-error");
+      FE._onAnswerChanged();
+    });
+    errMsg(b);
+    return b;
+  }
+
+  function renderScale11(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var wrap = el("div", "scale11");
+    for (var i = 0; i <= 10; i++) {
+      (function (v) {
+        var btn = el("div", "s-btn", String(v));
+        btn.addEventListener("click", function () {
+          Array.prototype.forEach.call(wrap.querySelectorAll(".s-btn"), function (o) {
+            o.classList.remove("selected");
+          });
+          btn.classList.add("selected");
+          b.classList.remove("has-error");
+          FE._onAnswerChanged();
+        });
+        wrap.appendChild(btn);
+      })(i);
+    }
+    wrap.setAttribute("data-code", q.code);
+    b.appendChild(wrap);
+    var lab = el("div", "scale-labels");
+    lab.innerHTML =
+      "<span>" + (q.leftLabel || "全く痛くない") + "</span><span>" + (q.rightLabel || "これ以上ない激しい痛み") + "</span>";
+    b.appendChild(lab);
+    errMsg(b);
+    return b;
+  }
+
+  function renderMatrix(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var wrap = el("div", "matrix-wrap");
+    var table = el("table", "matrix");
+    var thead = el("thead");
+    var htr = el("tr");
+    htr.appendChild(el("th", "", "質問"));
+    q.columns.forEach(function (c) {
+      htr.appendChild(el("th", "", c.label));
+    });
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = el("tbody");
+    q.rows.forEach(function (r) {
+      var tr = el("tr");
+      tr.setAttribute("data-row-code", r.code);
+      var qc = el("td", "qcell");
+      qc.innerHTML = '<span class="row-code">' + r.code + "</span>" + r.text;
+      tr.appendChild(qc);
+      var gname = q.code + "_" + r.code;
+      q.columns.forEach(function (c, ci) {
+        var td = el("td");
+        var radio = el("input");
+        radio.type = "radio";
+        radio.name = gname;
+        radio.className = "matrix-radio";
+        radio.value = String(ci);
+        radio.setAttribute("data-code", gname);
+        radio.addEventListener("change", function () {
+          b.classList.remove("has-error");
+          FE._onAnswerChanged();
+        });
+        td.appendChild(radio);
+        tr.appendChild(td);
+      });
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    b.appendChild(wrap);
+    var sub = el("div", "subscore");
+    sub.setAttribute("data-subscore-for", q.code);
+    b.appendChild(sub);
+    errMsg(b);
+    return b;
+  }
+
+  function renderNrsMatrix(q) {
+    // 0-10の横並びを行として複数持つ表（治療満足度など）
+    var b = qblock(q);
+    qHeader(b, q);
+    var wrap = el("div", "matrix-wrap");
+    var table = el("table", "matrix");
+    var thead = el("thead");
+    var htr = el("tr");
+    htr.appendChild(el("th", "", "項目"));
+    for (var i = 0; i <= 10; i++) htr.appendChild(el("th", "", String(i)));
+    thead.appendChild(htr);
+    table.appendChild(thead);
+    var tbody = el("tbody");
+    q.rows.forEach(function (r) {
+      var tr = el("tr");
+      var qc = el("td", "qcell");
+      qc.innerHTML = "<b>" + r.label + "</b><br><span style='font-weight:400;font-size:0.72rem;'>" + (r.note || "") + "</span>";
+      tr.appendChild(qc);
+      var gname = q.code + "_" + r.code;
+      for (var v = 0; v <= 10; v++) {
+        var td = el("td");
+        var radio = el("input");
+        radio.type = "radio";
+        radio.name = gname;
+        radio.className = "matrix-radio";
+        radio.value = String(v);
+        radio.setAttribute("data-code", gname);
+        radio.addEventListener("change", FE._onAnswerChanged);
+        td.appendChild(radio);
+        tr.appendChild(td);
+      }
+      tbody.appendChild(tr);
+    });
+    table.appendChild(tbody);
+    wrap.appendChild(table);
+    b.appendChild(wrap);
+    errMsg(b);
+    return b;
+  }
+
+  function renderSideEffects(q) {
+    // 副作用チェック K（部位/症状固定リスト、あり・なし＋詳細）
+    var b = qblock(q);
+    qHeader(b, q);
+    q.rows.forEach(function (r) {
+      var row = el("div", "qblock");
+      row.style.padding = "10px 0";
+      var t = el("p", "qtext", r.area + "：" + r.symptom);
+      t.style.fontSize = "0.85rem";
+      row.appendChild(t);
+      var opts = el("div", "options");
+      var gname = q.code + "_" + r.code;
+      ["あり", "なし"].forEach(function (label, idx) {
+        var btn = el("div", "opt-btn", label);
+        btn.setAttribute("data-value", idx === 0 ? "あり" : "なし");
+        btn.addEventListener("click", function () {
+          Array.prototype.forEach.call(opts.querySelectorAll(".opt-btn"), function (o) {
+            o.classList.remove("selected");
+          });
+          btn.classList.add("selected");
+          var detail = row.querySelector(".se-detail");
+          if (detail) detail.classList.toggle("hidden", idx !== 0);
+          FE._onAnswerChanged();
+        });
+        opts.appendChild(btn);
+      });
+      opts.setAttribute("data-code", gname);
+      row.appendChild(opts);
+      var detail = el("input");
+      detail.type = "text";
+      detail.placeholder = "いつ頃から・状況など（あればご記入ください）";
+      detail.className = "se-detail hidden field-input";
+      detail.setAttribute("data-code", gname + "_detail");
+      detail.style.marginTop = "8px";
+      detail.addEventListener("input", FE._onAnswerChanged);
+      row.appendChild(detail);
+      b.appendChild(row);
+    });
+    var freeText = el("textarea");
+    freeText.placeholder = "上記以外で気になる副作用があれば自由にご記入ください";
+    freeText.setAttribute("data-code", q.code + "_other");
+    freeText.style.marginTop = "10px";
+    freeText.addEventListener("input", FE._onAnswerChanged);
+    b.appendChild(freeText);
+    return b;
+  }
+
+  var RENDERERS = {
+    radio: renderRadio,
+    checkbox: renderCheckbox,
+    text: function (q) {
+      return renderText(q, false);
+    },
+    textarea: function (q) {
+      return renderText(q, true);
+    },
+    numbergroup: renderNumberGroup,
+    scale11: renderScale11,
+    slider: renderSlider,
+    matrix: renderMatrix,
+    nrsmatrix: renderNrsMatrix,
+    sideeffects: renderSideEffects
+  };
+
+  FE.render = function (schema, containerEl) {
+    containerEl.innerHTML = "";
+    schema.sections.forEach(function (sec) {
+      var s = el("section", "qsection");
+      s.appendChild(el("div", "sec-head", sec.title));
+      var body = el("div", "sec-body");
+      sec.questions.forEach(function (q) {
+        var renderer = RENDERERS[q.type];
+        if (!renderer) return;
+        var block = renderer(q);
+        if (q.showIf) block.classList.add("hidden");
+        body.appendChild(block);
+      });
+      s.appendChild(body);
+      containerEl.appendChild(s);
+    });
+    FE._applyConditionals(schema, containerEl);
+  };
+
+  /* 条件分岐表示 (showIf: {code, in:[...]}) */
+  FE._applyConditionals = function (schema, containerEl) {
+    var allQuestions = [];
+    schema.sections.forEach(function (sec) {
+      sec.questions.forEach(function (q) {
+        allQuestions.push(q);
+      });
+    });
+    function evalAll() {
+      var answers = FE.collect(schema, containerEl, true);
+      allQuestions.forEach(function (q) {
+        if (!q.showIf) return;
+        var block = containerEl.querySelector('.qblock[data-code="' + q.code + '"]');
+        if (!block) return;
+        var val = answers[q.showIf.code];
+        var show;
+        if (Array.isArray(val)) {
+          show = q.showIf.in.some(function (v) {
+            return val.indexOf(v) !== -1;
+          });
+        } else {
+          show = q.showIf.in.indexOf(val) !== -1;
+        }
+        block.classList.toggle("hidden", !show);
+      });
+    }
+    FE._onAnswerChanged = function () {
+      evalAll();
+    };
+    evalAll();
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 2. 回答収集
+   * ------------------------------------------------------------------ */
+
+  FE.collect = function (schema, containerEl, silent) {
+    var answers = {};
+    schema.sections.forEach(function (sec) {
+      sec.questions.forEach(function (q) {
+        var block = containerEl.querySelector('.qblock[data-code="' + q.code + '"]');
+        if (!block) return;
+        if (q.type === "radio") {
+          var sel = block.querySelector(".opt-btn.selected");
+          answers[q.code] = sel ? sel.getAttribute("data-value") : null;
+          if (q.other) {
+            var oi = block.querySelector(".other-input");
+            answers[q.code + "_other"] = oi ? oi.value.trim() : "";
+          }
+        } else if (q.type === "checkbox") {
+          var sels = block.querySelectorAll(".opt-btn.selected");
+          answers[q.code] = Array.prototype.map.call(sels, function (s) {
+            return s.getAttribute("data-value");
+          });
+          if (q.other) {
+            var oi2 = block.querySelector(".other-input");
+            answers[q.code + "_other"] = oi2 ? oi2.value.trim() : "";
+          }
+        } else if (q.type === "text" || q.type === "textarea") {
+          var f = block.querySelector(".field-input");
+          answers[q.code] = f ? f.value.trim() : "";
+        } else if (q.type === "numbergroup") {
+          q.fields.forEach(function (fd) {
+            var f2 = block.querySelector('[data-code="' + fd.code + '"]');
+            answers[fd.code] = f2 && f2.value !== "" ? Number(f2.value) : null;
+          });
+        } else if (q.type === "scale11") {
+          var sb = block.querySelector(".s-btn.selected");
+          answers[q.code] = sb ? Number(sb.textContent) : null;
+        } else if (q.type === "slider") {
+          var sldr = block.querySelector(".slider-input");
+          answers[q.code] = sldr ? Number(sldr.value) : null;
+        } else if (q.type === "matrix") {
+          var rowTotal = 0,
+            answeredCount = 0;
+          q.rows.forEach(function (r) {
+            var gname = q.code + "_" + r.code;
+            var checked = block.querySelector('input[name="' + gname + '"]:checked');
+            var idx = checked ? Number(checked.value) : null;
+            answers[gname] = idx;
+            if (idx !== null) {
+              rowTotal += q.columns[idx].points;
+              answeredCount++;
+            }
+          });
+          answers[q.code + "__total"] = rowTotal;
+          answers[q.code + "__complete"] = answeredCount === q.rows.length;
+          if (!silent) {
+            var subEl = block.querySelector(".subscore[data-subscore-for='" + q.code + "']");
+            if (subEl) subEl.textContent = "小計: " + rowTotal + " 点" + (answeredCount === q.rows.length ? "" : "（未回答あり）");
+          }
+        } else if (q.type === "nrsmatrix") {
+          q.rows.forEach(function (r) {
+            var gname = q.code + "_" + r.code;
+            var checked = block.querySelector('input[name="' + gname + '"]:checked');
+            answers[gname] = checked ? Number(checked.value) : null;
+          });
+        } else if (q.type === "sideeffects") {
+          q.rows.forEach(function (r) {
+            var gname = q.code + "_" + r.code;
+            var opts = block.querySelector('.options[data-code="' + gname + '"]');
+            var sel3 = opts ? opts.querySelector(".opt-btn.selected") : null;
+            answers[gname] = sel3 ? sel3.getAttribute("data-value") : null;
+            var det = block.querySelector('[data-code="' + gname + '_detail"]');
+            answers[gname + "_detail"] = det ? det.value.trim() : "";
+          });
+          var freeT = block.querySelector('[data-code="' + q.code + '_other"]');
+          answers[q.code + "_other"] = freeT ? freeT.value.trim() : "";
+        }
+      });
+    });
+    return answers;
+  };
+
+  /* 未回答必須項目のチェック。false=OK, true=エラーあり */
+  FE.validateRequired = function (schema, containerEl) {
+    var answers = FE.collect(schema, containerEl, true);
+    var hasError = false;
+    var firstErrorBlock = null;
+    schema.sections.forEach(function (sec) {
+      sec.questions.forEach(function (q) {
+        if (!q.required) return;
+        var block = containerEl.querySelector('.qblock[data-code="' + q.code + '"]');
+        if (!block || block.classList.contains("hidden")) return;
+        var bad = false;
+        if (q.type === "radio" || q.type === "scale11" || q.type === "slider") {
+          bad = answers[q.code] === null || answers[q.code] === undefined;
+        } else if (q.type === "checkbox") {
+          bad = !answers[q.code] || answers[q.code].length === 0;
+        } else if (q.type === "text" || q.type === "textarea") {
+          bad = !answers[q.code];
+        } else if (q.type === "matrix") {
+          bad = !answers[q.code + "__complete"];
+        }
+        if (bad) {
+          hasError = true;
+          block.classList.add("has-error");
+          if (!firstErrorBlock) firstErrorBlock = block;
+        } else {
+          block.classList.remove("has-error");
+        }
+      });
+    });
+    if (firstErrorBlock) {
+      firstErrorBlock.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    return hasError;
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 3. スコア自動計算
+   * ------------------------------------------------------------------ */
+
+  function matrixTotal(answers, code) {
+    return answers[code + "__total"];
+  }
+
+  FE.computeScores = function (kind, answers) {
+    var s = {};
+    s.hit6 = matrixTotal(answers, "HIT6");
+    s.gad7 = matrixTotal(answers, "GAD7");
+    s.phq9 = matrixTotal(answers, "PHQ9");
+    s.mibs4 = matrixTotal(answers, "MIBS4");
+
+    // PHQ-9 第9項目（希死念慮）安全確認フラグ
+    var phq9item9 = answers["PHQ9_9"];
+    s.phq9_item9_flag = phq9item9 !== null && phq9item9 !== undefined && phq9item9 > 0;
+    s.phq9_item9_score = phq9item9;
+
+    if (kind === "shoki") {
+      s.mhd = answers["Q6_days"] != null ? answers["Q6_days"] : null;
+      s.mhd_category = answers["Q6"] || null;
+      s.amd = answers["Q19_total"] != null ? answers["Q19_total"] : null;
+    } else {
+      s.mhd = answers["Q1_days"] != null ? answers["Q1_days"] : null;
+      s.mhd_category = answers["Q1"] || null;
+      s.amd = answers["Q6_total"] != null ? answers["Q6_total"] : null;
+      s.pgic = answers["PGIC"] != null ? Number(answers["PGIC"]) : null;
+    }
+    return s;
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 4. QR分割ペイロード（"HZQ1" 独自プロトコル）
+   * ------------------------------------------------------------------ */
+
+  /* btoa/atob に依存しない自前Base64実装（環境差異を避けるため） */
+  var B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+  function bytesToBase64(bytes) {
+    var out = "";
+    var i;
+    for (i = 0; i + 2 < bytes.length; i += 3) {
+      var n = (bytes[i] << 16) | (bytes[i + 1] << 8) | bytes[i + 2];
+      out += B64_CHARS[(n >>> 18) & 63] + B64_CHARS[(n >>> 12) & 63] + B64_CHARS[(n >>> 6) & 63] + B64_CHARS[n & 63];
+    }
+    var rem = bytes.length - i;
+    if (rem === 1) {
+      var n1 = bytes[i] << 16;
+      out += B64_CHARS[(n1 >>> 18) & 63] + B64_CHARS[(n1 >>> 12) & 63] + "==";
+    } else if (rem === 2) {
+      var n2 = (bytes[i] << 16) | (bytes[i + 1] << 8);
+      out += B64_CHARS[(n2 >>> 18) & 63] + B64_CHARS[(n2 >>> 12) & 63] + B64_CHARS[(n2 >>> 6) & 63] + "=";
+    }
+    return out;
+  }
+
+  function base64ToBytes(b64) {
+    var str = b64.replace(/[\r\n\s]/g, "");
+    if (str.length % 4 !== 0) {
+      // 念のため4の倍数になるようパディングを補完
+      str += "=".repeat(4 - (str.length % 4));
+    }
+    var padLen = str.slice(-2) === "==" ? 2 : str.slice(-1) === "=" ? 1 : 0;
+    var byteLen = (str.length / 4) * 3 - padLen;
+    var bytes = new Uint8Array(byteLen);
+    var p = 0;
+    for (var i = 0; i < str.length; i += 4) {
+      var c0 = str[i],
+        c1 = str[i + 1],
+        c2 = str[i + 2],
+        c3 = str[i + 3];
+      var e0 = B64_CHARS.indexOf(c0);
+      var e1 = B64_CHARS.indexOf(c1);
+      var e2 = c2 === "=" ? 0 : B64_CHARS.indexOf(c2);
+      var e3 = c3 === "=" ? 0 : B64_CHARS.indexOf(c3);
+      var n = ((e0 & 63) << 18) | ((e1 & 63) << 12) | ((e2 & 63) << 6) | (e3 & 63);
+      if (p < byteLen) bytes[p++] = (n >>> 16) & 255;
+      if (c2 !== "=" && p < byteLen) bytes[p++] = (n >>> 8) & 255;
+      if (c3 !== "=" && p < byteLen) bytes[p++] = n & 255;
+    }
+    return bytes;
+  }
+
+  function utf8ToBase64(str) {
+    var bytes;
+    if (typeof TextEncoder !== "undefined") {
+      bytes = new TextEncoder().encode(str);
+    } else {
+      // TextEncoder非対応環境向けフォールバック
+      var arr = [];
+      for (var i = 0; i < str.length; i++) {
+        var code = str.codePointAt(i);
+        if (code > 0xffff) i++;
+        if (code < 0x80) {
+          arr.push(code);
+        } else if (code < 0x800) {
+          arr.push(0xc0 | (code >> 6), 0x80 | (code & 0x3f));
+        } else if (code < 0x10000) {
+          arr.push(0xe0 | (code >> 12), 0x80 | ((code >> 6) & 0x3f), 0x80 | (code & 0x3f));
+        } else {
+          arr.push(
+            0xf0 | (code >> 18),
+            0x80 | ((code >> 12) & 0x3f),
+            0x80 | ((code >> 6) & 0x3f),
+            0x80 | (code & 0x3f)
+          );
+        }
+      }
+      bytes = new Uint8Array(arr);
+    }
+    return bytesToBase64(bytes);
+  }
+
+  function base64ToUtf8(b64) {
+    var bytes = base64ToBytes(b64);
+    if (typeof TextDecoder !== "undefined") {
+      return new TextDecoder().decode(bytes);
+    }
+    // TextDecoder非対応環境向けフォールバック
+    var out = "";
+    var i = 0;
+    while (i < bytes.length) {
+      var b0 = bytes[i++];
+      if (b0 < 0x80) {
+        out += String.fromCharCode(b0);
+      } else if ((b0 & 0xe0) === 0xc0) {
+        var b1 = bytes[i++];
+        out += String.fromCharCode(((b0 & 0x1f) << 6) | (b1 & 0x3f));
+      } else if ((b0 & 0xf0) === 0xe0) {
+        var c1 = bytes[i++], c2 = bytes[i++];
+        out += String.fromCharCode(((b0 & 0x0f) << 12) | ((c1 & 0x3f) << 6) | (c2 & 0x3f));
+      } else {
+        var d1 = bytes[i++], d2 = bytes[i++], d3 = bytes[i++];
+        var cp = ((b0 & 0x07) << 18) | ((d1 & 0x3f) << 12) | ((d2 & 0x3f) << 6) | (d3 & 0x3f);
+        out += String.fromCodePoint(cp);
+      }
+    }
+    return out;
+  }
+
+  function simpleHash(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) {
+      h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    }
+    return h.toString(36);
+  }
+
+  // QRコードは基本的に1枚に収める。誤り訂正レベルL・QRバージョン自動選択で
+  // 1枚あたり約2900バイトまで収容可能なため、通常の回答量なら1フレームに収まる。
+  // 極端に長い自由記述などでこれを超える場合のみ、安全のため複数フレームに分割する。
+  var CHUNK_SIZE = 2800; // base64文字数/フレーム
+
+  function compactAnswers(answers) {
+    // null・未回答・空文字・空配列は送信データから除外してQRコードの容量を節約する
+    var out = {};
+    Object.keys(answers).forEach(function (k) {
+      var v = answers[k];
+      if (v === null || v === undefined || v === "") return;
+      if (Array.isArray(v) && v.length === 0) return;
+      out[k] = v;
+    });
+    return out;
+  }
+
+  FE.buildPayload = function (kind, answers, scores) {
+    return {
+      v: 1,
+      kind: kind, // "shoki" | "saishin"
+      // カルテ番号は患者側では入力しない（QRコードに識別情報を含めないため）。
+      // 医師端末側でQR読み取り後にカルテ番号を入力し、既存データと照合する。
+      date: answers["FORM_DATE"] || "",
+      ts: new Date().toISOString(),
+      a: compactAnswers(answers),
+      s: scores
+    };
+  };
+
+  FE.chunkPayload = function (payload) {
+    var json = JSON.stringify(payload);
+    var b64 = utf8ToBase64(json);
+    var hash = simpleHash(b64);
+    var sid = Math.random().toString(36).slice(2, 8);
+    var frames = [];
+    var total = Math.ceil(b64.length / CHUNK_SIZE) || 1;
+    for (var i = 0; i < total; i++) {
+      var chunk = b64.slice(i * CHUNK_SIZE, (i + 1) * CHUNK_SIZE);
+      frames.push("HZQ1:" + sid + ":" + (i + 1) + "/" + total + ":" + hash + ":" + chunk);
+    }
+    return { frames: frames, sid: sid, hash: hash, total: total, byteLength: b64.length };
+  };
+
+  // 受信側（フェーズ2）でも使えるよう復元関数も同梱
+  FE.reassembleFrames = function (frameList) {
+    // frameList: ["HZQ1:sid:1/3:hash:xxxx", ...]
+    var parsed = frameList.map(function (f) {
+      var m = /^HZQ1:([^:]+):(\d+)\/(\d+):([^:]+):([\s\S]*)$/.exec(f);
+      if (!m) return null;
+      return { sid: m[1], idx: Number(m[2]), total: Number(m[3]), hash: m[4], chunk: m[5] };
+    }).filter(Boolean);
+    if (!parsed.length) throw new Error("不正なQRデータです");
+    var sid = parsed[0].sid;
+    var total = parsed[0].total;
+    var hash = parsed[0].hash;
+    var byIdx = {};
+    parsed.forEach(function (p) {
+      if (p.sid === sid) byIdx[p.idx] = p.chunk;
+    });
+    var full = "";
+    for (var i = 1; i <= total; i++) {
+      if (!byIdx[i]) throw new Error("パート " + i + "/" + total + " が不足しています");
+      full += byIdx[i];
+    }
+    if (simpleHash(full) !== hash) throw new Error("データの整合性チェックに失敗しました");
+    var json = base64ToUtf8(full);
+    return JSON.parse(json);
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 5. QR描画（davidshimjs/qrcodejs を利用）
+   * ------------------------------------------------------------------ */
+
+  FE.QRPlayer = function (holderEl, frames, opts) {
+    opts = opts || {};
+    var idx = 0;
+    var timer = null;
+    var qrObj = null;
+    var intervalMs = opts.intervalMs || 900;
+
+    function draw() {
+      holderEl.innerHTML = "";
+      var box = el("div");
+      box.id = "qr-render-box";
+      holderEl.appendChild(box);
+      qrObj = new QRCode(box, {
+        text: frames[idx],
+        width: 300,
+        height: 300,
+        correctLevel: QRCode.CorrectLevel.L
+      });
+      if (opts.onDraw) opts.onDraw(idx, frames.length);
+    }
+
+    function next() {
+      idx = (idx + 1) % frames.length;
+      draw();
+    }
+    function prev() {
+      idx = (idx - 1 + frames.length) % frames.length;
+      draw();
+    }
+    function start() {
+      stop();
+      if (frames.length > 1) {
+        timer = setInterval(next, intervalMs);
+      }
+    }
+    function stop() {
+      if (timer) {
+        clearInterval(timer);
+        timer = null;
+      }
+    }
+
+    draw();
+    if (frames.length > 1) start();
+
+    return { next: next, prev: prev, start: start, stop: stop, index: function () { return idx; } };
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 6. CSV出力
+   * ------------------------------------------------------------------ */
+
+  FE.toCSV = function (kind, answers, scores) {
+    var cols = [];
+    var vals = [];
+    function push(label, value) {
+      cols.push(label);
+      vals.push(value === null || value === undefined ? "" : value);
+    }
+    push("種別", kind === "shoki" ? "初診" : "再診");
+    push("記入日", answers["FORM_DATE"] || "");
+    push("HIT6", scores.hit6);
+    push("GAD7", scores.gad7);
+    push("PHQ9", scores.phq9);
+    push("PHQ9_item9", scores.phq9_item9_score);
+    push("MIBS4", scores.mibs4);
+    push("MHD", scores.mhd);
+    push("AMD", scores.amd);
+    if (kind === "saishin") push("PGIC", scores.pgic);
+    // 残りの生回答をすべて追加（キー順を固定するためソート）
+    var skip = { FORM_DATE: 1 };
+    Object.keys(answers)
+      .sort()
+      .forEach(function (k) {
+        if (skip[k]) return;
+        var v = answers[k];
+        if (Array.isArray(v)) v = v.join("/");
+        push(k, v);
+      });
+
+    function csvEscape(v) {
+      v = String(v === null || v === undefined ? "" : v);
+      if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+      return v;
+    }
+    var headerLine = cols.map(csvEscape).join(",");
+    var valueLine = vals.map(csvEscape).join(",");
+    return "﻿" + headerLine + "\r\n" + valueLine + "\r\n";
+  };
+
+  /* ------------------------------------------------------------------ *
+   * 7. テキスト出力（人が読める要約）
+   * ------------------------------------------------------------------ */
+
+  FE.toText = function (kind, schema, answers, scores) {
+    var lines = [];
+    lines.push("=== 頭痛外来 " + (kind === "shoki" ? "初診" : "再診") + "アンケート結果 ===");
+    lines.push("記入日: " + (answers["FORM_DATE"] || ""));
+    lines.push("");
+    lines.push("【自動計算スコア】");
+    lines.push("HIT-6: " + fmt(scores.hit6) + " 点 (36-78)");
+    lines.push("GAD-7: " + fmt(scores.gad7) + " 点 (0-21)");
+    lines.push("PHQ-9: " + fmt(scores.phq9) + " 点 (0-27)" + (scores.phq9_item9_flag ? "　※項目9（希死念慮）に回答あり、要確認" : ""));
+    lines.push("MIBS-4: " + fmt(scores.mibs4) + " 点 (0-12)");
+    lines.push("頭痛日数(MHD): " + fmt(scores.mhd) + " 日/月" + (scores.mhd_category ? "（区分: " + scores.mhd_category + "）" : ""));
+    lines.push("鎮痛薬使用日数(AMD): " + fmt(scores.amd) + " 日/月");
+    if (kind === "saishin") lines.push("PGIC（全体的な変化）: " + fmt(scores.pgic));
+    lines.push("");
+    lines.push("【回答詳細】");
+    schema.sections.forEach(function (sec) {
+      lines.push("--- " + sec.title + " ---");
+      sec.questions.forEach(function (q) {
+        if (q.type === "matrix" || q.type === "sideeffects") {
+          lines.push(q.title || q.text || q.code);
+          q.rows.forEach(function (r) {
+            var gname = q.code + "_" + r.code;
+            var v = answers[gname];
+            var label = "";
+            if (q.type === "matrix") {
+              label = v !== null && v !== undefined ? q.columns[v].label : "(未回答)";
+              lines.push("  " + r.code + " " + r.text + " → " + label);
+            } else {
+              label = v || "(未回答)";
+              var det = answers[gname + "_detail"];
+              lines.push("  " + r.area + "/" + r.symptom + " → " + label + (det ? "（" + det + "）" : ""));
+            }
+          });
+          return;
+        }
+        if (q.type === "nrsmatrix") {
+          lines.push(q.title || q.text || q.code);
+          q.rows.forEach(function (r) {
+            var gname = q.code + "_" + r.code;
+            lines.push("  " + r.label + " → " + fmt(answers[gname]));
+          });
+          return;
+        }
+        if (q.type === "numbergroup") {
+          lines.push((q.text || q.code) + ":");
+          q.fields.forEach(function (f) {
+            lines.push("  " + (f.label || f.code) + ": " + fmt(answers[f.code]) + (f.unit || ""));
+          });
+          return;
+        }
+        var val = answers[q.code];
+        if (val === undefined) return;
+        if (Array.isArray(val)) val = val.length ? val.join("、") : "(未回答)";
+        if (val === null || val === "") val = "(未回答)";
+        lines.push((q.text || q.code) + ": " + val + (answers[q.code + "_other"] ? "（その他: " + answers[q.code + "_other"] + "）" : ""));
+      });
+    });
+    lines.push("");
+    lines.push("※本テキストは患者本人がタブレット/スマートフォンで入力した内容の自動集計です。");
+    return lines.join("\n");
+  };
+
+  function fmt(v) {
+    return v === null || v === undefined || v === "" ? "-" : v;
+  }
+
+  global.FE = FE;
+})(window);
+
+</script>
+<script>
+/* 頭痛外来 初診アンケート（v6デジタル版） スキーマ定義 */
+var SCHEMA_SHOKI = {
+  kind: "shoki",
+  title: "頭痛外来　初診アンケート",
+  sections: [
+    {
+      title: "💬 今日、特に相談したいこと",
+      questions: [
+        { code: "SOUDAN", type: "textarea", text: "今日、特に相談したいことを教えてください。（気になっていること・最近の頭痛の変化・困っていることなど、何でも書いてください）", placeholder: "自由にご記入ください" }
+      ]
+    },
+    {
+      title: "👤 A　基本情報",
+      questions: [
+        {
+          code: "Q1", type: "numbergroup", label: "Q1", text: "身長・体重をおおよそで教えてください",
+          fields: [
+            { code: "Q1_height", label: "身長", unit: "cm" },
+            { code: "Q1_weight", label: "体重", unit: "kg" }
+          ]
+        },
+        {
+          code: "Q2job", type: "radio", label: "Q2", text: "現在の就労・就学状況を教えてください", wide: true,
+          options: ["常勤・正規雇用","非常勤・パート","自営業・フリーランス","専業主婦（主夫）","学生","退職・無職","その他"].map(function(l){return {value:l,label:l};})
+        },
+        { code: "Q2night", type: "radio", label: "", text: "夜勤はありますか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}] },
+        {
+          code: "Q3", type: "radio", label: "Q3", text: "ご家族（親・兄弟・お子さん）に片頭痛の方はいますか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"},{value:"わからない",label:"わからない"}]
+        },
+        {
+          code: "Q3rel", type: "checkbox", label: "", text: "「はい」の方：どなたですか？（複数可）",
+          showIf: { code: "Q3", in: ["はい"] },
+          options: [{value:"父",label:"父"},{value:"母",label:"母"},{value:"兄弟姉妹",label:"兄弟姉妹"},{value:"子ども",label:"子ども"}]
+        }
+      ]
+    },
+    {
+      title: "🧠 B　頭痛の特徴とパターン",
+      questions: [
+        {
+          code: "Q4", type: "numbergroup", label: "Q4", text: "頭痛はいつ頃から始まりましたか？",
+          fields: [{ code: "Q4_age", label: "発症年齢", unit: "歳ごろから" }]
+        },
+        {
+          code: "Q5", type: "radio", label: "Q5", text: "頭痛が月に15日以上になると、「慢性片頭痛」の診断となります。あなたは月15日以上の頭痛がありますか？また、それはいつ頃からですか。", wide: true,
+          options: ["今も月15日未満（該当しない）","1年以内に該当するようになった","2〜5年前から該当している","6年以上前から該当している"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q6", type: "radio", label: "Q6", text: "最近3ヶ月間で、片頭痛（ガンガン・ズキズキと拍動し、動くとツラくなる頭痛）が起きる日は月に何日くらいですか？",
+          options: ["0〜4日","5〜9日","10〜14日","15〜20日","21〜28日","ほぼ毎日"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q6days", type: "numbergroup", text: "できれば具体的な日数を教えてください",
+          fields: [{ code: "Q6_days", label: "片頭痛日数", unit: "日/月" }]
+        },
+        {
+          code: "Q2b", type: "numbergroup", label: "Q7", text: "「片頭痛以外の頭痛」(重だるい感じなど)も含めて、この1ヶ月の様子を教えてください",
+          note: "※スッキリしなかった日＝強い頭痛はないが、倦怠感・すっきりしない目覚め・重だるさ・首肩こり等で活動に影響があった日",
+          fields: [
+            { code: "Q2b_headache", label: "頭痛があった日数", unit: "日", color: "teal" },
+            { code: "Q2b_med", label: "痛み止め使用日数", unit: "日", color: "yellow" },
+            { code: "Q2b_unclear", label: "スッキリしなかった日数", unit: "日", color: "amber" },
+            { code: "Q2b_clear", label: "スッキリしていた日数", unit: "日", color: "green" }
+          ]
+        },
+        {
+          code: "Q7type", type: "radio", label: "Q8", text: "頭痛のタイプは？", other: true, wide: true,
+          options: [
+            {value:"Aズキズキ・ガンガン（拍動性）",label:"Aズキズキ・ガンガン（拍動性）"},
+            {value:"B締め付けられる・圧迫感",label:"B締め付けられる・圧迫感"},
+            {value:"AB両方ある",label:"AB両方ある"},
+            {value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q7dur", type: "radio", label: "Q9", text: "頭痛の継続時間は？", other: true, wide: true,
+          options: [
+            {value:"１時間以内で収まる",label:"１時間以内で収まる"},
+            {value:"数時間続く",label:"数時間続く"},
+            {value:"翌日以降も休まず続く",label:"翌日以降も休まず続く"},
+            {value:"短時間（数秒〜数分）だが繰り返す",label:"一回あたりの頭痛は短時間（数秒〜数分）だが繰り返す"},
+            {value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q8", type: "slider", label: "Q10", text: "頭痛が一番ひどいときの強さは？",
+          hint: "ボタンを左右にスライドさせて回答してください",
+          leftFace: "🙂", rightFace: "😖",
+          leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
+        },
+        {
+          code: "Q9", type: "radio", label: "Q11", text: "頭痛のとき、体を動かすと頭痛が悪化しますか？",
+          options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（たまに）",label:"はい（たまに）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q10", type: "checkbox", label: "Q12", text: "頭痛のときに一緒に起こる症状は？（複数選択可）", wide: true,
+          options: [
+            {value:"吐き気",label:"吐き気"},{value:"嘔吐",label:"嘔吐"},
+            {value:"光が眩しい（光過敏）",label:"光が眩しい（光過敏）"},{value:"音がうるさい（音過敏）",label:"音がうるさい（音過敏）"},
+            {value:"においが気になる（嗅覚過敏）",label:"においが気になる（嗅覚過敏）"},{value:"肩こり・首こり",label:"肩こり・首こり"},
+            {value:"めまい",label:"めまい"},{value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q11", type: "radio", label: "Q13", text: "頭痛の前に「前兆」はありますか？（光が見える・手足がしびれるなど）",
+          options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（時々）",label:"はい（時々）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q11sub", type: "checkbox", text: "↓「はい」の方：どんな症状ですか？（複数可）",
+          showIf: { code: "Q11", in: ["はい（毎回）","はい（時々）"] },
+          options: [
+            {value:"視覚症状（光・ギザギザ・視野が欠ける）",label:"視覚症状（光・ギザギザ・視野が欠ける）"},
+            {value:"感覚症状（しびれ・ピリピリ）",label:"感覚症状（しびれ・ピリピリ）"},
+            {value:"運動症状（力が入らない）",label:"運動症状（力が入らない）"},
+            {value:"言語症状（言葉が出にくい）",label:"言語症状（言葉が出にくい）"}
+          ]
+        },
+        {
+          code: "Q12", type: "checkbox", label: "Q14", text: "頭痛発作の前日〜数時間前に体の変化を感じることはありますか？（複数可）", wide: true,
+          options: [
+            {value:"あくびが出る",label:"あくびが出る"},{value:"甘いものが食べたくなる",label:"甘いものが食べたくなる"},
+            {value:"疲れやすくなる",label:"疲れやすくなる"},{value:"気分が落ち込む",label:"気分が落ち込む"},
+            {value:"首が凝る",label:"首が凝る"},{value:"なし・わからない",label:"なし・わからない",exclusive:true}
+          ]
+        },
+        {
+          code: "Q16trigger", type: "checkbox", label: "Q15", text: "頭痛のきっかけとして思い当たるものはありますか？", other: true, wide: true,
+          options: [
+            {value:"寝不足/寝すぎ",label:"寝不足/寝すぎ"},{value:"ストレス",label:"ストレス"},{value:"悪天候",label:"悪天候"},
+            {value:"飲酒",label:"飲酒"},{value:"空腹",label:"空腹"},{value:"目の疲れ・光の刺激",label:"目の疲れ・光の刺激"},
+            {value:"うるさい音",label:"うるさい音"},{value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q13", type: "radio", label: "Q16", text: "頭痛のない時期にも、頭皮や皮膚が敏感になることがありますか？（ブラッシングや触れると痛いなど）",
+          options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q14", type: "radio", label: "Q17", text: "頭痛のとき、目が充血する・涙が出る・鼻が詰まるなどの症状はありますか？",
+          options: [{value:"はい（片側のみ）",label:"はい（片側のみ）"},{value:"はい（両側）",label:"はい（両側）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q15", type: "radio", label: "Q18", text: "月経（生理）と頭痛の関係は？（女性の方のみ）", wide: true,
+          options: ["生理前後に特に頭痛が起きやすい","生理以外でも頭痛が多い","関係がわからない","閉経済み","該当しない（男性・無月経等）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q16horm", type: "radio", label: "Q19", text: "ホルモン療法・低用量ピルを使用していますか？（女性の方のみ）", wide: true,
+          options: [{value:"はい（低用量ピル）",label:"はい（低用量ピル）"},{value:"はい（更年期ホルモン療法）",label:"はい（更年期ホルモン療法）"},{value:"いいえ",label:"いいえ"}]
+        }
+      ]
+    },
+    {
+      title: "💊 C　痛み止め（急性期薬）の使用状況",
+      questions: [
+        {
+          code: "Q17", type: "checkbox", label: "Q20", text: "頭痛の痛み止めとして使ったことがある薬はありますか？（複数可）", wide: true,
+          options: [
+            {value:"市販の頭痛薬（EVEなど）",label:"市販の頭痛薬（EVEなど）"},
+            {value:"ロキソプロフェン（ロキソニン）",label:"ロキソプロフェン（ロキソニン）"},
+            {value:"アセトアミノフェン（カロナール）",label:"アセトアミノフェン（カロナール）"},
+            {value:"イブプロフェン",label:"イブプロフェン"},
+            {value:"スマトリプタン（イミグラン）",label:"スマトリプタン（イミグラン）"},
+            {value:"リザトリプタン（マクサルト）",label:"リザトリプタン（マクサルト）"},
+            {value:"ゾルミトリプタン（ゾーミッグ）",label:"ゾルミトリプタン（ゾーミッグ）"},
+            {value:"エレトリプタン（レルパックス）",label:"エレトリプタン（レルパックス）"},
+            {value:"エルゴタミン（クリアミン等）",label:"エルゴタミン（クリアミン等）"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q19", type: "numbergroup", label: "Q21", text: "現在、月に何日くらい痛み止めを飲んでいますか？",
+          fields: [
+            { code: "Q19_total", label: "合計", unit: "日/月" },
+            { code: "Q19_naru", label: "（内訳）ナルティーク", unit: "日" },
+            { code: "Q19_trip", label: "（内訳）トリプタン", unit: "日" },
+            { code: "Q19_otc", label: "（内訳）市販の薬", unit: "日" }
+          ]
+        }
+      ]
+    },
+    {
+      title: "📋 D　これまでに試みた頭痛の予防薬",
+      questions: [
+        {
+          code: "Q20", type: "radio", label: "Q22", text: "これまでに試みた頭痛の予防薬はありますか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q20med", type: "text", text: "あれば、薬の名前を教えてください",
+          showIf: { code: "Q20", in: ["はい"] }
+        }
+      ]
+    },
+    {
+      title: "🏥 E　現在の健康状態・生活習慣",
+      questions: [
+        {
+          code: "Q22", type: "checkbox", label: "Q23", text: "現在、治療中または診断されている病気があれば選んでください（複数可）", wide: true,
+          options: [
+            {value:"高血圧",label:"高血圧"},{value:"糖尿病",label:"糖尿病"},{value:"高脂血症（脂質異常症）",label:"高脂血症（脂質異常症）"},
+            {value:"心臓病(狭心症/心筋梗塞等)",label:"心臓病(狭心症/心筋梗塞等)"},{value:"脳卒中・脳梗塞",label:"脳卒中・脳梗塞"},
+            {value:"睡眠時無呼吸症候群",label:"睡眠時無呼吸症候群"},{value:"慢性肺疾患（喘息等）",label:"慢性肺疾患（喘息等）"},
+            {value:"肝臓・腎臓の病気",label:"肝臓・腎臓の病気"},{value:"関節リウマチ等の免疫疾患",label:"関節リウマチ等の免疫疾患"},
+            {value:"悪性腫瘍（がん）",label:"悪性腫瘍（がん）"},{value:"特になし",label:"特になし",exclusive:true}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🧭 精神科の症状（頭痛とメンタルは強い結びつきがあります）",
+      questions: [
+        {
+          code: "Q23", type: "checkbox", label: "Q24", text: "気分の障害について、診断されたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"うつ病",label:"うつ病"},{value:"双極性障害（躁うつ病）",label:"双極性障害（躁うつ病）"},{value:"適応障害",label:"適応障害"},
+            {value:"現在治療中",label:"現在治療中"},{value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q24", type: "checkbox", label: "Q25", text: "不安に関する障害について、診断されたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"パニック障害",label:"パニック障害"},{value:"全般性不安障害",label:"全般性不安障害"},{value:"強迫性障害",label:"強迫性障害"},
+            {value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},{value:"現在治療中",label:"現在治療中"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q25", type: "checkbox", label: "Q26", text: "その他の精神疾患の診断を受けたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"統合失調症",label:"統合失調症"},{value:"ADHD等の発達障害",label:"ADHD等の発達障害"},{value:"摂食障害",label:"摂食障害"},
+            {value:"解離性障害",label:"解離性障害"},{value:"その他",label:"その他"},{value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q27", type: "radio", label: "Q27", text: "めまい・乗り物酔いをしやすいなど、「自律神経失調」の症状はありますか？",
+          options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q28", type: "radio", label: "Q28", text: "睡眠の状態を教えてください", wide: true,
+          options: ["眠れないことが多い（不眠）","昼間も眠い（過眠）","特に問題ない","呼吸が止まると言われた（睡眠時無呼吸）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q29", type: "radio", label: "Q29", text: "疲れやすさ・全身のだるさはありますか？",
+          options: [{value:"強い倦怠感が続いている",label:"強い倦怠感が続いている"},{value:"時々ある",label:"時々ある"},{value:"特になし",label:"特になし"}]
+        },
+        {
+          code: "Q30smoke", type: "radio", label: "Q30", text: "＜たばこ＞について教えてください",
+          options: [{value:"現在喫煙中",label:"現在喫煙中"},{value:"過去に吸っていたが禁煙中",label:"過去に吸っていたが禁煙中"},{value:"吸ったことがない",label:"吸ったことがない"}]
+        },
+        {
+          code: "Q30alcohol", type: "radio", label: "Q31", text: "＜お酒＞について教えてください", wide: true,
+          options: ["お酒を毎日飲む","週に数回飲む","ほとんど飲まない","全く飲まない"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q30hango", type: "radio", text: "飲酒後に頭痛が起きやすいですか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ・わからない",label:"いいえ・わからない"}]
+        },
+        {
+          code: "Q31", type: "radio", label: "Q32", text: "現在、妊娠中・授乳中、または近い将来に妊娠をご希望ですか？", wide: true,
+          options: ["現在妊娠中","現在授乳中","近い将来妊娠希望あり","現時点では予定なし","該当しない（男性等）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q32", type: "checkbox", label: "Q33", text: "現在、産婦人科で治療中ですか？生理の症状はツラいですか？(当てはまる方のみ)", wide: true,
+          options: [
+            {value:"産婦人科で治療中",label:"産婦人科で治療中"},
+            {value:"以前産婦人科で治療を受けていた",label:"以前産婦人科で治療を受けていた"},
+            {value:"生理の症状はツラい",label:"生理の症状はツラい"}
+          ]
+        },
+        { code: "Q32note", type: "text", text: "補足があればお願いします" }
+      ]
+    },
+    {
+      title: "📊 F　頭痛による生活・仕事への影響",
+      questions: [
+        {
+          code: "Q33", type: "radio", label: "Q34", text: "頭痛は仕事・学業に影響していますか？（就労者・学生のみ）", wide: true,
+          options: [
+            "頭痛のために休職・休学中","頭痛のため仕事の量・質を大幅に落としている","多少影響があるが働けている","ほとんど影響なし"
+          ].map(function(l){return {value:l,label:l};})
+        }
+      ]
+    },
+    {
+      title: "■ HIT-6　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "HIT6", type: "matrix",
+          title: "HIT-6",
+          columns: [
+            {label:"まったくない\n(6点)",points:6},{label:"ほとんどない\n(8点)",points:8},
+            {label:"時々ある\n(10点)",points:10},{label:"よくある\n(11点)",points:11},{label:"いつもある\n(13点)",points:13}
+          ],
+          rows: [
+            {code:"H1",text:"頭痛がひどいとき、耐えがたい痛みだった割合はどれほどですか？"},
+            {code:"H2",text:"頭痛のせいで日常生活（家事・仕事・学校・社会活動など）が制限されることはどのくらいありますか？"},
+            {code:"H3",text:"頭痛があるとき、横になりたいと思うことはどのくらいありますか？"},
+            {code:"H4",text:"頭痛のために、疲れを感じたことはどのくらいありますか？"},
+            {code:"H5",text:"頭痛のために、イライラしたり怒りを感じたことはどのくらいありますか？"},
+            {code:"H6",text:"頭痛のために、集中力がなくなったことはどのくらいありますか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ GAD-7　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "GAD7", type: "matrix",
+          title: "GAD-7",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"不安、または落ち着かない感じがする"},
+            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
+            {code:"3",text:"いろいろなことを心配しすぎる"},
+            {code:"4",text:"リラックスすることが難しい"},
+            {code:"5",text:"じっとしていられないほど落ち着かない"},
+            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
+            {code:"7",text:"何か恐ろしいことが起こるのではないかと怖くなる"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ PHQ-9　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "PHQ9", type: "matrix",
+          title: "PHQ-9",
+          note: "※項目9でご心配な回答があった場合は、診察時に必ずスタッフからお声がけします。",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"物事に対してほとんど興味がない、または楽しめない"},
+            {code:"2",text:"気分が落ち込む、憂うつになる、または絶望的な気持ちになる"},
+            {code:"3",text:"寝つきが悪い、途中で目がさめる、または逆に眠り過ぎる"},
+            {code:"4",text:"疲れた感じがする、または気力がない"},
+            {code:"5",text:"食欲が低下している、または食べ過ぎる"},
+            {code:"6",text:"自分はダメな人間だ、または自分自身や家族を失望させたと感じる"},
+            {code:"7",text:"新聞を読む、またはテレビを見ることなどに集中することが難しい"},
+            {code:"8",text:"他人が気づくくらい動作や話し方が遅くなる、あるいは反対に、いつもより落ち着かず、そわそわしたり動き回ったりする"},
+            {code:"9",text:"死んだ方がましだ、あるいは自分を何らかの方法で傷つけようと思ったことがある"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ MIBS-4（日本語版）　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "MIBS4", type: "matrix",
+          title: "MIBS-4",
+          columns: [
+            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
+            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
+            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"M1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた"},
+            {code:"M2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた"},
+            {code:"M3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた"},
+            {code:"M4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた"}
+          ]
+        }
+      ]
+    }
+  ]
+};
+
+</script>
+<script>
+/* ページ固有の起動処理 */
+(function () {
+  var SCHEMA = SCHEMA_SHOKI;
+  var KIND = "shoki"; // "shoki" | "saishin"
+  var FILE_LABEL = "初診"; // "初診" | "再診"
+
+  var qContainer = document.getElementById("qContainer");
+  var formScreen = document.getElementById("formScreen");
+  var resultScreen = document.getElementById("resultScreen");
+  var progressBar = document.getElementById("progressBar");
+  var btnSubmit = document.getElementById("btnSubmit");
+  var btnBackTop = document.getElementById("btnBackTop");
+  var formDateInput = document.getElementById("formDate");
+
+  // 記入日は当日をデフォルトに
+  var today = new Date();
+  var yyyy = today.getFullYear();
+  var mm = String(today.getMonth() + 1).padStart(2, "0");
+  var dd = String(today.getDate()).padStart(2, "0");
+  formDateInput.value = yyyy + "-" + mm + "-" + dd;
+
+  FE.render(SCHEMA, qContainer);
+
+  // プライバシーに関する注意書き（スクロール末尾に表示）
+  var privacyNotice = document.createElement("div");
+  privacyNotice.className = "privacy-notice";
+  privacyNotice.innerHTML =
+    "<p>・このアンケートにはお名前・カルテ番号などの識別情報は含まれません。回答内容は匿名の状態でQRコードに変換され、受付にてスタッフの端末で読み取った後、カルテ番号と結び付けて診療記録として管理されます。</p>" +
+    "<p>・収集した情報は、今後「頭痛成績表」として推移をグラフ化し、皆さまにご提供いたします。個人が特定されない形に加工したデータを、学会等で公表させていただく場合があります。</p>";
+  qContainer.appendChild(privacyNotice);
+
+  // スクロール進捗バー
+  window.addEventListener("scroll", function () {
+    var h = document.documentElement;
+    var scrollTop = h.scrollTop || document.body.scrollTop;
+    var scrollH = (h.scrollHeight || document.body.scrollHeight) - h.clientHeight;
+    var pct = scrollH > 0 ? Math.min(100, (scrollTop / scrollH) * 100) : 0;
+    progressBar.style.width = pct + "%";
+  });
+
+  function collectAllAnswers() {
+    var answers = FE.collect(SCHEMA, qContainer);
+    answers["FORM_DATE"] = formDateInput.value;
+    return answers;
+  }
+
+  btnSubmit.addEventListener("click", function () {
+    var hasError = FE.validateRequired(SCHEMA, qContainer);
+    if (hasError) {
+      alert("必須項目（＊）に未回答の項目があります。赤字の項目をご確認ください。");
+      return;
+    }
+    showResult();
+  });
+
+  var qrPlayer = null;
+
+  function showResult() {
+    var answers = collectAllAnswers();
+    var scores = FE.computeScores(KIND, answers);
+
+    formScreen.classList.add("hidden");
+    resultScreen.classList.add("active");
+    btnSubmit.style.display = "none";
+    btnBackTop.style.display = "block";
+    document.getElementById("footerNav").querySelector("#btnBackTop").textContent = "回答画面に戻る";
+
+    // スコアカード
+    var flagPhq9 = scores.phq9_item9_flag;
+    var warnHtml = flagPhq9
+      ? '<div class="warn-banner">⚠️ PHQ-9 項目9（希死念慮に関する項目）にご回答がありました。恐れ入りますが、この画面のまま受付・看護師にお声がけください。</div>'
+      : "";
+
+    var scoreCardsHtml =
+      scoreCard("HIT-6", scores.hit6, "点 (36-78)") +
+      scoreCard("GAD-7", scores.gad7, "点 (0-21)") +
+      scoreCard("PHQ-9", scores.phq9, "点 (0-27)", flagPhq9) +
+      scoreCard("MIBS-4", scores.mibs4, "点 (0-12)") +
+      scoreCard("頭痛日数(MHD)", scores.mhd, "日/月") +
+      scoreCard("鎮痛薬使用日数(AMD)", scores.amd, "日/月");
+
+    var chunkResult = FE.chunkPayload(FE.buildPayload(KIND, answers, scores));
+    var csvText = FE.toCSV(KIND, answers, scores);
+    var textText = FE.toText(KIND, SCHEMA, answers, scores);
+
+    resultScreen.innerHTML =
+      '<h2 style="margin:6px 0 2px;">ご回答ありがとうございました</h2>' +
+      '<p style="font-size:0.85rem;color:var(--muted);margin-top:0;">記入日: ' + escapeHtml(answers.FORM_DATE) + '</p>' +
+      warnHtml +
+      '<div class="score-grid">' + scoreCardsHtml + "</div>" +
+      '<div class="notice">この画面を受付・診察までお持ちください。下のタブから、医療スタッフへの共有方法をお選びいただけます。</div>' +
+      '<div class="tabbar">' +
+      '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
+      '<button class="tab-btn" data-tab="text">📝 テキスト</button>' +
+      '<button class="tab-btn" data-tab="csv">📊 CSV(Excel用)</button>' +
+      "</div>" +
+      '<div class="output-panel active" data-panel="qr">' +
+      '<div class="qr-wrap">' +
+      '<div id="qrcanvas-holder"></div>' +
+      '<div class="qr-progress" id="qrProgressText"></div>' +
+      '<div class="qr-dots" id="qrDots"></div>' +
+      '<div class="small-btn-row" id="qrNavRow">' +
+      '<button class="small-btn" id="qrPrev">◀ 前へ</button>' +
+      '<button class="small-btn" id="qrPlayPause">一時停止</button>' +
+      '<button class="small-btn" id="qrNext">次へ ▶</button>' +
+      "</div>" +
+      '<p class="notice" style="text-align:left;" id="qrNotice">医療スタッフの画面でこのQRコードを読み取っていただきます。</p>' +
+      "</div>" +
+      "</div>" +
+      '<div class="output-panel" data-panel="text">' +
+      '<p class="notice" style="text-align:left; margin-top:0;">以下の情報をQRコード経由で送信します：</p>' +
+      '<textarea class="readout" readonly id="textOut"></textarea>' +
+      '<div class="small-btn-row">' +
+      '<button class="small-btn filled" id="btnCopyText">📋 テキストをコピー</button>' +
+      '<button class="small-btn" id="btnDownloadText">⬇ テキストを保存</button>' +
+      "</div>" +
+      "</div>" +
+      '<div class="output-panel" data-panel="csv">' +
+      '<textarea class="readout" readonly id="csvOut" style="min-height:140px;"></textarea>' +
+      '<div class="small-btn-row">' +
+      '<button class="small-btn filled" id="btnDownloadCsv">⬇ CSVをダウンロード（Excelで開けます）</button>' +
+      "</div>" +
+      '<p class="notice">ダウンロードしたCSVは、Excelで開いて「★★2026頭痛データ.xlsx」にコピー＆ペーストできます。</p>' +
+      "</div>" +
+      '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
+
+    // タブ切り替え
+    Array.prototype.forEach.call(resultScreen.querySelectorAll(".tab-btn"), function (btn) {
+      btn.addEventListener("click", function () {
+        Array.prototype.forEach.call(resultScreen.querySelectorAll(".tab-btn"), function (b) {
+          b.classList.remove("active");
+        });
+        btn.classList.add("active");
+        Array.prototype.forEach.call(resultScreen.querySelectorAll(".output-panel"), function (p) {
+          p.classList.toggle("active", p.getAttribute("data-panel") === btn.getAttribute("data-tab"));
+        });
+      });
+    });
+
+    // QR描画（通常は1枚。回答量が多い場合のみ自動で複数枚に分割される）
+    var holder = document.getElementById("qrcanvas-holder");
+    var progressText = document.getElementById("qrProgressText");
+    var dotsWrap = document.getElementById("qrDots");
+    var qrNavRow = document.getElementById("qrNavRow");
+    var qrNotice = document.getElementById("qrNotice");
+    var isSingleFrame = chunkResult.frames.length <= 1;
+    qrNavRow.style.display = isSingleFrame ? "none" : "flex";
+    progressText.style.display = isSingleFrame ? "none" : "block";
+    dotsWrap.style.display = isSingleFrame ? "none" : "flex";
+    qrNotice.textContent = isSingleFrame
+      ? "医療スタッフの画面でこのQRコードを読み取っていただきます。"
+      : "医療スタッフの画面でこのQRコードを順番に読み取っていただきます（自動で切り替わります）。複数枚ありますので、画面が切り替わるまで少しお待ちください。";
+    dotsWrap.innerHTML = "";
+    for (var i = 0; i < chunkResult.frames.length; i++) {
+      dotsWrap.appendChild(document.createElement("span"));
+    }
+    qrPlayer = FE.QRPlayer(holder, chunkResult.frames, {
+      intervalMs: 1000,
+      onDraw: function (idx, total) {
+        progressText.textContent = "パート " + (idx + 1) + " / " + total;
+        Array.prototype.forEach.call(dotsWrap.children, function (d, di) {
+          d.classList.toggle("on", di === idx);
+        });
+      }
+    });
+    var playing = true;
+    document.getElementById("qrPrev").addEventListener("click", function () {
+      qrPlayer.stop();
+      playing = false;
+      document.getElementById("qrPlayPause").textContent = "再生";
+      qrPlayer.prev();
+    });
+    document.getElementById("qrNext").addEventListener("click", function () {
+      qrPlayer.stop();
+      playing = false;
+      document.getElementById("qrPlayPause").textContent = "再生";
+      qrPlayer.next();
+    });
+    document.getElementById("qrPlayPause").addEventListener("click", function (e) {
+      if (playing) {
+        qrPlayer.stop();
+        playing = false;
+        e.target.textContent = "再生";
+      } else {
+        qrPlayer.start();
+        playing = true;
+        e.target.textContent = "一時停止";
+      }
+    });
+
+    // テキスト出力
+    document.getElementById("textOut").value = textText;
+    document.getElementById("btnCopyText").addEventListener("click", function () {
+      navigator.clipboard.writeText(textText).then(function () {
+        alert("テキストをコピーしました");
+      }).catch(function () {
+        var ta = document.getElementById("textOut");
+        ta.select();
+        document.execCommand("copy");
+        alert("テキストをコピーしました");
+      });
+    });
+    document.getElementById("btnDownloadText").addEventListener("click", function () {
+      downloadBlob(textText, "text/plain;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".txt");
+    });
+
+    // CSV出力
+    document.getElementById("csvOut").value = csvText;
+    document.getElementById("btnDownloadCsv").addEventListener("click", function () {
+      downloadBlob(csvText, "text/csv;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".csv");
+    });
+
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  btnBackTop.addEventListener("click", function () {
+    if (qrPlayer) qrPlayer.stop();
+    resultScreen.classList.remove("active");
+    formScreen.classList.remove("hidden");
+    btnSubmit.style.display = "block";
+    btnBackTop.style.display = "none";
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  function scoreCard(label, value, unit, flag) {
+    return (
+      '<div class="score-card' + (flag ? " flag" : "") + '"><div class="label">' +
+      label +
+      '</div><div class="value">' +
+      (value === null || value === undefined ? "-" : value) +
+      '</div><div class="unit">' +
+      unit +
+      "</div></div>"
+    );
+  }
+
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  function downloadBlob(content, mime, filename) {
+    var bom = mime.indexOf("csv") !== -1 ? "" : ""; // CSV側は既にBOM付与済み
+    var blob = new Blob([content], { type: mime });
+    var url = URL.createObjectURL(blob);
+    var a = document.createElement("a");
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(function () {
+      URL.revokeObjectURL(url);
+    }, 2000);
+  }
+})();
+
+</script>
+
+<!-- QRCodeライブラリの動的読み込み（失敗しても無視） -->
+<script>
+(function() {
+  // QRCodeライブラリをCDNから非同期で読み込む
+  var script = document.createElement('script');
+  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
+  script.async = true;
+  script.onerror = function() {
+    // CDN読み込み失敗時は、テキスト出力で対応
+    console.warn('QRコードライブラリの読み込みに失敗しました。テキスト出力を使用してください。');
+  };
+  document.head.appendChild(script);
+})();
+</script>
+
+</body>
+</html>
