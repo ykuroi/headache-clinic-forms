@@ -1640,13 +1640,8 @@ var SCHEMA_SHOKI = {
         { code: "Q2night", type: "radio", label: "", text: "夜勤はありますか？",
           options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}] },
         {
-          code: "Q3", type: "radio", label: "Q3", text: "ご家族（親・兄弟・お子さん）に片頭痛の方はいますか？",
-          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"},{value:"わからない",label:"わからない"}]
-        },
-        {
-          code: "Q3rel", type: "checkbox", label: "", text: "「はい」の方：どなたですか？（複数可）",
-          showIf: { code: "Q3", in: ["はい"] },
-          options: [{value:"父",label:"父"},{value:"母",label:"母"},{value:"兄弟姉妹",label:"兄弟姉妹"},{value:"子ども",label:"子ども"}]
+          code: "Q3", type: "checkbox", label: "Q3", text: "ご家族に片頭痛の方はいますか？いる場合は、どなたですか？（複数可）",
+          options: [{value:"父",label:"父"},{value:"母",label:"母"},{value:"兄弟",label:"兄弟"},{value:"子ども",label:"子ども"}]
         }
       ]
     },
@@ -2736,7 +2731,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   var dtBlock = document.querySelector('#qContainer .qblock[data-code="Q2b"]');
   if (dtBlock) setupDayTree(dtBlock);
   var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1 };          // 自由記入はOKなし
-  var EMPTY_OK = { Q16trigger: 1, Q32: 1 };                    // 何も選ばずOK＝あてはまるものなし
+  var EMPTY_OK = { Q3: 1, Q16trigger: 1, Q32: 1 };                    // 何も選ばずOK＝あてはまるものなし
   if (window.SCHEMA_SHOKI) {
     SCHEMA_SHOKI.sections.forEach(function (sec) {
       sec.questions.forEach(function (q) {
