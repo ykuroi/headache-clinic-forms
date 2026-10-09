@@ -2786,6 +2786,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:30px;
   box-shadow:0 4px 14px rgba(0,0,0,.08);
 }
+/* 1問ごとの OK は設問のすぐ下に置く（画面下に追従させると下の選択肢に重なるため） */
+.qblock > .gm-okbar, .gm-pair > .gm-okbar{position:static;}
 .gm-okbar .gm-okbar-msg{font-size:.82rem;color:var(--muted);flex:1;}
 .gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
 .gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
