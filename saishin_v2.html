@@ -2206,7 +2206,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q10", type: "slider_named", label: "Q10", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
             {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
@@ -2305,7 +2305,7 @@ var SCHEMA_SAISHIN = {
       title: "🌙 気分・睡眠の変化",
       questions: [
         {
-          code: "Q14", type: "slider_named", label: "Q11", text: "睡眠の質は、治療を始める前と比べてどうですか？",
+          code: "Q14", type: "slider_named", label: "Q8", text: "睡眠の質は、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -2315,7 +2315,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q15", type: "slider_named", label: "Q12", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
+          code: "Q15", type: "slider_named", label: "Q9", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -2330,7 +2330,7 @@ var SCHEMA_SAISHIN = {
       title: "■ 全体的な変化・治療満足度",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q13", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "PGIC", type: "slider_named", label: "Q10", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
           options: [
             {value:"-3",label:"-3 著明悪化"},
             {value:"-2",label:"-2 中等悪化"},
@@ -2342,7 +2342,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q14", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          code: "SATIS", type: "nrsmatrix", label: "Q11", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
           rows: [
             {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
             {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
@@ -2356,7 +2356,7 @@ var SCHEMA_SAISHIN = {
       title: "🔍 副作用・気になる症状のチェック",
       questions: [
         {
-          code: "SE", type: "sideeffects", label: "Q15", text: "副作用・気になる症状について教えてください",
+          code: "SE", type: "sideeffects", label: "Q12", text: "副作用・気になる症状について教えてください",
           rows: [
             {code:"inj",area:"💉 注射した場所（注射治療中の方のみ）",symptom:"発赤・腫れ・痛み・かゆみ・しこり"},
             {code:"benpi",area:"🚽 お腹・排便",symptom:"便秘"},
@@ -2381,7 +2381,7 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q16", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q13", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -2397,7 +2397,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q17", text: "治療について感じていること・ご要望を自由にご記入ください" }
+        { code: "Q13", type: "textarea", label: "Q14", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
@@ -2499,7 +2499,6 @@ var SCHEMA_SAISHIN = {
       '<div class="tabbar">' +
       '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
       '<button class="tab-btn" data-tab="text">📝 テキスト</button>' +
-      '<button class="tab-btn" data-tab="csv">📊 CSV(Excel用)</button>' +
       "</div>" +
       '<div class="output-panel active" data-panel="qr">' +
       '<div class="qr-wrap">' +
@@ -2521,13 +2520,6 @@ var SCHEMA_SAISHIN = {
       '<button class="small-btn filled" id="btnCopyText">📋 テキストをコピー</button>' +
       '<button class="small-btn" id="btnDownloadText">⬇ テキストを保存</button>' +
       "</div>" +
-      "</div>" +
-      '<div class="output-panel" data-panel="csv">' +
-      '<textarea class="readout" readonly id="csvOut" style="min-height:140px;"></textarea>' +
-      '<div class="small-btn-row">' +
-      '<button class="small-btn filled" id="btnDownloadCsv">⬇ CSVをダウンロード（Excelで開けます）</button>' +
-      "</div>" +
-      '<p class="notice">ダウンロードしたCSVは、Excelで開いて「★★2026頭痛データ.xlsx」にコピー＆ペーストできます。</p>' +
       "</div>" +
       '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
 
@@ -2611,11 +2603,6 @@ var SCHEMA_SAISHIN = {
       downloadBlob(textText, "text/plain;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".txt");
     });
 
-    // CSV出力
-    document.getElementById("csvOut").value = csvText;
-    document.getElementById("btnDownloadCsv").addEventListener("click", function () {
-      downloadBlob(csvText, "text/csv;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".csv");
-    });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2788,6 +2775,19 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 }
 /* 1問ごとの OK は設問のすぐ下に置く（画面下に追従させると下の選択肢に重なるため） */
 .qblock > .gm-okbar, .gm-pair > .gm-okbar{position:static;}
+/* Q6 痛み止めの段階入力 */
+.gm-drugflow .dt-step .options{display:flex;flex-wrap:wrap;gap:8px;}
+.gm-drugflow .gm-chip-sub{display:block;font-size:.72rem;color:var(--muted);font-weight:400;}
+.gm-drugflow .opt-btn.selected .gm-chip-sub{color:#e6f2f0;}
+.gm-drugflow .dt-step > .gm-okbar{position:static;}
+.gm-step-btn{flex:0 0 40px;height:40px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:1.3rem;font-weight:800;line-height:1;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.gm-step-btn:active{background:var(--primary);color:#fff;}
+.gm-drugflow .dt-row input{width:64px;flex:0 0 64px;text-align:center;}
+.gm-drugflow .dt-row .dt-label{flex-basis:100%;}
+.gm-flow-hint{font-size:.78rem;color:var(--muted);margin:4px 2px 0;}
+.gm-in-flow{margin-top:10px;padding:10px 0 0 !important;border-top:1px dashed var(--border);border-bottom:none !important;}
+.gm-in-flow > .gm-okbar{display:none;}
+.gm-in-flow .qcode{display:none;}
 .gm-okbar .gm-okbar-msg{font-size:.82rem;color:var(--muted);flex:1;}
 .gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
 .gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
@@ -2895,8 +2895,17 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
   function scrollToEl(target) {
     if (!target) return;
-    var y = target.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-    window.scrollTo({ top: Math.max(0, y), behavior: REDUCE ? "auto" : "smooth" });
+    // セクションの最初の設問へ進むときは、セクションの見出しから見せる
+    if (target.classList.contains("qblock")) {
+      var sec = target.closest("section.qsection");
+      if (sec && sec.querySelector(".qblock") === target) target = sec;
+    }
+    function y() { return Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - headerOffset()); }
+    window.scrollTo({ top: y(), behavior: REDUCE ? "auto" : "smooth" });
+    // スマホで指のスクロールの勢いが残っているとスクロールが打ち消されることがあるので、ずれていたらもう一度
+    setTimeout(function () {
+      if (Math.abs(target.getBoundingClientRect().top - headerOffset()) > 80) window.scrollTo({ top: y(), behavior: "auto" });
+    }, 900);
   }
   function replayClass(node, cls) {
     node.classList.remove(cls);
@@ -3348,12 +3357,12 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   setupSingleOk("Q7", sliderTouched, "Q7");
   setupSingleOk("Q8", sliderTouched, "Q8");
   setupSingleOk("Q9", sliderTouched, "Q9");
-  setupSingleOk("Q10", sliderTouched, "Q10");
-  setupSingleOk("Q14", sliderTouched, "Q11");     // 睡眠（画面上の番号は Q11）
-  setupSingleOk("Q15", sliderTouched, "Q12");     // 疲れやすさ（Q12）
-  setupSingleOk("PGIC", sliderTouched, "Q13");
-  setupSingleOk("SATIS", allSlidersTouched, "Q14");
-  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q16"); // 今後の治療（Q16）
+  setupSingleOk("Q10", sliderTouched, "Q7");
+  setupSingleOk("Q14", sliderTouched, "Q8");      // 睡眠（画面上の番号は Q8）
+  setupSingleOk("Q15", sliderTouched, "Q9");      // 疲れやすさ（Q9）
+  setupSingleOk("PGIC", sliderTouched, "Q10");
+  setupSingleOk("SATIS", allSlidersTouched, "Q11");
+  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q13"); // 今後の治療（Q13）
 
   /* ---------------- 副作用チェック：とくになし（全部なし） ---------------- */
   (function () {
@@ -3377,7 +3386,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     });
     setupSingleOk("SE", function () {
       return rows.every(function (o) { return !!o.querySelector(".opt-btn.selected"); });
-    }, "Q15");
+    }, "Q12");
   })();
 
   /* ---------------- Q11〜Q13 のスライダーにも両端の顔 ---------------- */
@@ -3385,6 +3394,22 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     faceEnds(c, ["😖", "明らかに悪化した"], ["😄", "明らかに改善した"], "ボタンを左右にスライドさせて回答してください");
   });
   faceEnds("PGIC", ["😖", "著明悪化"], ["😄", "著明改善"], "ボタンを左右にスライドさせて回答してください");
+
+  /* ---------------- Q14 治療満足度：各スライダーの両端に顔 ---------------- */
+  (function () {
+    var q = document.querySelector('#qContainer .qblock[data-code="SATIS"]');
+    if (!q) return;
+    function part(f) {
+      return "<span class='slider-face-label'><span class='face-emoji'>" + f[0] + "</span><span class='face-text'>" + f[1] + "</span></span>";
+    }
+    Array.prototype.forEach.call(q.querySelectorAll(".slider-input"), function (inp) {
+      var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
+      if (!row) return;
+      var ae = inp.getAttribute("data-code") === "SATIS_fukusayou";
+      row.innerHTML = part(["😖", ae ? "0 不満<br><small>（副作用あり）</small>" : "0 不満"]) +
+                      part(["😄", ae ? "10 満足<br><small>（副作用なし）</small>" : "10 とても満足"]);
+    });
+  })();
 
   /* ---------------- 選択肢の下にひとことコメント ---------------- */
   function addOptionNote(code, value, text) {
@@ -3483,6 +3508,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
             if (!cleared) {
               cleared = true;
               banner("🎉 " + name + " クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+            } else {
+              scrollToEl(nextVisibleQuestion(block));   // 戻って答え直したときも次へ進む
             }
           }
         });
@@ -3541,6 +3568,254 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     });
   }
   linkUsageToEffect([["Q6_naru", "Q7"], ["Q6_trip", "Q8"], ["Q6_otc", "Q9"]]);
+
+  /* ---------------- Q6：痛み止めを段階式に（使った薬を選ぶ → 薬ごとに日数 → その場で効き目） ----------------
+   * 元の日数欄（Q6_total など）と効き目の設問（Q7〜Q9）はそのまま使い、値を流し込むだけ。記録されるデータは従来と同じ。 */
+  (function setupDrugFlow() {
+    var q6 = document.querySelector('#qContainer .qblock[data-code="Q6"]');
+    if (!q6) return;
+    var DRUGS = [
+      { key: "Q6_naru", name: "ナルティーク", eff: "Q7" },
+      { key: "Q6_trip", name: "トリプタン", sub: "イミグラン・ゾーミッグ・レルパックス・マクサルト・アマージ", eff: "Q8" },
+      { key: "Q6_rayvow", name: "レイボー" },
+      { key: "Q6_rx", name: "病院でもらったその他の痛み止め", sub: "カロナール・ロキソニン・ボルタレンなど" },
+      { key: "Q6_otc", name: "市販の痛み止め", eff: "Q9" }
+    ];
+    function hidden(code) { return q6.querySelector('input[data-code="' + code + '"]'); }
+    function setHidden(code, v) {
+      var inp = hidden(code);
+      if (!inp) return;
+      var s = v === null ? "" : String(v);
+      if (inp.value === s) return;
+      inp.value = s;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    // 元の入力欄・注記・OK は隠す
+    Array.prototype.forEach.call(q6.querySelectorAll(".num-row, .field-note, .qnote"), function (n) { n.classList.add("gm-hide"); });
+    var oldBar = q6.querySelector(":scope > .gm-okbar");
+    if (oldBar) oldBar.classList.add("gm-hide");
+
+    var wrap = mk("div", "dt-wrap gm-drugflow");
+    var anchor = q6.querySelector(".err-msg");
+    q6.insertBefore(wrap, anchor);
+
+    function stepBox(title) {
+      var s = mk("div", "dt-step");
+      s.appendChild(mk("div", "dt-step-title", title));
+      wrap.appendChild(s);
+      return s;
+    }
+    function okBar(box) {
+      var bar = mk("div", "gm-okbar");
+      var msg = mk("span", "gm-okbar-msg");
+      var btn = makeOkButton();
+      bar.appendChild(msg);
+      bar.appendChild(btn);
+      box.appendChild(bar);
+      return { bar: bar, msg: msg, btn: btn };
+    }
+    function stepper(box, label, sub) {
+      var row = mk("div", "dt-row c-teal");
+      var lb = mk("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var minus = mk("button", "gm-step-btn", "−"); minus.type = "button";
+      var inp = mk("input", "field-input"); inp.type = "number"; inp.inputMode = "numeric"; inp.min = "0"; inp.max = "30";
+      var plus = mk("button", "gm-step-btn", "＋"); plus.type = "button";
+      row.appendChild(minus); row.appendChild(inp); row.appendChild(plus);
+      row.appendChild(mk("span", "unit", "日"));
+      box.appendChild(row);
+      function bump(d) {
+        var v = inp.value === "" ? 0 : Number(inp.value);
+        v = Math.max(0, Math.min(30, (isFinite(v) ? v : 0) + d));
+        inp.value = String(v);
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      minus.addEventListener("click", function () { bump(-1); });
+      plus.addEventListener("click", function () { bump(1); });
+      return inp;
+    }
+    function readDays(inp) {
+      if (inp.value === "") return null;
+      var n = Number(inp.value);
+      return isFinite(n) && Math.floor(n) === n && n >= 0 && n <= 30 ? n : NaN;
+    }
+
+    // ① 使った薬を選ぶ
+    var s0 = stepBox("① この1ヶ月に使った痛み止めを、すべて選んでください");
+    var chips = mk("div", "options");
+    s0.appendChild(chips);
+    var chipEls = DRUGS.map(function (d) {
+      var c = mk("div", "opt-btn wide", d.name);
+      if (d.sub) c.appendChild(mk("small", "gm-chip-sub", "（" + d.sub + "）"));
+      chips.appendChild(c);
+      return c;
+    });
+    var noneChip = mk("div", "opt-btn wide", "痛み止めは使っていない");
+    chips.appendChild(noneChip);
+    var b0 = okBar(s0);
+
+    // ② 薬ごとに日数（＋効き目）
+    var drugSteps = DRUGS.map(function (d, i) {
+      var box = stepBox("💊 " + d.name);
+      var inp = stepper(box, d.name + "を使った日数", "この1ヶ月（30日）で");
+      var err = mk("div", "dt-err");
+      box.appendChild(err);
+      var effQ = d.eff ? document.querySelector('#qContainer .qblock[data-code="' + d.eff + '"]') : null;
+      if (effQ) {
+        effQ.classList.add("gm-in-flow");
+        box.appendChild(effQ);
+      }
+      var ob = okBar(box);
+      return { d: d, box: box, inp: inp, err: err, effQ: effQ, ob: ob };
+    });
+
+    // ③ 合計（2種類以上使った人だけ）
+    var sT = stepBox("③ 痛み止めを使った日数の合計");
+    var tInp = stepper(sT, "痛み止めを使った日数（合計）", "同じ日に2種類使った日は「1日」と数えます");
+    var tHint = mk("div", "gm-flow-hint");
+    sT.appendChild(tHint);
+    var tErr = mk("div", "dt-err");
+    sT.appendChild(tErr);
+    var bT = okBar(sT);
+
+    var picked = DRUGS.map(function () { return false; });
+    var none = false, c0 = false, cT = false, cleared = false;
+    var cD = DRUGS.map(function () { return false; });
+
+    function sel() { return picked.map(function (p, i) { return p ? i : -1; }).filter(function (i) { return i >= 0; }); }
+    function effReady(st) {
+      if (!st.effQ || st.effQ.classList.contains("gm-hide")) return true;
+      var s = st.effQ.querySelector(".slider-input");
+      return !!(s && s.getAttribute("data-touched") === "1");
+    }
+    function sync() {
+      // 選ばなかった薬は 0 日、選んだ薬は入力値を元の欄へ
+      DRUGS.forEach(function (d, i) {
+        if (none || (c0 && !picked[i])) setHidden(d.key, 0);
+        else if (picked[i]) { var v = readDays(drugSteps[i].inp); setHidden(d.key, v === null || isNaN(v) ? null : v); }
+        else setHidden(d.key, null);
+      });
+      var list = sel();
+      if (none) setHidden("Q6_total", 0);
+      else if (list.length === 1) { var v1 = readDays(drugSteps[list[0]].inp); setHidden("Q6_total", v1 === null || isNaN(v1) ? null : v1); }
+      else if (list.length > 1) { var vt = readDays(tInp); setHidden("Q6_total", vt === null || isNaN(vt) ? null : vt); }
+      else setHidden("Q6_total", null);
+    }
+    function range() {
+      var mx = 0, sum = 0;
+      sel().forEach(function (i) { var v = readDays(drugSteps[i].inp) || 0; mx = Math.max(mx, v); sum += v; });
+      return [mx, Math.min(30, sum)];
+    }
+    function refresh(animate) {
+      chipEls.forEach(function (c, i) { c.classList.toggle("selected", picked[i]); });
+      noneChip.classList.toggle("selected", none);
+      var any = none || sel().length > 0;
+      b0.msg.textContent = c0 ? "✓ OK！" : any ? "選び終わったら OK" : "使った痛み止めを選んでください";
+      s0.classList.toggle("gm-done", c0);
+      b0.btn.classList.toggle("gm-gone", c0);
+      setReady(b0.btn, any && !c0);
+
+      var gate = c0 && !none;
+      var list = sel();
+      drugSteps.forEach(function (st, i) {
+        var show = gate && picked[i];
+        var was = st.box.classList.contains("gm-wait") || st.box.classList.contains("gm-hide");
+        st.box.classList.toggle("gm-hide", !(c0 && !none && picked[i]));
+        st.box.classList.toggle("gm-wait", !show);
+        if (show && was && animate && !REDUCE) replayClass(st.box, "gm-enter");
+        var v = readDays(st.inp);
+        st.err.textContent = v !== null && isNaN(v) ? "0〜30の整数で入力してください" : "";
+        st.err.classList.toggle("show", v !== null && isNaN(v));
+        var ok = v !== null && !isNaN(v) && effReady(st);
+        if (!ok) cD[i] = false;
+        st.box.classList.toggle("gm-done", cD[i]);
+        st.ob.btn.classList.toggle("gm-gone", cD[i]);
+        st.ob.msg.textContent = cD[i] ? "✓ OK！" : v === null ? "日数を入れてください（＋−でも入力できます）"
+          : !effReady(st) ? "効き目のボタンを動かしてください" : "よければ OK";
+        setReady(st.ob.btn, ok && !cD[i]);
+        if (picked[i]) gate = gate && cD[i];
+      });
+
+      var needT = c0 && !none && list.length > 1;
+      var showT = needT && gate;
+      var wasT = sT.classList.contains("gm-wait") || sT.classList.contains("gm-hide");
+      sT.classList.toggle("gm-hide", !needT);
+      sT.classList.toggle("gm-wait", !showT);
+      if (showT && wasT && animate && !REDUCE) replayClass(sT, "gm-enter");
+      var r = range(), vt = readDays(tInp);
+      tHint.textContent = "（いちばん多い薬の日数 " + r[0] + "日 〜 全部の合計 " + r[1] + "日 の間になります）";
+      var tBad = vt !== null && (isNaN(vt) || vt < r[0] || vt > r[1]);
+      tErr.textContent = tBad ? r[0] + "〜" + r[1] + "日の間で入力してください" : "";
+      tErr.classList.toggle("show", tBad);
+      var tOk = vt !== null && !tBad;
+      if (!tOk) cT = false;
+      sT.classList.toggle("gm-done", cT);
+      bT.btn.classList.toggle("gm-gone", cT);
+      bT.msg.textContent = cT ? "✓ OK！" : tOk ? "よければ OK" : "合計の日数を入れてください";
+      setReady(bT.btn, tOk && !cT);
+
+      var done = c0 && (none || (gate && (!needT || cT)));
+      if (!done) cleared = false;
+      sync();
+      return done;
+    }
+    function finish(from) {
+      if (refresh(true) && !cleared) {
+        cleared = true;
+        banner("🎉 Q6 クリア！", function () { scrollToEl(nextVisibleQuestion(q6)); });
+        return;
+      }
+      // 次の未完了ステップへ
+      var steps = [s0].concat(drugSteps.map(function (s) { return s.box; })).concat([sT]);
+      for (var k = steps.indexOf(from) + 1; k < steps.length; k++) {
+        if (!steps[k].classList.contains("gm-hide") && !steps[k].classList.contains("gm-wait")) { scrollToEl(steps[k]); return; }
+      }
+    }
+
+    chipEls.forEach(function (c, i) {
+      c.addEventListener("click", function () {
+        picked[i] = !picked[i];
+        if (picked[i]) none = false;
+        c0 = false; cT = false;
+        replayClass(c, "gm-pop");
+        refresh(false);
+      });
+    });
+    noneChip.addEventListener("click", function () {
+      none = !none;
+      if (none) picked = picked.map(function () { return false; });
+      c0 = false;
+      refresh(false);
+    });
+    b0.btn.addEventListener("click", function () {
+      if (b0.btn.disabled) return;
+      c0 = true;
+      explode(b0.btn, function () { finish(s0); });
+    });
+    drugSteps.forEach(function (st, i) {
+      st.inp.addEventListener("input", function () { setTimeout(function () { refresh(true); }, 0); });
+      ["input", "change", "pointerup", "click"].forEach(function (ev) {
+        if (st.effQ) st.effQ.addEventListener(ev, function () { setTimeout(function () { refresh(false); }, 0); });
+      });
+      st.inp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); if (!st.ob.btn.disabled) st.ob.btn.click(); } });
+      st.ob.btn.addEventListener("click", function () {
+        if (st.ob.btn.disabled) return;
+        cD[i] = true;
+        st.inp.blur();
+        explode(st.ob.btn, function () { finish(st.box); });
+      });
+    });
+    tInp.addEventListener("input", function () { setTimeout(function () { refresh(false); }, 0); });
+    tInp.addEventListener("keydown", function (ev) { if (ev.key === "Enter") { ev.preventDefault(); if (!bT.btn.disabled) bT.btn.click(); } });
+    bT.btn.addEventListener("click", function () {
+      if (bT.btn.disabled) return;
+      cT = true;
+      tInp.blur();
+      explode(bT.btn, function () { finish(sT); });
+    });
+    refresh(false);
+  })();
 
   /* ---------------- スライダーに連動して顔が変わる（Q10） ---------------- */
   function addFaceToSlider(code, faces) {
@@ -3655,7 +3930,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 
   addTip("Q14", "💡 豆知識", "片頭痛は、<b>睡眠のリズムを安定</b>させることにより改善してくることが多いです。");
   addTip("Q15", "💡 豆知識",
-    "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、脳のメンタル防御や痛みを和らげる機能が低下することも関係していると考えられています。");
+    "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、<b>脳のメンタル防御や痛みを和らげる機能が低下</b>することも関係していると考えられています。");
 
   /* ---------------- おくすり情報（Q6の下、折りたたみ） ---------------- */
   function addInfo(afterCode, title, sub, items) {
