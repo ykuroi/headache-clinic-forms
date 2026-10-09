@@ -813,12 +813,14 @@ textarea.readout{
     s1.pair.appendChild(r2.row);
 
     var s2 = step("② 頭痛があった日のうち、片頭痛の日数を入力してください");
+    var s2Title = s2.box.querySelector(".dt-step-title");   // 「頭痛があった日（○日）のうち」に①の日数を差し込む
     var r3 = inputRow("c-red", "拍動性の頭痛（片頭痛）", "（ズキズキ・ガンガン、動くとつらい頭痛）", "mig");
     var r4 = autoRow("c-amber", "その他の頭痛", "（締め付けられる感じ・重だるい感じなど）", "other");
     s2.pair.appendChild(r3.row);
     s2.pair.appendChild(r4.row);
 
     var s3 = step("③ 頭痛がなかった日のうち、スッキリしていた日数を入力してください");
+    var s3Title = s3.box.querySelector(".dt-step-title");   // 「頭痛がなかった日（○日）のうち」に日数を差し込む
     var r5 = inputRow("c-green", "頭痛もなくスッキリしていた日数", "", "clear");
     var r6 = autoRow("c-amber", "頭痛はないけどスッキリしなかった日数", "（倦怠感・重だるさ・首肩こりなどで活動に影響があった日）", "unclear");
     s3.pair.appendChild(r5.row);
@@ -844,6 +846,8 @@ textarea.readout{
       var ok1 = valid(ha, DT_TOTAL);
       showErr(s1, ha !== null && !ok1 ? "0〜" + DT_TOTAL + "の整数で入力してください" : "");
       r2.out.textContent = ok1 ? String(DT_TOTAL - ha) : "–";
+      s3Title.textContent = "③ 頭痛がなかった日" + (ok1 ? "（" + (DT_TOTAL - ha) + "日）" : "") + "のうち、スッキリしていた日数を入力してください";
+      s2Title.textContent = "② 頭痛があった日" + (ok1 ? "（" + ha + "日）" : "") + "のうち、片頭痛の日数を入力してください";
 
       // ② 片頭痛：頭痛日が0日なら不要
       var need2 = ok1 && ha > 0;
