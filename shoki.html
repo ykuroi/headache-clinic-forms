@@ -163,6 +163,26 @@ input[type=text],input[type=number],input[type=date],textarea{
   color:var(--text);
 }
 textarea{min-height:70px;resize:vertical;}
+/* 頭痛日数の入力表（ツリー型） */
+.dt-wrap{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+.dt-total{font-weight:700;font-size:0.95rem;color:var(--primary-dark);}
+.dt-step{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fbfaf7;}
+.dt-step.hidden{display:none;}
+.dt-step-title{font-size:0.8rem;color:var(--muted);margin-bottom:6px;}
+.dt-pair{display:flex;flex-direction:column;gap:6px;border-left:3px solid var(--primary);padding-left:10px;}
+.dt-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:10px;}
+.dt-row .dt-label{flex:1 1 160px;font-size:0.88rem;font-weight:700;line-height:1.35;}
+.dt-row .dt-label small{display:block;font-weight:400;color:var(--muted);font-size:0.75rem;}
+.dt-row input{width:80px;flex:0 0 80px;}
+.dt-row .dt-auto{width:80px;flex:0 0 80px;text-align:center;font-size:1.1rem;font-weight:700;padding:6px 0;border-radius:8px;background:#fff;border:1px dashed var(--border);}
+.dt-row .unit{font-size:0.85rem;color:var(--muted);}
+.dt-row.c-teal{background:#e3f2f0;}
+.dt-row.c-red{background:#fdecea;}
+.dt-row.c-gray{background:#f1f1f1;}
+.dt-row.c-amber{background:#fdf0e3;}
+.dt-row.c-green{background:#e8f5e9;}
+.dt-err{color:var(--danger);font-size:0.8rem;display:none;}
+.dt-err.show{display:block;}
 .num-row{
   display:flex;
   align-items:center;
@@ -642,7 +662,145 @@ textarea.readout{
     return b;
   }
 
+  /* 頭痛日数の入力表（ツリー型、saishin_v2 の Q1 と同じ見た目）。値は numbergroup と同じ data-code の入力欄に入る。
+   * (1)頭痛があった日数 → なかった日数は自動
+   * (2)片頭痛の日数     → その他の頭痛は自動
+   * (3)スッキリしていた日数 → スッキリしなかった日数は自動（Q2b_unclear に記録）
+   * (4)痛み止めを使った日数 */
+  var DT_TOTAL = 30;
+  function renderDayTree(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var wrap = el("div", "dt-wrap");
+    wrap.appendChild(el("div", "dt-total", "この" + DT_TOTAL + "日間の内訳"));
+
+    function inputRow(cls, label, sub, code) {
+      var row = el("div", "dt-row " + cls);
+      var lb = el("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var inp = el("input");
+      inp.type = "number";
+      inp.inputMode = "numeric";
+      inp.min = "0";
+      inp.className = "field-input";
+      inp.setAttribute("data-dt", code);
+      inp.setAttribute("data-code", code);
+      row.appendChild(inp);
+      row.appendChild(el("span", "unit", "日"));
+      return { row: row, inp: inp };
+    }
+    function autoRow(cls, label, sub) {
+      var row = el("div", "dt-row " + cls);
+      var lb = el("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var out = el("div", "dt-auto", "–");
+      row.appendChild(out);
+      row.appendChild(el("span", "unit", "日"));
+      return { row: row, out: out };
+    }
+    function step(title) {
+      var s = el("div", "dt-step");
+      s.appendChild(el("div", "dt-step-title", title));
+      var pair = el("div", "dt-pair");
+      s.appendChild(pair);
+      var err = el("div", "dt-err");
+      s.appendChild(err);
+      wrap.appendChild(s);
+      return { box: s, pair: pair, err: err };
+    }
+
+    var s1 = step("① 頭痛があった日数を入力してください");
+    var r1 = inputRow("c-teal", "頭痛があった日数", "（拍動しない頭痛も含めて、すべての頭痛）", "Q2b_headache");
+    var r2 = autoRow("c-gray", "頭痛がなかった日数", "（自動で計算されます）");
+    s1.pair.appendChild(r1.row);
+    s1.pair.appendChild(r2.row);
+
+    var s2 = step("② 頭痛があった日のうち、片頭痛の日数を入力してください");
+    var r3 = inputRow("c-red", "拍動性の頭痛（片頭痛）", "（ズキズキ・ガンガン、動くとつらい頭痛）", "Q2b_mig");
+    var r4 = autoRow("c-amber", "その他の頭痛", "（締め付けられる感じ・重だるい感じなど）");
+    s2.pair.appendChild(r3.row);
+    s2.pair.appendChild(r4.row);
+
+    var s3 = step("③ 頭痛がなかった日のうち、スッキリしていた日数を入力してください");
+    var r5 = inputRow("c-green", "頭痛もなくスッキリしていた日数", "", "Q2b_clear");
+    var r6 = autoRow("c-amber", "頭痛はないけどスッキリしなかった日数", "（倦怠感・重だるさ・首肩こりなどで活動に影響があった日）");
+    s3.pair.appendChild(r5.row);
+    s3.pair.appendChild(r6.row);
+    var unclearInp = el("input");          // 自動計算した「スッキリしなかった日数」を記録する隠し欄
+    unclearInp.type = "hidden";
+    unclearInp.setAttribute("data-code", "Q2b_unclear");
+    s3.box.appendChild(unclearInp);
+
+    var s4 = step("④ この30日間で、痛み止めを使った日数を入力してください");
+    var r7 = inputRow("c-amber", "痛み止めを使った日数", "（市販薬も含めて）", "Q2b_med");
+    s4.pair.appendChild(r7.row);
+
+    b.appendChild(wrap);
+
+    function readInt(inp) {
+      if (inp.value === "") return null;
+      var n = Number(inp.value);
+      return isFinite(n) ? n : NaN;
+    }
+    function valid(n, max) {
+      return n !== null && !isNaN(n) && Math.floor(n) === n && n >= 0 && n <= max;
+    }
+    function showErr(s, msg) {
+      s.err.textContent = msg || "";
+      s.err.classList.toggle("show", !!msg);
+    }
+
+    function update() {
+      var ha = readInt(r1.inp);
+      var ok1 = valid(ha, DT_TOTAL);
+      showErr(s1, ha !== null && !ok1 ? "0〜" + DT_TOTAL + "の整数で入力してください" : "");
+      r2.out.textContent = ok1 ? String(DT_TOTAL - ha) : "–";
+
+      // ② 片頭痛：頭痛日が0日なら不要
+      var need2 = ok1 && ha > 0;
+      s2.box.classList.toggle("hidden", !need2);
+      var mig = readInt(r3.inp);
+      var ok2 = !need2 || valid(mig, ha);
+      if (need2) {
+        showErr(s2, mig !== null && !ok2 ? "0〜" + ha + "（頭痛があった日数以内）で入力してください" : "");
+        r4.out.textContent = mig !== null && ok2 ? String(ha - mig) : "–";
+      }
+      var done2 = ok1 && (!need2 || (mig !== null && ok2));
+
+      // ③ スッキリ：頭痛のない日が0日なら不要
+      var noha = ok1 ? DT_TOTAL - ha : 0;
+      var need3 = done2 && noha > 0;
+      s3.box.classList.toggle("hidden", !need3);
+      var clr = readInt(r5.inp);
+      var ok3 = !need3 || valid(clr, noha);
+      if (need3) {
+        showErr(s3, clr !== null && !ok3 ? "0〜" + noha + "（頭痛がなかった日数以内）で入力してください" : "");
+        r6.out.textContent = clr !== null && ok3 ? String(noha - clr) : "–";
+      }
+      unclearInp.value = need3 && clr !== null && ok3 ? String(noha - clr) : (ok1 && noha === 0 ? "0" : "");
+      var done3 = done2 && (!need3 || (clr !== null && ok3));
+
+      // ④ 痛み止め
+      s4.box.classList.toggle("hidden", !done3);
+      var med = readInt(r7.inp);
+      showErr(s4, med !== null && !valid(med, DT_TOTAL) ? "0〜" + DT_TOTAL + "の整数で入力してください" : "");
+    }
+    [r1.inp, r3.inp, r5.inp, r7.inp].forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        update();
+        b.classList.remove("has-error");
+        FE._onAnswerChanged();
+      });
+    });
+    update();
+    errMsg(b);
+    return b;
+  }
+
   function renderNumberGroup(q) {
+    if (q.tree) return renderDayTree(q);
     var b = qblock(q);
     qHeader(b, q);
     q.fields.forEach(function (f) {
@@ -1512,13 +1670,14 @@ var SCHEMA_SHOKI = {
           fields: [{ code: "Q6_days", label: "片頭痛日数", unit: "日/月" }]
         },
         {
-          code: "Q2b", type: "numbergroup", label: "Q7", text: "「片頭痛以外の頭痛」(重だるい感じなど)も含めて、この1ヶ月の様子を教えてください",
-          note: "※スッキリしなかった日＝強い頭痛はないが、倦怠感・すっきりしない目覚め・重だるさ・首肩こり等で活動に影響があった日",
+          code: "Q2b", type: "numbergroup", tree: true, label: "Q7",
+          text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください",
           fields: [
-            { code: "Q2b_headache", label: "頭痛があった日数", unit: "日", color: "teal" },
-            { code: "Q2b_med", label: "痛み止め使用日数", unit: "日", color: "yellow" },
-            { code: "Q2b_unclear", label: "スッキリしなかった日数", unit: "日", color: "amber" },
-            { code: "Q2b_clear", label: "スッキリしていた日数", unit: "日", color: "green" }
+            { code: "Q2b_headache", label: "頭痛があった日数", unit: "日" },
+            { code: "Q2b_mig", label: "うち片頭痛の日数", unit: "日" },
+            { code: "Q2b_clear", label: "スッキリしていた日数", unit: "日" },
+            { code: "Q2b_unclear", label: "スッキリしなかった日数", unit: "日" },
+            { code: "Q2b_med", label: "痛み止め使用日数", unit: "日" }
           ]
         },
         {
@@ -2492,7 +2651,91 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     return !!(sl && sl.getAttribute("data-touched") === "1");
   }
   function always() { return true; }
-  var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1 };          // 自由記入はOKなし
+  /* ---------------- Q7：この1ヶ月の頭痛日数（ツリー入力） ---------------- */
+  function setupDayTree(block) {
+    var steps = Array.prototype.slice.call(block.querySelectorAll(".dt-step"));
+    if (!steps.length) return;
+    var inputs = steps.map(function (s) { return s.querySelector("input[data-dt]"); });
+    var confirmed = steps.map(function () { return false; });
+    var shown = steps.map(function () { return false; });
+    var cleared = false;
+    var btns = steps.map(function (s, i) {
+      var btn = makeOkButton();
+      inputs[i].parentNode.appendChild(btn);
+      inputs[i].parentNode.classList.add("gm-has-ok");
+      btn.addEventListener("click", function () {
+        if (btn.disabled || confirmed[i]) return;
+        confirmed[i] = true;
+        inputs[i].blur();
+        explode(btn, function () {
+          refresh(true);
+          var next = null;
+          for (var k = i + 1; k < steps.length; k++) {
+            if (isShown(k)) { next = k; break; }
+          }
+          if (next !== null) {
+            scrollToEl(steps[next]);
+            setTimeout(function () { try { inputs[next].focus({ preventScroll: true }); } catch (e) { inputs[next].focus(); } }, 350);
+          } else if (allDone() && !cleared) {
+            cleared = true;
+            banner("🎉 Q7 クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+          }
+        });
+      });
+      return btn;
+    });
+
+    function needed(i) { return !steps[i].classList.contains("hidden"); }
+    function isShown(i) { return needed(i) && !steps[i].classList.contains("gm-wait"); }
+    function valid(i) {
+      var err = steps[i].querySelector(".dt-err");
+      return inputs[i].value !== "" && !(err && err.classList.contains("show"));
+    }
+    function allDone() {
+      for (var i = 0; i < steps.length; i++) if (needed(i) && !confirmed[i]) return false;
+      return true;
+    }
+    function refresh(animateEntry) {
+      var gate = true;
+      for (var i = 0; i < steps.length; i++) {
+        if (!valid(i)) confirmed[i] = false;
+        if (needed(i)) steps[i].classList.toggle("gm-wait", !gate);
+        else confirmed[i] = false;
+        var now = isShown(i);
+        if (now && !shown[i] && animateEntry && !REDUCE) replayClass(steps[i], "gm-enter");
+        shown[i] = now;
+        steps[i].classList.toggle("gm-done", confirmed[i]);
+        btns[i].classList.toggle("gm-gone", confirmed[i]);
+        setReady(btns[i], !confirmed[i] && valid(i));
+        if (needed(i)) gate = gate && confirmed[i];
+      }
+      if (!allDone()) cleared = false;
+    }
+
+    // 自動計算欄の数字が変わったら跳ねさせる
+    Array.prototype.forEach.call(block.querySelectorAll(".dt-auto"), function (out) {
+      var last = out.textContent;
+      new MutationObserver(function () {
+        if (out.textContent !== last && out.textContent !== "–") replayClass(out, "gm-bump");
+        last = out.textContent;
+      }).observe(out, { childList: true, characterData: true, subtree: true });
+    });
+    inputs.forEach(function (inp) {
+      inp.addEventListener("input", function () { refresh(true); });
+      // キーボードの「完了/改行」でも OK を押したことにする
+      inp.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          var b = btns[inputs.indexOf(inp)];
+          if (!b.disabled) b.click();
+        }
+      });
+    });
+    refresh(false);
+  }
+  var dtBlock = document.querySelector('#qContainer .qblock[data-code="Q2b"]');
+  if (dtBlock) setupDayTree(dtBlock);
+  var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1 };          // 自由記入はOKなし
   var EMPTY_OK = { Q16trigger: 1, Q32: 1 };                    // 何も選ばずOK＝あてはまるものなし
   if (window.SCHEMA_SHOKI) {
     SCHEMA_SHOKI.sections.forEach(function (sec) {
