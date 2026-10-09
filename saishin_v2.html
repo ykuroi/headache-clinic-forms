@@ -2095,7 +2095,7 @@ var SCHEMA_SAISHIN = {
       title: "📅 この1ヶ月の頭痛の状態",
       questions: [
         {
-          code: "DAYS", type: "daytree", label: "Q1", required: true,
+          code: "DAYS", type: "daytree", label: "Q1",
           text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください"
         },
         {
@@ -2153,7 +2153,7 @@ var SCHEMA_SAISHIN = {
         },
         {
           code: "Q5", type: "slider_named", label: "Q5", text: "この1ヶ月は、はき気・光過敏・音過敏などの頭痛以外の症状は、どうでしたか？",
-          note: "※光過敏：まぶしいのが辛いと感じる　※音過敏：うるさいのが辛いと感じる",
+          note: "※光過敏：まぶしいのが辛いと感じる<br>※音過敏：うるさいのが辛いと感じる",
           options: [
             {value:"◎ とてもよくなった",label:"◎ とてもよくなった"},
             {value:"◯ 少しよくなった",label:"◯ 少しよくなった"},
@@ -2755,6 +2755,21 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 .gm-qcard-opts .opt-btn{width:100%;text-align:center;}
 .gm-qcard .gm-okbar{position:static;margin-top:10px;}
 .gm-optnote{flex:0 0 100%;font-size:.82rem;color:#b5651d;background:#fff4e0;border-radius:10px;padding:6px 10px;margin-top:-2px;}
+/* 2回目以降の「タップしてね」は控えめに */
+.gm-tip-teaser.gm-mini{font-size:.72rem;padding:3px 9px;border-style:dotted;opacity:.85;}
+/* 副作用：とくになし（全部なし） */
+.gm-allnone{display:flex;align-items:center;gap:10px;margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:#e8f5e9;border:2px solid #b7dfc0;}
+.gm-allnone .gm-allnone-btn{flex:0 0 auto;border:none;border-radius:20px;padding:10px 16px;font-weight:800;font-size:.95rem;color:#fff;background:#27ae60;box-shadow:0 3px 0 #1e8449;cursor:pointer;}
+.gm-allnone .gm-allnone-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #1e8449;}
+.gm-allnone span{font-size:.8rem;color:#1e5f35;}
+/* 記入日の欄を小さく（識別情報の注意は一番下にまとめる） */
+.id-card{display:flex;align-items:center;gap:10px;padding:8px 12px;border-width:1px;margin-bottom:12px;}
+.id-card label{margin:0;font-size:.85rem;white-space:nowrap;}
+.id-card input{flex:1;min-width:0;}
+.id-card .hint{display:none;}
+/* 進み具合バーは画面の一番上に細く固定 */
+header.app-header .progress-wrap{position:fixed;top:0;left:0;right:0;height:5px;margin:0;border-radius:0;z-index:50;background:rgba(47,111,107,.18);}
+header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a);}
 /* Q2 の分類ステージ */
 .gm-stage{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:8px;position:relative;
   padding:10px;border:1px solid var(--border);border-radius:12px;background:#fbfaf7;transition:border-color .3s, background .3s;}
@@ -2992,9 +3007,11 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     btn.classList.toggle("ready", ready);
   }
   function nextVisibleQuestion(block) {
-    var all = Array.prototype.slice.call(document.querySelectorAll("#qContainer .qblock"));
+    var all = Array.prototype.slice.call(document.querySelectorAll("#qContainer .qblock")).filter(function (x) {
+      return !x.parentElement.closest(".qblock");   // 副作用の各行など、入れ子の行は除く
+    });
     for (var i = all.indexOf(block) + 1; i < all.length; i++) {
-      if (!all[i].classList.contains("hidden")) return all[i];
+      if (!all[i].classList.contains("hidden") && all[i].offsetParent !== null) return all[i];
     }
     return null;
   }
@@ -3232,6 +3249,53 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   }
   setupPainPair("Q3", "Q4", "Q3・Q4");
 
+  /* ---------------- 1問だけの OK ボタン（Q5 など） ---------------- */
+  function setupSingleOk(code, isReady, label) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
+    if (!q) return;
+    var bar = mk("div", "gm-okbar");
+    var msg = mk("span", "gm-okbar-msg");
+    var btn = makeOkButton();
+    bar.appendChild(msg);
+    bar.appendChild(btn);
+    var err = q.querySelector(".err-msg");
+    q.insertBefore(bar, err || null);
+    var confirmed = false, cleared = false;
+    function refresh() {
+      var ok = isReady(q);
+      if (!ok) { confirmed = false; cleared = false; }
+      bar.classList.toggle("gm-cleared", confirmed);
+      btn.classList.toggle("gm-gone", confirmed);
+      msg.textContent = confirmed ? "✓ OK！" : ok ? "よければ OK を押してください" : "答えると OK が押せます";
+      setReady(btn, ok && !confirmed);
+    }
+    ["click", "input", "change", "pointerup"].forEach(function (ev) {
+      q.addEventListener(ev, function () { setTimeout(refresh, 0); });
+    });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (btn.disabled || confirmed) return;
+      confirmed = true;
+      explode(btn, function () {
+        refresh();
+        if (!cleared) {
+          cleared = true;
+          banner("🎉 " + label + " クリア！", function () { scrollToEl(nextVisibleQuestion(q)); });
+        }
+      });
+    });
+    refresh();
+  }
+  // あり/なし＋スライダー型：「なし」を選ぶか、「あり」でスライダーを動かしたら OK
+  function presenceAnswered(q) {
+    var p = q.getAttribute("data-presence");
+    if (p === "none") return true;
+    if (p !== "has") return false;
+    var inp = q.querySelector(".slider-input");
+    return !!(inp && inp.getAttribute("data-touched") === "1");
+  }
+  setupSingleOk("Q5", presenceAnswered, "Q5");
+
   // 治療満足度（Q14）の「副作用」行：0・10 の下に意味を追記
   (function () {
     var inp = document.querySelector('#qContainer input[data-code="SATIS_fukusayou"]');
@@ -3265,6 +3329,59 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   ["Q7", "Q8", "Q9"].forEach(function (c) {
     faceEnds(c, ["😄", "とてもよく効く"], ["😖", "全然効かない"], "ボタンを左右にスライドさせて回答してください");
   });
+
+  /* ---------------- 残りの設問にも OK ボタン ---------------- */
+  function sliderTouched(q) {
+    var inp = q.querySelector(".slider-input");
+    return !!(inp && inp.getAttribute("data-touched") === "1");
+  }
+  function allSlidersTouched(q) {
+    var a = q.querySelectorAll(".slider-input");
+    if (!a.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i].getAttribute("data-touched") !== "1") return false;
+    return true;
+  }
+  setupSingleOk("Q6", function (q) { var t = q.querySelector('input[data-code="Q6_total"]'); return !!(t && t.value !== ""); }, "Q6");
+  setupSingleOk("Q7", sliderTouched, "Q7");
+  setupSingleOk("Q8", sliderTouched, "Q8");
+  setupSingleOk("Q9", sliderTouched, "Q9");
+  setupSingleOk("Q10", sliderTouched, "Q10");
+  setupSingleOk("Q14", sliderTouched, "Q11");     // 睡眠（画面上の番号は Q11）
+  setupSingleOk("Q15", sliderTouched, "Q12");     // 疲れやすさ（Q12）
+  setupSingleOk("PGIC", sliderTouched, "Q13");
+  setupSingleOk("SATIS", allSlidersTouched, "Q14");
+  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q16"); // 今後の治療（Q16）
+
+  /* ---------------- 副作用チェック：とくになし（全部なし） ---------------- */
+  (function () {
+    var q = document.querySelector('#qContainer .qblock[data-code="SE"]');
+    if (!q) return;
+    var rows = Array.prototype.slice.call(q.querySelectorAll('.options[data-code^="SE_"]'));
+    var box = mk("div", "gm-allnone");
+    var b = mk("button", "gm-allnone-btn", "✓ とくになし");
+    b.type = "button";
+    box.appendChild(b);
+    box.appendChild(mk("span", null, "全部「なし」にします。気になる項目があれば、そこだけ「あり」に変えてください"));
+    var first = q.querySelector(".qblock");
+    q.insertBefore(box, first);
+    b.addEventListener("click", function () {
+      rows.forEach(function (o) {
+        var none = o.querySelector('.opt-btn[data-value="なし"]');
+        if (none && !none.classList.contains("selected")) none.click();
+      });
+      var r = b.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2, 1);
+    });
+    setupSingleOk("SE", function () {
+      return rows.every(function (o) { return !!o.querySelector(".opt-btn.selected"); });
+    }, "Q15");
+  })();
+
+  /* ---------------- Q11〜Q13 のスライダーにも両端の顔 ---------------- */
+  ["Q14", "Q15"].forEach(function (c) {
+    faceEnds(c, ["😖", "明らかに悪化した"], ["😄", "明らかに改善した"], "ボタンを左右にスライドさせて回答してください");
+  });
+  faceEnds("PGIC", ["😖", "著明悪化"], ["😄", "著明改善"], "ボタンを左右にスライドさせて回答してください");
 
   /* ---------------- 選択肢の下にひとことコメント ---------------- */
   function addOptionNote(code, value, text) {
@@ -3476,6 +3593,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     '</svg>';
 
   // キャラクター（または「タップしてね」）を押すと吹き出しが飛び出す。もう一度押すと閉じる。
+  var tipCount = 0;
   function addTip(afterCode, title, html, teaser) {
     var q = document.querySelector('#qContainer .qblock[data-code="' + afterCode + '"]');
     if (!q) return;
@@ -3485,7 +3603,8 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     chara.setAttribute("aria-label", title + "を見る");
     chara.innerHTML = CHARA_SVG;
     chara.appendChild(mk("span", "gm-tip-q", "?"));
-    var tease = mk("div", "gm-tip-teaser", teaser || "タップしてね！ 💡");
+    var tease = mk("div", "gm-tip-teaser" + (tipCount > 0 ? " gm-mini" : ""), teaser || (tipCount > 0 ? "💡 タップ" : "タップしてね！ 💡"));
+    tipCount++;
     var bubble = mk("div", "gm-tip-bubble");
     bubble.appendChild(mk("div", "gm-tip-title", title));
     var text = mk("div", "gm-tip-text");
@@ -3556,7 +3675,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
     q.appendChild(d);
   }
 
-  addInfo("Q6", "💊 おくすり情報", "（タップでひらく）", [
+  addInfo("Q6", "💊 豆知識：急性期薬、痛み止めについて", "（タップでひらく）", [
     ["ナルティーク",
      "「<b>ゲパント</b>」という新しい種類の片頭痛薬で、片頭痛を起こす物質（CGRP）の受け皿をブロックする飲み薬です。発作のときに飲む治療薬としても、決められた飲み方で続ける予防薬としても使えます。"],
     ["トリプタン",
