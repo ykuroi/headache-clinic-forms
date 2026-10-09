@@ -1653,8 +1653,14 @@ var SCHEMA_SHOKI = {
           fields: [{ code: "Q4_age", label: "発症年齢", unit: "歳ごろから" }]
         },
         {
-          code: "Q5", type: "radio", label: "Q5", text: "頭痛が月に15日以上になると、「慢性片頭痛」の診断となります。あなたは月15日以上の頭痛がありますか？また、それはいつ頃からですか。", wide: true,
-          options: ["今も月15日未満（該当しない）","1年以内に該当するようになった","2〜5年前から該当している","6年以上前から該当している"].map(function(l){return {value:l,label:l};})
+          code: "Q5", type: "radio", label: "Q5", text: "この3ヶ月間、頭痛がある日は月に15日以上（＝2日に1日以上）ありましたか？", wide: true,
+          // 画面では「いいえ／はい」→「はい」の方のみ時期を選ぶ2段構え（ゲーム風演出ブロックの setupQ5）。記録される値は従来の4択のまま
+          options: [
+            {value:"今も月15日未満（該当しない）",label:"いいえ（月15日未満）"},
+            {value:"1年以内に該当するようになった",label:"1年以内から"},
+            {value:"2〜5年前から該当している",label:"2〜5年前から"},
+            {value:"6年以上前から該当している",label:"6年以上前から"}
+          ]
         },
         {
           code: "Q6", type: "radio", label: "Q6", text: "最近3ヶ月間で、片頭痛（ガンガン・ズキズキと拍動し、動くとツラくなる頭痛）が起きる日は月に何日くらいですか？",
@@ -1974,10 +1980,10 @@ var SCHEMA_SHOKI = {
             {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
           ],
           rows: [
-            {code:"M1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた"},
-            {code:"M2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた"},
-            {code:"M3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた"},
-            {code:"M4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた"}
+            {code:"M1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"M2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"M3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"M4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
           ]
         }
       ]
@@ -2260,6 +2266,10 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
      =================================================================== -->
 <style>
 .gm-wait{display:none !important;}
+/* Q5：「はい」を選んだ人だけ時期を聞く */
+.opt-btn.gm-on{border-color:var(--primary);background:var(--primary);color:#fff;font-weight:700;}
+.gm-sub{flex:0 0 100%;display:flex;flex-direction:column;gap:8px;margin-top:4px;padding:10px 12px;border-left:4px solid var(--primary);background:#f4faf9;border-radius:10px;}
+.gm-sub-q{margin:0;font-weight:700;font-size:.92rem;}
 .gm-ok{
   margin-left:auto;flex:0 0 auto;
   min-width:64px;height:48px;padding:0 16px;
@@ -2332,6 +2342,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 .gm-qcard{border:2px solid #b9d9d5;border-radius:14px;padding:12px;background:#fbfdfc;}
 .gm-qcard-q{font-weight:700;font-size:.98rem;line-height:1.55;margin-bottom:10px;}
 .gm-qcard-q .gm-qno{display:inline-block;background:var(--primary);color:#fff;border-radius:10px;font-size:.72rem;padding:0 8px;margin-right:6px;vertical-align:2px;}
+.gm-qcard-plain{font-size:.88rem;line-height:1.55;color:#1e5f5a;background:#eef7f5;border-radius:10px;padding:8px 10px;margin:-2px 0 10px;}
 .gm-qcard-opts{display:flex;flex-direction:column;gap:7px;}
 .gm-qcard-opts .opt-btn{width:100%;text-align:center;}
 .gm-qcard .gm-okbar{position:static;margin-top:10px;}
@@ -2728,6 +2739,41 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     });
     refresh(false);
   }
+  /* ---------------- Q5：「月15日以上か」→「はい」の方のみ「いつ頃からか」 ---------------- */
+  (function setupQ5() {
+    var q = document.querySelector('#qContainer .qblock[data-code="Q5"]');
+    var opts = q && q.querySelector(".options");
+    if (!opts) return;
+    var btns = Array.prototype.slice.call(opts.querySelectorAll(".opt-btn"));
+    if (btns.length !== 4) return;
+    var no = btns[0], periods = btns.slice(1);
+    var yes = mk("div", "opt-btn wide", "はい（ほぼ1日おき以上に頭痛がある）");   // 値は持たない（時期の選択で記録）
+    opts.insertBefore(yes, no.nextSibling);
+    var sub = mk("div", "gm-sub");
+    sub.appendChild(mk("p", "gm-sub-q", "その状態はいつ頃からですか？"));
+    periods.forEach(function (b) { sub.appendChild(b); });
+    opts.appendChild(sub);
+    var yesOn = periods.some(function (b) { return b.classList.contains("selected"); });
+    function refresh(animate) {
+      yes.classList.toggle("gm-on", yesOn);
+      var wasHidden = sub.classList.contains("gm-wait");
+      sub.classList.toggle("gm-wait", !yesOn);
+      if (yesOn && wasHidden && animate && !REDUCE) replayClass(sub, "gm-enter");
+    }
+    yes.addEventListener("click", function () {
+      yesOn = true;
+      no.classList.remove("selected");
+      refresh(true);
+      FE._onAnswerChanged();
+      q.dispatchEvent(new Event("input", { bubbles: true }));   // OK ボタンの状態を更新
+    });
+    no.addEventListener("click", function () {
+      yesOn = false;
+      refresh(false);
+    });
+    refresh(false);
+  })();
+
   var dtBlock = document.querySelector('#qContainer .qblock[data-code="Q2b"]');
   if (dtBlock) setupDayTree(dtBlock);
   var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1 };          // 自由記入はOKなし
@@ -2790,6 +2836,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       qq.appendChild(mk("span", "gm-qno", "問" + r.code));
       qq.appendChild(document.createTextNode(r.text));
       card.appendChild(qq);
+      if (r.plain) card.appendChild(mk("div", "gm-qcard-plain", "💬 わかりやすく言うと：" + r.plain));
       var opts = mk("div", "gm-qcard-opts");
       var bar = mk("div", "gm-okbar");
       var msg = mk("span", "gm-okbar-msg");
@@ -2899,14 +2946,20 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
 
 
-  addTip("Q7type", "💡 豆知識", "<b>ズキズキ、ガンガンと拍動する頭痛</b>が典型的な片頭痛です。");
+  addTip("Q7type", "💡 豆知識",
+    "<b>ズキズキ・ガンガンと脈打つような痛み</b>は、片頭痛によくみられる特徴です（脈打たない片頭痛もあります）。<br>" +
+    "頭が重い・締め付けられるような痛みは<b>緊張型頭痛</b>の特徴とされますが、<b>頭痛の日が多い片頭痛（慢性片頭痛）</b>の方にもよくみられます。");
   addTip("Q7dur", "💡 豆知識", "片頭痛の持続時間は<b>4〜72時間</b>、とされています。");
   addTip("Q9", "💡 豆知識",
     "<b>体を動かすとひどくなる頭痛</b>は片頭痛に特徴的です。脳を包む膜（髄膜）や血管のまわりの神経が敏感になっているためと考えられています。");
   addTip("Q10", "💡 豆知識",
     "片頭痛では、はき気や光・音への過敏さなど、<b>頭痛以外の症状</b>をともなうことがよくあります。これらは、発作のときに脳が刺激に敏感になっている状態を表していると考えられています。");
+  addTip("Q12", "💡 豆知識",
+    "これは、片頭痛の<b>『予兆』</b>を探る質問です。あくびや甘いものが欲しくなるなどの変化は、頭痛が始まる前から脳の中で発作が始まっているサインと考えられています。予兆に気づくと、<b>早めの対処や予定の調整</b>に役立ちます。");
   addTip("Q16trigger", "💡 豆知識",
-    "<b>頭痛のきっかけを知って上手に付き合うこと</b>が、くすりに頼りすぎずに頭痛をコントロールしていくコツです。");
+    "これは、<b>片頭痛の誘因（きっかけ）</b>を探る質問です。寝不足のとき、空腹時、精神的なストレスなどが片頭痛の誘因となります。これらを把握して、<b>日々の生活でコントロールしていくこと</b>が大切です。");
+  addTip("Q13", "💡 豆知識",
+    "軽く触れるだけで痛みを感じる状態を<b>「アロディニア（異痛症）」</b>といいます。片頭痛では、痛みを伝える脳の神経が敏感になる<b>「中枢感作」</b>によって起こると考えられています。発作中にみられることが多く、アロディニアのある方は頭痛の日が増えやすい傾向も知られています。");
   addTip("Q28", "💡 豆知識", "片頭痛は、<b>睡眠のリズムを安定</b>させることにより改善してくることが多いです。");
   addTip("Q29", "💡 豆知識",
     "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、脳のメンタル防御や痛みを和らげる機能が低下することも関係していると考えられています。");
