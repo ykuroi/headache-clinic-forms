@@ -2087,7 +2087,6 @@ var SCHEMA_SHOKI = {
       '<div class="tabbar">' +
       '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
       '<button class="tab-btn" data-tab="text">📝 テキスト</button>' +
-      '<button class="tab-btn" data-tab="csv">📊 CSV(Excel用)</button>' +
       "</div>" +
       '<div class="output-panel active" data-panel="qr">' +
       '<div class="qr-wrap">' +
@@ -2109,13 +2108,6 @@ var SCHEMA_SHOKI = {
       '<button class="small-btn filled" id="btnCopyText">📋 テキストをコピー</button>' +
       '<button class="small-btn" id="btnDownloadText">⬇ テキストを保存</button>' +
       "</div>" +
-      "</div>" +
-      '<div class="output-panel" data-panel="csv">' +
-      '<textarea class="readout" readonly id="csvOut" style="min-height:140px;"></textarea>' +
-      '<div class="small-btn-row">' +
-      '<button class="small-btn filled" id="btnDownloadCsv">⬇ CSVをダウンロード（Excelで開けます）</button>' +
-      "</div>" +
-      '<p class="notice">ダウンロードしたCSVは、Excelで開いて「★★2026頭痛データ.xlsx」にコピー＆ペーストできます。</p>' +
       "</div>" +
       '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
 
@@ -2199,11 +2191,6 @@ var SCHEMA_SHOKI = {
       downloadBlob(textText, "text/plain;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".txt");
     });
 
-    // CSV出力
-    document.getElementById("csvOut").value = csvText;
-    document.getElementById("btnDownloadCsv").addEventListener("click", function () {
-      downloadBlob(csvText, "text/csv;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".csv");
-    });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2486,8 +2473,17 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
   function scrollToEl(target) {
     if (!target) return;
-    var y = target.getBoundingClientRect().top + window.pageYOffset - headerOffset();
-    window.scrollTo({ top: Math.max(0, y), behavior: REDUCE ? "auto" : "smooth" });
+    // セクションの最初の設問へ進むときは、セクションの見出しから見せる
+    if (target.classList.contains("qblock")) {
+      var sec = target.closest("section.qsection");
+      if (sec && sec.querySelector(".qblock") === target) target = sec;
+    }
+    function y() { return Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - headerOffset()); }
+    window.scrollTo({ top: y(), behavior: REDUCE ? "auto" : "smooth" });
+    // スマホで指のスクロールの勢いが残っているとスクロールが打ち消されることがあるので、ずれていたらもう一度
+    setTimeout(function () {
+      if (Math.abs(target.getBoundingClientRect().top - headerOffset()) > 80) window.scrollTo({ top: y(), behavior: "auto" });
+    }, 900);
   }
   function replayClass(node, cls) {
     node.classList.remove(cls);
@@ -2879,6 +2875,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
             if (!cleared) {
               cleared = true;
               banner("🎉 " + name + " クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+            } else {
+              scrollToEl(nextVisibleQuestion(block));   // 戻って答え直したときも次へ進む
             }
           }
         });
@@ -2970,7 +2968,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     "ふだんの片頭痛より<b>長引きやすく、痛み止めが効きにくい</b>ことがあります。生理の時期に合わせた治療の工夫もできるので、頭痛ダイアリーに生理の日も記録しておくと役立ちます。");
   addTip("Q28", "💡 豆知識", "片頭痛は、<b>睡眠のリズムを安定</b>させることにより改善してくることが多いです。");
   addTip("Q29", "💡 豆知識",
-    "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、脳のメンタル防御や痛みを和らげる機能が低下することも関係していると考えられています。");
+    "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、<b>脳のメンタル防御や痛みを和らげる機能が低下</b>することも関係していると考えられています。");
   addTip("HIT6", "💡 HIT-6 とは",
     "HIT-6は<b>あなたの頭痛のひどさを点数化</b>するためによく使われるスコアです。過去4週間の頭痛が日常生活や仕事、気分にどれくらい影響を与えているかを簡易的に評価できます。");
   addTip("GAD7", "💡 GAD-7 とは",
