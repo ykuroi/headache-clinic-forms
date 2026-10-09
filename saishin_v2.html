@@ -2293,10 +2293,10 @@ var SCHEMA_SAISHIN = {
             {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた"},
-            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた"},
-            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた"},
-            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた"}
+            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
           ]
         }
       ]
@@ -2751,6 +2751,7 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 .gm-qcard{border:2px solid #b9d9d5;border-radius:14px;padding:12px;background:#fbfdfc;}
 .gm-qcard-q{font-weight:700;font-size:.98rem;line-height:1.55;margin-bottom:10px;}
 .gm-qcard-q .gm-qno{display:inline-block;background:var(--primary);color:#fff;border-radius:10px;font-size:.72rem;padding:0 8px;margin-right:6px;vertical-align:2px;}
+.gm-qcard-plain{font-size:.88rem;line-height:1.55;color:#1e5f5a;background:#eef7f5;border-radius:10px;padding:8px 10px;margin:-2px 0 10px;}
 .gm-qcard-opts{display:flex;flex-direction:column;gap:7px;}
 .gm-qcard-opts .opt-btn{width:100%;text-align:center;}
 .gm-qcard .gm-okbar{position:static;margin-top:10px;}
@@ -3439,6 +3440,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       qq.appendChild(mk("span", "gm-qno", "問" + r.code));
       qq.appendChild(document.createTextNode(r.text));
       card.appendChild(qq);
+      if (r.plain) card.appendChild(mk("div", "gm-qcard-plain", "💬 わかりやすく言うと：" + r.plain));
       var opts = mk("div", "gm-qcard-opts");
       var bar = mk("div", "gm-okbar");
       var msg = mk("span", "gm-okbar-msg");
