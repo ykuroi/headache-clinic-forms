@@ -33,9 +33,7 @@ header.app-header{
   background:var(--primary);
   color:#fff;
   padding:18px 20px 22px;
-  position:sticky;
-  top:0;
-  z-index:20;
+  /* 表題は上に固定しない（スクロールで一緒に流れる） */
   box-shadow:var(--shadow);
 }
 header.app-header h1{
@@ -147,6 +145,8 @@ section.qsection > .sec-body{
   transition:all .15s ease;
 }
 .opt-btn.wide{min-width:100%;text-align:left;}
+.opt-group{flex:0 0 100%;font-size:0.82rem;font-weight:700;color:var(--primary-dark);margin:8px 0 0;padding-bottom:2px;border-bottom:1px solid var(--border);}
+.opt-group:first-child{margin-top:0;}
 .opt-btn.selected{
   border-color:var(--primary);
   background:var(--primary);
@@ -181,6 +181,26 @@ textarea{min-height:70px;resize:vertical;}
 .num-row.color-yellow{background:#fff8e1;border-left:4px solid #f0ad4e;}
 .num-row.color-amber{background:#fdf0e3;border-left:4px solid #e8734a;}
 .num-row.color-green{background:#e8f5e9;border-left:4px solid #27ae60;}
+/* 頭痛日数の入力表（ツリー型） */
+.dt-wrap{display:flex;flex-direction:column;gap:10px;margin-top:6px;}
+.dt-total{font-weight:700;font-size:0.95rem;color:var(--primary-dark);}
+.dt-step{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#fbfaf7;}
+.dt-step.hidden{display:none;}
+.dt-step-title{font-size:0.8rem;color:var(--muted);margin-bottom:6px;}
+.dt-pair{display:flex;flex-direction:column;gap:6px;border-left:3px solid var(--primary);padding-left:10px;}
+.dt-row{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 10px;border-radius:10px;}
+.dt-row .dt-label{flex:1 1 160px;font-size:0.88rem;font-weight:700;line-height:1.35;}
+.dt-row .dt-label small{display:block;font-weight:400;color:var(--muted);font-size:0.75rem;}
+.dt-row input{width:80px;flex:0 0 80px;}
+.dt-row .dt-auto{width:80px;flex:0 0 80px;text-align:center;font-size:1.1rem;font-weight:700;padding:6px 0;border-radius:8px;background:#fff;border:1px dashed var(--border);}
+.dt-row .unit{font-size:0.85rem;color:var(--muted);}
+.dt-row.c-teal{background:#e3f2f0;}
+.dt-row.c-red{background:#fdecea;}
+.dt-row.c-gray{background:#f1f1f1;}
+.dt-row.c-amber{background:#fdf0e3;}
+.dt-row.c-green{background:#e8f5e9;}
+.dt-err{color:var(--danger);font-size:0.8rem;display:none;}
+.dt-err.show{display:block;}
 .scale11{
   display:grid;
   grid-template-columns:repeat(11, minmax(0, 1fr));
@@ -330,9 +350,18 @@ textarea{min-height:70px;resize:vertical;}
   max-width:100px;
 }
 .slider-face-label .face-emoji{
-  font-size:1.6rem;
+  font-size:2.8rem;
   line-height:1;
+  display:inline-block;
+  animation:faceBob 2.6s ease-in-out infinite;
 }
+.slider-face-label:last-child .face-emoji{animation-name:faceWobble;animation-delay:-1.3s;}
+@keyframes faceBob{0%,100%{transform:translateY(0) rotate(0);}50%{transform:translateY(-4px) rotate(-4deg);}}
+@keyframes faceWobble{0%,100%{transform:translateY(0) rotate(0);}25%{transform:rotate(5deg);}50%{transform:translateY(-3px) rotate(0);}75%{transform:rotate(-5deg);}}
+@media (prefers-reduced-motion: reduce){.slider-face-label .face-emoji{animation:none;}}
+/* まだ動かしていないスライダー：つまみを薄くし、値は記録しない */
+.slider-container.untouched .slider-input{opacity:0.5;}
+.slider-container.untouched .current-value{color:var(--muted);}
 .slider-face-label .face-text{
   font-size:0.66rem;
   color:var(--muted);
@@ -654,6 +683,11 @@ textarea.readout{
     var opts = el("div", "options");
     var wide = q.wide || false;
     q.options.forEach(function (o) {
+      // {group:"見出し"} は選択肢ではなく分類見出しとして表示する
+      if (o.group) {
+        opts.appendChild(el("div", "opt-group", o.group));
+        return;
+      }
       var btn = makeOptBtn(opts, q.code, o.value, o.label, wide, "multi");
       if (o.exclusive) btn.setAttribute("data-exclusive", "1");
     });
@@ -724,6 +758,144 @@ textarea.readout{
     return b;
   }
 
+  /* 頭痛日数の入力表（ツリー型）。30日を「頭痛あり/なし」に分け、さらに内訳を段階的に入力する。
+   * (1)頭痛があった日数 → (2)なかった日数は自動
+   * (3)片頭痛の日数     → (4)その他の頭痛は自動
+   * (5)スッキリしていた日数 → (6)スッキリしなかった日数は自動 */
+  var DT_TOTAL = 30;
+  function renderDayTree(q) {
+    var b = qblock(q);
+    qHeader(b, q);
+    var wrap = el("div", "dt-wrap");
+    wrap.appendChild(el("div", "dt-total", "この" + DT_TOTAL + "日間の内訳"));
+
+    function inputRow(cls, label, sub, key) {
+      var row = el("div", "dt-row " + cls);
+      var lb = el("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var inp = el("input");
+      inp.type = "number";
+      inp.inputMode = "numeric";
+      inp.min = "0";
+      inp.className = "field-input";
+      inp.setAttribute("data-dt", key);
+      row.appendChild(inp);
+      row.appendChild(el("span", "unit", "日"));
+      return { row: row, inp: inp };
+    }
+    function autoRow(cls, label, sub, key) {
+      var row = el("div", "dt-row " + cls);
+      var lb = el("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var out = el("div", "dt-auto", "–");
+      out.setAttribute("data-dt", key);
+      row.appendChild(out);
+      row.appendChild(el("span", "unit", "日"));
+      return { row: row, out: out };
+    }
+    function step(title) {
+      var s = el("div", "dt-step");
+      s.appendChild(el("div", "dt-step-title", title));
+      var pair = el("div", "dt-pair");
+      s.appendChild(pair);
+      var err = el("div", "dt-err");
+      s.appendChild(err);
+      wrap.appendChild(s);
+      return { box: s, pair: pair, err: err };
+    }
+
+    var s1 = step("① 頭痛があった日数を入力してください");
+    var r1 = inputRow("c-teal", "頭痛があった日数", "（拍動しない頭痛も含めて、すべての頭痛）", "ha");
+    var r2 = autoRow("c-gray", "頭痛がなかった日数", "（自動で計算されます）", "noha");
+    s1.pair.appendChild(r1.row);
+    s1.pair.appendChild(r2.row);
+
+    var s2 = step("② 頭痛があった日のうち、片頭痛の日数を入力してください");
+    var s2Title = s2.box.querySelector(".dt-step-title");   // 「頭痛があった日（○日）のうち」に①の日数を差し込む
+    var r3 = inputRow("c-red", "拍動性の頭痛（片頭痛）", "（ズキズキ・ガンガン、動くとつらい頭痛）", "mig");
+    var r4 = autoRow("c-amber", "その他の頭痛", "（締め付けられる感じ・重だるい感じなど）", "other");
+    s2.pair.appendChild(r3.row);
+    s2.pair.appendChild(r4.row);
+
+    var s3 = step("③ 頭痛がなかった日のうち、スッキリしていた日数を入力してください");
+    var s3Title = s3.box.querySelector(".dt-step-title");   // 「頭痛がなかった日（○日）のうち」に日数を差し込む
+    var r5 = inputRow("c-green", "頭痛もなくスッキリしていた日数", "", "clear");
+    var r6 = autoRow("c-amber", "頭痛はないけどスッキリしなかった日数", "（倦怠感・重だるさ・首肩こりなどで活動に影響があった日）", "unclear");
+    s3.pair.appendChild(r5.row);
+    s3.pair.appendChild(r6.row);
+
+    b.appendChild(wrap);
+
+    function readInt(inp) {
+      if (inp.value === "") return null;
+      var n = Number(inp.value);
+      return isFinite(n) ? n : NaN;
+    }
+    function valid(n, max) {
+      return n !== null && !isNaN(n) && Math.floor(n) === n && n >= 0 && n <= max;
+    }
+    function showErr(s, msg) {
+      s.err.textContent = msg || "";
+      s.err.classList.toggle("show", !!msg);
+    }
+
+    function update() {
+      var ha = readInt(r1.inp);
+      var ok1 = valid(ha, DT_TOTAL);
+      showErr(s1, ha !== null && !ok1 ? "0〜" + DT_TOTAL + "の整数で入力してください" : "");
+      r2.out.textContent = ok1 ? String(DT_TOTAL - ha) : "–";
+      s3Title.textContent = "③ 頭痛がなかった日" + (ok1 ? "（" + (DT_TOTAL - ha) + "日）" : "") + "のうち、スッキリしていた日数を入力してください";
+      s2Title.textContent = "② 頭痛があった日" + (ok1 ? "（" + ha + "日）" : "") + "のうち、片頭痛の日数を入力してください";
+
+      // ② 片頭痛：頭痛日が0日なら不要
+      var need2 = ok1 && ha > 0;
+      s2.box.classList.toggle("hidden", !need2);
+      var mig = readInt(r3.inp);
+      var ok2 = !need2 || valid(mig, ha);
+      if (need2) {
+        showErr(s2, mig !== null && !ok2 ? "0〜" + ha + "（頭痛があった日数以内）で入力してください" : "");
+        r4.out.textContent = mig !== null && ok2 ? String(ha - mig) : "–";
+      }
+      var done2 = ok1 && (!need2 || (mig !== null && ok2));
+
+      // ③ スッキリ：頭痛のない日が0日なら不要
+      var noha = ok1 ? DT_TOTAL - ha : 0;
+      var need3 = done2 && noha > 0;
+      s3.box.classList.toggle("hidden", !need3);
+      var clr = readInt(r5.inp);
+      var ok3 = !need3 || valid(clr, noha);
+      if (need3) {
+        showErr(s3, clr !== null && !ok3 ? "0〜" + noha + "（頭痛がなかった日数以内）で入力してください" : "");
+        r6.out.textContent = clr !== null && ok3 ? String(noha - clr) : "–";
+      }
+      b.setAttribute("data-dt-complete", done2 && (!need3 || (clr !== null && ok3)) ? "1" : "0");
+    }
+    [r1.inp, r3.inp, r5.inp].forEach(function (inp) {
+      inp.addEventListener("input", function () {
+        update();
+        b.classList.remove("has-error");
+        FE._onAnswerChanged();
+      });
+    });
+    update();
+    errMsg(b);
+    return b;
+  }
+
+  // 片頭痛日数から従来の区分（Q1）を導出する（医師画面・スコア表示との互換用）
+  function mmdCategory(n) {
+    if (n === null || n === undefined) return null;
+    if (n === 0) return "0日（頭痛なし）";
+    if (n <= 4) return "1〜4日";
+    if (n <= 9) return "5〜9日";
+    if (n <= 14) return "10〜14日";
+    if (n <= 20) return "15〜20日";
+    if (n <= 28) return "21〜28日";
+    return "ほぼ毎日";
+  }
+
   function renderSlider(q) {
     // 0-10スケール用スライダー（Q3, Q4など）
     var b = qblock(q);
@@ -740,7 +912,7 @@ textarea.readout{
     scont.appendChild(inp);
 
     var valdisp = el("div", "slider-value-display");
-    var curval = el("div", "current-value", "5");
+    var curval = el("div", "current-value", "–");
     var curlbl = el("div", "current-label", "");
     valdisp.appendChild(curval);
     valdisp.appendChild(curlbl);
@@ -753,7 +925,7 @@ textarea.readout{
     scont.appendChild(lblrow);
     b.appendChild(scont);
 
-    inp.addEventListener("input", function () {
+    trackTouch(inp, scont, function () {
       curval.textContent = inp.value;
       b.classList.remove("has-error");
       FE._onAnswerChanged();
@@ -765,6 +937,23 @@ textarea.readout{
   function hasNoneOption(q) {
     var last = q.options[q.options.length - 1];
     return last && /^N[\s　]/.test(String(last.value));
+  }
+
+  // スライダーは患者さんが一度でも触れるまで「未回答」とし、初期位置の値を記録しない。
+  // 触れたら data-touched を付け、onTouch で表示を更新する。
+  function trackTouch(inp, scont, onTouch) {
+    scont.classList.add("untouched");
+    function touch() {
+      inp.setAttribute("data-touched", "1");
+      scont.classList.remove("untouched");
+      onTouch();
+    }
+    inp.addEventListener("input", touch);
+    inp.addEventListener("change", touch);
+    inp.addEventListener("pointerup", touch);
+  }
+  function sliderValue(inp) {
+    return inp && inp.getAttribute("data-touched") === "1" ? Number(inp.value) : null;
   }
 
   function buildDegreeSlider(mainOptions, code) {
@@ -780,8 +969,8 @@ textarea.readout{
     scont.appendChild(inp);
 
     var valdisp = el("div", "slider-value-display");
-    var curval = el("div", "current-value", "1");
-    var curlbl = el("div", "current-label", mainOptions[0].label);
+    var curval = el("div", "current-value", "–");
+    var curlbl = el("div", "current-label", "スライダーを動かして選んでください");
     valdisp.appendChild(curval);
     valdisp.appendChild(curlbl);
     scont.appendChild(valdisp);
@@ -795,7 +984,7 @@ textarea.readout{
     }
     scont.appendChild(lblrow);
 
-    inp.addEventListener("input", function () {
+    trackTouch(inp, scont, function () {
       var idx = Number(inp.value);
       curval.textContent = String(idx + 1);
       curlbl.textContent = mainOptions[idx].label;
@@ -996,7 +1185,7 @@ textarea.readout{
       scont.appendChild(inp);
 
       var valdisp = el("div", "slider-value-display");
-      var curval = el("div", "current-value", "5");
+      var curval = el("div", "current-value", "–");
       var curlbl = el("div", "current-label", "");
       valdisp.appendChild(curval);
       valdisp.appendChild(curlbl);
@@ -1007,7 +1196,7 @@ textarea.readout{
       scont.appendChild(lblrow);
       rowWrap.appendChild(scont);
 
-      inp.addEventListener("input", function () {
+      trackTouch(inp, scont, function () {
         curval.textContent = inp.value;
         b.classList.remove("has-error");
         FE._onAnswerChanged();
@@ -1066,6 +1255,7 @@ textarea.readout{
       return renderText(q, true);
     },
     numbergroup: renderNumberGroup,
+    daytree: renderDayTree,
     scale11: renderScale11,
     slider: renderSlider,
     slider_named: renderSliderNamed,
@@ -1155,6 +1345,20 @@ textarea.readout{
         } else if (q.type === "text" || q.type === "textarea") {
           var f = block.querySelector(".field-input");
           answers[q.code] = f ? f.value.trim() : "";
+        } else if (q.type === "daytree") {
+          var dtv = function (k) {
+            var i = block.querySelector('input[data-dt="' + k + '"]');
+            return i && i.value !== "" && isFinite(Number(i.value)) ? Number(i.value) : null;
+          };
+          var dHa = dtv("ha");
+          var dMig = dHa === 0 ? 0 : dtv("mig");
+          var dNoha = dHa !== null ? DT_TOTAL - dHa : null;
+          var dClr = dNoha === 0 ? 0 : dtv("clear");
+          answers.Q2_headache = dHa;
+          answers.Q1_days = dMig;
+          answers.Q2_clear = dClr;
+          answers.Q2_unclear = dNoha !== null && dClr !== null ? dNoha - dClr : null;
+          answers.Q1 = mmdCategory(dMig);
         } else if (q.type === "numbergroup") {
           q.fields.forEach(function (fd) {
             var f2 = block.querySelector('[data-code="' + fd.code + '"]');
@@ -1164,8 +1368,7 @@ textarea.readout{
           var sb = block.querySelector(".s-btn.selected");
           answers[q.code] = sb ? Number(sb.textContent) : null;
         } else if (q.type === "slider") {
-          var sldr = block.querySelector(".slider-input");
-          answers[q.code] = sldr ? Number(sldr.value) : null;
+          answers[q.code] = sliderValue(block.querySelector(".slider-input"));
         } else if (q.type === "slider_named") {
           if (block.hasAttribute("data-presence")) {
             var presence = block.getAttribute("data-presence");
@@ -1173,7 +1376,7 @@ textarea.readout{
               answers[q.code] = block.getAttribute("data-none-value");
             } else if (presence === "has") {
               var sldrP = block.querySelector(".slider-input");
-              var idxP = sldrP ? Number(sldrP.value) : null;
+              var idxP = sliderValue(sldrP);
               var mainOpts = q.options.slice(0, -1);
               answers[q.code] = (idxP !== null && mainOpts[idxP]) ? mainOpts[idxP].value : null;
             } else {
@@ -1181,8 +1384,8 @@ textarea.readout{
             }
           } else {
             var sldr2 = block.querySelector(".slider-input");
-            if (sldr2) {
-              var idx = Number(sldr2.value);
+            var idx = sliderValue(sldr2);
+            if (idx !== null) {
               answers[q.code] = q.options[idx] ? q.options[idx].value : null;
             } else {
               answers[q.code] = null;
@@ -1213,9 +1416,8 @@ textarea.readout{
         } else if (q.type === "nrsmatrix") {
           q.rows.forEach(function (r) {
             var gname = q.code + "_" + r.code;
-            var sw = block.querySelector('.scale11[data-code="' + gname + '"]');
-            var sb2 = sw ? sw.querySelector(".s-btn.selected") : null;
-            answers[gname] = sb2 ? Number(sb2.textContent) : null;
+            // 満足度はスライダーで入力（以前は存在しないボタンを探していて常に未回答になっていた）
+            answers[gname] = sliderValue(block.querySelector('.slider-input[data-code="' + gname + '"]'));
           });
         } else if (q.type === "sideeffects") {
           q.rows.forEach(function (r) {
@@ -1253,6 +1455,8 @@ textarea.readout{
           bad = !answers[q.code];
         } else if (q.type === "matrix") {
           bad = !answers[q.code + "__complete"];
+        } else if (q.type === "daytree") {
+          bad = block.getAttribute("data-dt-complete") !== "1";
         }
         if (bad) {
           hasError = true;
@@ -1294,7 +1498,9 @@ textarea.readout{
       s.mhd_category = answers["Q6"] || null;
       s.amd = answers["Q19_total"] != null ? answers["Q19_total"] : null;
     } else {
-      s.mhd = answers["Q1_days"] != null ? answers["Q1_days"] : null;
+      // MHD＝頭痛日数（片頭痛以外も含む）。解析用CSVのMHD列と同じ意味にそろえる
+      s.mhd = answers["Q2_headache"] != null ? answers["Q2_headache"] : null;
+      s.mmd = answers["Q1_days"] != null ? answers["Q1_days"] : null;
       s.mhd_category = answers["Q1"] || null;
       s.amd = answers["Q6_total"] != null ? answers["Q6_total"] : null;
       s.pgic = answers["PGIC"] != null ? Number(answers["PGIC"]) : null;
@@ -1463,6 +1669,20 @@ textarea.readout{
     return { frames: frames, sid: sid, hash: hash, total: total, byteLength: b64.length };
   };
 
+  // HZQ2形式（再診）：列名を送らず値だけを並べた短い本文（SAISHIN_CODEC.encode の結果）をそのまま載せる。
+  // 1枚に収まらない長さのときだけ分割する（日本語は1文字3バイトのため、800文字/枚に抑える）。
+  var COMPACT_CHUNK = 800;
+  FE.chunkCompact = function (body) {
+    var hash = simpleHash(body);
+    var sid = Math.random().toString(36).slice(2, 6);
+    var total = Math.ceil(body.length / COMPACT_CHUNK) || 1;
+    var frames = [];
+    for (var i = 0; i < total; i++) {
+      frames.push("HZQ2:" + sid + ":" + (i + 1) + "/" + total + ":" + hash + ":" + body.slice(i * COMPACT_CHUNK, (i + 1) * COMPACT_CHUNK));
+    }
+    return { frames: frames, sid: sid, hash: hash, total: total, byteLength: body.length };
+  };
+
   // 受信側（フェーズ2）でも使えるよう復元関数も同梱
   FE.reassembleFrames = function (frameList) {
     // frameList: ["HZQ1:sid:1/3:hash:xxxx", ...]
@@ -1546,6 +1766,17 @@ textarea.readout{
    * ------------------------------------------------------------------ */
 
   FE.toCSV = function (kind, answers, scores) {
+    if (kind === "saishin" && typeof SAISHIN_CODEC !== "undefined") {
+      // 解析用CSV（2027_migraine_visit.csv）と同じ列名・値コードで出力する（ID・VISIT は医師端末で付与）
+      var obj = SAISHIN_CODEC.toCsvObject(answers, scores);
+      var esc = function (v) {
+        v = String(v === null || v === undefined ? "" : v);
+        if (/[",\n]/.test(v)) v = '"' + v.replace(/"/g, '""') + '"';
+        return v;
+      };
+      return "\ufeff" + SAISHIN_CODEC.CSV_COLS.join(",") + "\r\n" +
+        SAISHIN_CODEC.CSV_COLS.map(function (c) { return esc(obj[c]); }).join(",") + "\r\n";
+    }
     var cols = [];
     var vals = [];
     function push(label, value) {
@@ -1630,6 +1861,15 @@ textarea.readout{
           });
           return;
         }
+        if (q.type === "daytree") {
+          var tHa = answers.Q2_headache;
+          lines.push("頭痛の日数（" + DT_TOTAL + "日間）:");
+          lines.push("  頭痛があった日数: " + fmt(tHa) + "日（片頭痛 " + fmt(answers.Q1_days) + "日／その他の頭痛 " +
+            (tHa != null && answers.Q1_days != null ? tHa - answers.Q1_days : "-") + "日）");
+          lines.push("  頭痛がなかった日数: " + (tHa != null ? DT_TOTAL - tHa : "-") + "日（スッキリ " + fmt(answers.Q2_clear) +
+            "日／スッキリしない " + fmt(answers.Q2_unclear) + "日）");
+          return;
+        }
         if (q.type === "numbergroup") {
           lines.push((q.text || q.code) + ":");
           q.fields.forEach(function (f) {
@@ -1658,6 +1898,192 @@ textarea.readout{
 
 </script>
 <script>
+/* =========================================================================
+ * 再診データ 共通コード表（HZQ2形式のQR・解析用CSV）
+ * saishin.html と doctor.html に同じ内容を置くこと。片方だけ変えると読み取れなくなる。
+ * 列名・値コードの一覧は header_draft.md（再診データ ヘッダー案）に対応。
+ * ========================================================================= */
+var SAISHIN_CODEC = (function () {
+  var EFF = { "◎ とてもよく効く": 3, "◯ よく効く": 2, "△ それほど効かない": 1, "✗ 全然効かない": 0 };
+  function effMap(noneValue) {
+    var m = {};
+    Object.keys(EFF).forEach(function (k) { m[k] = EFF[k]; });
+    m[noneValue] = 9;
+    return m;
+  }
+  var CHANGE5 = { "-2 明らかに悪化した": -2, "-1 少し悪化した": -1, "±0 変わらない": 0, "+1 少し改善した": 1, "+2 明らかに改善した": 2 };
+  // 誘因（Q2）の値。番号は1始まりの並び順。末尾に追加はできるが、並べ替え・削除はしないこと。
+  var TRIGGERS = [
+    "睡眠不足", "寝すぎ・寝だめ", "食事抜き・空腹", "疲れ・過労", "運動", "水分不足", "画面作業", "肩こり・姿勢",
+    "ストレス", "ストレス解放", "緊張・不安",
+    "月経前後", "排卵期", "妊娠・産後・更年期", "ホルモン剤",
+    "アルコール", "特定の食品", "加工食品", "カフェイン過剰", "カフェイン中断",
+    "天気", "気温・湿度", "光", "音", "におい", "人混み・乗り物", "入浴",
+    "鎮痛薬の飲みすぎ", "血管拡張薬",
+    "思い当たらない"
+  ];
+  var CONT_WHY = ["効果が感じられない", "副作用がつらい", "注射が面倒・痛い", "費用が高い", "頭痛が十分改善したので卒業したい", "その他"];
+  // 副作用チェック：[回答キーの行コード, 列名の接尾辞, CSVの詳細欄で使う名前]
+  var SE_ROWS = [
+    ["inj", "INJ", "注射部位"], ["benpi", "CONST", "便秘"], ["datsumou", "ALOP", "脱毛"], ["hisshin", "RASH", "発疹"],
+    ["kao", "SWELL", "顔・のどの腫れ"], ["ketsuatsu", "CV", "血圧・心臓"], ["teashi", "COLD", "手足の冷え"],
+    ["zenshin", "FATG", "だるさ"], ["kimochi", "MOOD", "気持ち"], ["hakike", "NAUS", "吐き気"],
+    ["kinniku", "MYAL", "筋肉・関節"], ["taijuu", "WT", "体重・食欲"], ["gekkei", "MENS", "月経"],
+    ["kuchi", "ORAL", "口内"], ["zutsuu", "HA", "注射後の頭痛"]
+  ];
+
+  // QRで送る項目の並び順（この順に値だけを "|" でつなぐ）。csv:false はQRのみ。
+  var FIELDS = [];
+  function add(col, key, t, opt, csv) { FIELDS.push({ col: col, key: key, t: t, opt: opt, csv: csv !== false }); }
+  add("DATE", "FORM_DATE", "date");
+  add("CC", "SOUDAN", "text");
+  add("MMD", "Q1_days", "num");
+  add("MHD", "Q2_headache", "num");
+  add("UD", "Q2_unclear", "num");
+  add("CCD", "Q2_clear", "num");
+  add("TRG", "TRIGGER", "multi", TRIGGERS);
+  add("TRG_O", "TRIGGER_other", "text");
+  add("maxNRS", "Q3", "num");
+  add("meanNRS", "Q4", "num");
+  add("ASSOC", "Q5", "map", { "◎ とてもよくなった": 2, "◯ 少しよくなった": 1, "△ 変わらない": 0, "✗ 少し悪くなった": -1, "✗✗ 明らかに悪くなった": -2, "N もともとなかった": 9 });
+  add("AMD", "Q6_total", "num");
+  add("AMD_RIM", "Q6_naru", "num");   // ナルティーク（リメゲパント）
+  add("AMD_TRP", "Q6_trip", "num");
+  add("AMD_LAS", "Q6_rayvow", "num"); // レイボー（ラスミジタン）
+  add("AMD_RX", "Q6_rx", "num");      // 病院でもらったその他の薬（カロナール・ロキソニンなど）
+  add("AMD_OTC", "Q6_otc", "num");    // 市販薬
+  add("EFF_RIM", "Q7", "map", effMap("N ナルティークを使っていない"));
+  add("EFF_TRP", "Q8", "map", effMap("N トリプタンを使っていない"));
+  add("EFF_OTC", "Q9", "map", effMap("N 市販の痛み止めを使っていない"));
+  add("AMD_CHG", "Q10", "map", { "◎ 明らかに減った（半分以下）": -2, "◯ 少し減った": -1, "△ 変わらない": 0, "✗ 増えた": 1 });
+  // 評価尺度は各項目の選択肢番号（0始まり）を送り、合計は受け取った側で計算する
+  [["HIT6", 6], ["GAD7", 7], ["PHQ9", 9], ["MIBS4", 4]].forEach(function (sc) {
+    for (var i = 1; i <= sc[1]; i++) add(sc[0] + "_" + i, sc[0] + "_" + i, "num", null, false);
+  });
+  add("PGIC", "PGIC", "str");
+  add("SAT_EFF", "SATIS_kikime", "num");
+  add("SAT_USE", "SATIS_tsukaiyasusa", "num");
+  add("SAT_AE", "SATIS_fukusayou", "num");
+  add("SAT_ALL", "SATIS_sougou", "num");
+  SE_ROWS.forEach(function (r) { add("AE_" + r[1], "SE_" + r[0], "map", { "あり": 1, "なし": 0 }); });
+  SE_ROWS.forEach(function (r) { add("AE_" + r[1] + "_D", "SE_" + r[0] + "_detail", "text", null, false); });
+  add("AE_O", "SE_other", "text", null, false);
+  add("SLEEP", "Q14", "map", CHANGE5);
+  add("FATIG", "Q15", "map", CHANGE5);
+  add("CONT", "Q11", "map", { "ぜひ続けたい": 4, "どちらかといえば続けたい": 3, "迷っている": 2, "あまり続けたくない": 1, "中止したい": 0 });
+  add("CONT_WHY", "Q12", "multi", CONT_WHY);
+  add("CONT_O", "Q12_other", "text");
+  add("CMT", "Q13", "text");
+
+  // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
+  var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
+    "AMD", "AMD_RIM", "AMD_TRP", "AMD_LAS", "AMD_RX", "AMD_OTC", "EFF_RIM", "EFF_TRP", "EFF_OTC", "AMD_CHG",
+    "HIT6", "MIBS4", "GAD7", "PHQ9", "PHQ9_9", "PGIC", "SAT_EFF", "SAT_USE", "SAT_AE", "SAT_ALL"]
+    .concat(SE_ROWS.map(function (r) { return "AE_" + r[1]; }))
+    .concat(["AE_D", "SLEEP", "FATIG", "CONT", "CONT_WHY", "CONT_O", "CMT"]);
+  var CSV_HEADER = ["ID", "VISIT"].concat(CSV_COLS).concat(["OLD_MOOD", "OLD_ANX", "OLD_FATG"]);
+  // 旧ヘッダー名 → 新ヘッダー名（旧形式のCSVを読むとき用）
+  var OLD_NAMES = {
+    "カルテ番号": "ID", "来院回数": "VISIT", "受診日": "DATE", "GAD-7": "GAD7", "PHQ-9": "PHQ9",
+    "効き目 満足度": "SAT_EFF", "使いやすさ 満足度": "SAT_USE", "副作用 満足度": "SAT_AE", "総合満足度": "SAT_ALL",
+    "気分の落ち込み 副作用": "OLD_MOOD", "不安感 副作用": "OLD_ANX", "疲れやすさ 副作用": "OLD_FATG"
+  };
+
+  function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
+  function escText(s) { return String(s).replace(/\|/g, "｜").replace(/\r\n|\r|\n/g, "⏎"); }
+  function unescText(s) { return s.replace(/⏎/g, "\n"); }
+
+  function encodeValue(f, v) {
+    if (empty(v)) return "";
+    switch (f.t) {
+      case "date": return String(v).replace(/-/g, "");
+      case "text": return escText(v);
+      case "num": case "str": return String(v);
+      case "map": return f.opt[v] !== undefined ? String(f.opt[v]) : "";
+      case "multi":
+        return (Array.isArray(v) ? v : [v]).map(function (x) { return f.opt.indexOf(x) + 1; })
+          .filter(function (n) { return n > 0; }).join(";");
+    }
+    return "";
+  }
+  function decodeValue(f, s) {
+    if (s === undefined || s === "") return f.t === "multi" ? [] : (f.t === "text" ? "" : null);
+    switch (f.t) {
+      case "date": return s.length === 8 ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6) : s;
+      case "text": return unescText(s);
+      case "num": return Number(s);
+      case "str": return s;
+      case "map":
+        var keys = Object.keys(f.opt);
+        for (var i = 0; i < keys.length; i++) if (String(f.opt[keys[i]]) === s) return keys[i];
+        return null;
+      case "multi":
+        return s.split(";").map(function (n) { return f.opt[Number(n) - 1]; }).filter(function (x) { return x !== undefined; });
+    }
+    return null;
+  }
+
+  // 回答 → QR本文（"S|値|値|..."、末尾の空欄は省略）
+  function encode(answers) {
+    var vals = FIELDS.map(function (f) { return encodeValue(f, answers[f.key]); });
+    while (vals.length && vals[vals.length - 1] === "") vals.pop();
+    return "S|" + vals.join("|");
+  }
+  // QR本文 → 回答（saishin.html と同じキー）
+  function decode(body) {
+    var parts = body.split("|");
+    if (parts[0] !== "S") throw new Error("再診データではありません");
+    var a = {};
+    FIELDS.forEach(function (f, i) { a[f.key] = decodeValue(f, parts[i + 1]); });
+    a.Q1 = mmdCategory(a.Q1_days);
+    return a;
+  }
+  // 片頭痛日数から従来の区分（Q1）を導出
+  function mmdCategory(n) {
+    if (n === null || n === undefined) return null;
+    if (n === 0) return "0日（頭痛なし）";
+    if (n <= 4) return "1〜4日";
+    if (n <= 9) return "5〜9日";
+    if (n <= 14) return "10〜14日";
+    if (n <= 20) return "15〜20日";
+    if (n <= 28) return "21〜28日";
+    return "ほぼ毎日";
+  }
+
+  // 回答＋スコア → 解析用CSVの1行分（列名: 値）
+  function toCsvObject(answers, scores) {
+    var o = {};
+    FIELDS.forEach(function (f) {
+      if (!f.csv) return;
+      var v = encodeValue(f, answers[f.key]);
+      if (f.t === "date") v = answers[f.key] || "";
+      if (f.t === "text") v = empty(answers[f.key]) ? "" : String(answers[f.key]);
+      o[f.col] = v;
+    });
+    scores = scores || {};
+    function n(v) { return v === null || v === undefined ? "" : v; }
+    o.HIT6 = n(scores.hit6);
+    o.MIBS4 = n(scores.mibs4);
+    o.GAD7 = n(scores.gad7);
+    o.PHQ9 = n(scores.phq9);
+    o.PHQ9_9 = n(scores.phq9_item9_score);
+    var det = [];
+    SE_ROWS.forEach(function (r) {
+      var d = answers["SE_" + r[0] + "_detail"];
+      if (!empty(d)) det.push(r[2] + ":" + d);
+    });
+    if (!empty(answers.SE_other)) det.push("その他:" + answers.SE_other);
+    o.AE_D = det.join(" / ");
+    return o;
+  }
+
+  return {
+    FIELDS: FIELDS, CSV_COLS: CSV_COLS, CSV_HEADER: CSV_HEADER, OLD_NAMES: OLD_NAMES,
+    TRIGGERS: TRIGGERS, encode: encode, decode: decode, toCsvObject: toCsvObject, mmdCategory: mmdCategory
+  };
+})();
+</script>
+<script>
 /* 頭痛外来 再診アンケート（v6デジタル版） スキーマ定義 */
 var SCHEMA_SAISHIN = {
   kind: "saishin",
@@ -1673,48 +2099,65 @@ var SCHEMA_SAISHIN = {
       title: "📅 この1ヶ月の頭痛の状態",
       questions: [
         {
-          code: "Q1", type: "radio", label: "Q1", text: "1ヶ月で「片頭痛」(ズキズキ・ガンガン、動くとツラい頭痛)は何日ありましたか？", wide: true,
-          options: ["0日（頭痛なし）","1〜4日","5〜9日","10〜14日","15〜20日","21〜28日","ほぼ毎日"].map(function(l){return {value:l,label:l};})
+          code: "DAYS", type: "daytree", label: "Q1",
+          text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください"
         },
         {
-          code: "Q1days", type: "numbergroup", text: "具体的な日数を教えてください",
-          fields: [{ code: "Q1_days", label: "片頭痛日数", unit: "日/月" }]
-        },
-        {
-          code: "Q2", type: "numbergroup", label: "Q2", text: "「片頭痛以外の頭痛」(重だるい感じなど)も含めて、1ヶ月の様子を教えてください",
-          fields: [
-            { code: "Q2_headache", label: "頭痛があった日数", unit: "日", color: "teal" },
-            { code: "Q2_med", label: "痛み止め使用日数", unit: "日", color: "yellow" },
-            { code: "Q2_unclear", label: "スッキリしなかった日数", unit: "日", color: "amber",
-              note: "※スッキリしなかった日＝強い頭痛はないが、倦怠感・すっきりしない目覚め・重だるさ・首肩こり等で活動に影響があった日" },
-            { code: "Q2_clear", label: "スッキリしていた日数", unit: "日", color: "green" }
-          ]
-        },
-        {
-          code: "TRIGGER", type: "checkbox", label: "Q3", text: "最近の頭痛発作を思い出して、そのきっかけとなったものはありますか？", other: true, wide: true,
+          code: "TRIGGER", type: "checkbox", label: "Q2", text: "最近の頭痛発作を思い出して、きっかけになったと思うものをすべて選んでください（複数可）", other: true,
           options: [
-            {value:"ストレス",label:"ストレス"},
-            {value:"睡眠不足/寝すぎ",label:"睡眠不足/寝すぎ"},
-            {value:"生理",label:"生理"},
-            {value:"光や音の強い刺激",label:"光や音の強い刺激"},
-            {value:"特定の食べ物・飲み物",label:"特定の食べ物・飲み物"}
+            {group:"🛌 生活リズム"},
+            {value:"睡眠不足",label:"睡眠不足"},
+            {value:"寝すぎ・寝だめ",label:"寝すぎ・寝だめ（週末など）"},
+            {value:"食事抜き・空腹",label:"食事を抜いた・空腹"},
+            {value:"疲れ・過労",label:"疲れ・過労"},
+            {value:"運動",label:"激しい運動・運動のあと"},
+            {value:"水分不足",label:"水分不足"},
+            {value:"画面作業",label:"長時間のスマホ・パソコン"},
+            {value:"肩こり・姿勢",label:"首・肩のこり、悪い姿勢"},
+            {group:"💭 気持ち・ストレス"},
+            {value:"ストレス",label:"ストレス（仕事・学業・人間関係など）"},
+            {value:"ストレス解放",label:"ストレスから解放されたとき（休日・試験後など）"},
+            {value:"緊張・不安",label:"緊張・不安"},
+            {group:"🌸 ホルモン（女性）"},
+            {value:"月経前後",label:"月経（生理）の前後"},
+            {value:"排卵期",label:"排卵のころ"},
+            {value:"妊娠・産後・更年期",label:"妊娠・産後・更年期"},
+            {value:"ホルモン剤",label:"ピルなどホルモン剤"},
+            {group:"🍷 飲食物"},
+            {value:"アルコール",label:"お酒（赤ワイン・ビールなど）"},
+            {value:"特定の食品",label:"チョコレート・チーズ・ナッツ・柑橘類"},
+            {value:"加工食品",label:"ハム・ソーセージ・うま味調味料など"},
+            {value:"カフェイン過剰",label:"コーヒー・お茶などのとりすぎ"},
+            {value:"カフェイン中断",label:"コーヒー・お茶などを急にやめた"},
+            {group:"🌦 環境"},
+            {value:"天気",label:"天気の変化（低気圧・台風・雨の前）"},
+            {value:"気温・湿度",label:"気温差・湿度の変化"},
+            {value:"光",label:"強い光（日光・蛍光灯・画面のまぶしさ）"},
+            {value:"音",label:"大きな音・騒音"},
+            {value:"におい",label:"強いにおい（香水・タバコ・柔軟剤など）"},
+            {value:"人混み・乗り物",label:"人混み・乗り物・旅行"},
+            {value:"入浴",label:"入浴・サウナ"},
+            {group:"💊 お薬"},
+            {value:"鎮痛薬の飲みすぎ",label:"痛み止めの飲みすぎ"},
+            {value:"血管拡張薬",label:"血管を広げる薬（ニトログリセリンなど）"}
+            // 「思い当たるものはない」は廃止：何も選ばずにOK＝なし（コード表の番号は欠番として残す）
           ]
         },
         {
-          code: "Q3", type: "slider", label: "Q4", text: "この1ヶ月で、頭痛が一番ひどかったときの強さは？",
+          code: "Q3", type: "slider", label: "Q3", text: "この1ヶ月で、頭痛が一番ひどかったときの強さは？",
           hint: "ボタンを左右にスライドさせて回答してください",
           leftFace: "🙂", rightFace: "😖",
           leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
         },
         {
-          code: "Q4", type: "slider", label: "Q5", text: "この1ヶ月で、頭痛の平均的な強さは？",
+          code: "Q4", type: "slider", label: "Q4", text: "この1ヶ月で、頭痛の平均的な強さは？",
           hint: "ボタンを左右にスライドさせて回答してください",
           leftFace: "🙂", rightFace: "😖",
           leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
         },
         {
-          code: "Q5", type: "slider_named", label: "Q6", text: "この1ヶ月は、はき気・光過敏・音過敏などの頭痛以外の症状は、どうでしたか？",
-          note: "※光過敏：まぶしいのが辛いと感じる　※音過敏：うるさいのが辛いと感じる",
+          code: "Q5", type: "slider_named", label: "Q5", text: "この1ヶ月は、はき気・光過敏・音過敏などの頭痛以外の症状は、どうでしたか？",
+          note: "※光過敏：まぶしいのが辛いと感じる<br>※音過敏：うるさいのが辛いと感じる",
           options: [
             {value:"◎ とてもよくなった",label:"◎ とてもよくなった"},
             {value:"◯ 少しよくなった",label:"◯ 少しよくなった"},
@@ -1725,16 +2168,19 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q6", type: "numbergroup", label: "Q7", text: "この1ヶ月に痛み止めを使った日数は？",
+          code: "Q6", type: "numbergroup", label: "Q6", text: "この1ヶ月に痛み止めを使った日数は？",
+          note: "※合計は「痛み止めを使った日」の数です。1日に2種類使った日は、内訳ではそれぞれに数えてください",
           fields: [
             { code: "Q6_total", label: "合計", unit: "日/月" },
             { code: "Q6_naru", label: "（内訳）ナルティーク", unit: "日" },
             { code: "Q6_trip", label: "（内訳）トリプタン", unit: "日" },
-            { code: "Q6_other", label: "（内訳）その他", unit: "日" }
+            { code: "Q6_rayvow", label: "（内訳）レイボー", unit: "日" },
+            { code: "Q6_rx", label: "（内訳）病院でもらったその他の薬", unit: "日", note: "例：カロナール、ロキソニン、ボルタレンなど" },
+            { code: "Q6_otc", label: "（内訳）市販薬", unit: "日" }
           ]
         },
         {
-          code: "Q7", type: "slider_named", label: "Q8", text: "ナルティークを使ったときの効き目は、どうでしたか？",
+          code: "Q7", type: "slider_named", label: "Q7", text: "ナルティークを使ったときの効き目は、どうでしたか？",
           options: [
             {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
             {value:"◯ よく効く",label:"◯ よく効く"},
@@ -1744,7 +2190,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q8", type: "slider_named", label: "Q9", text: "トリプタンを使ったときの効き目は、どうでしたか？",
+          code: "Q8", type: "slider_named", label: "Q8", text: "トリプタンを使ったときの効き目は、どうでしたか？",
           options: [
             {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
             {value:"◯ よく効く",label:"◯ よく効く"},
@@ -1754,7 +2200,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q9", type: "slider_named", label: "Q10", text: "市販の痛み止めを使ったときの効き目は、どうでしたか？",
+          code: "Q9", type: "slider_named", label: "Q9", text: "市販の痛み止めを使ったときの効き目は、どうでしたか？",
           options: [
             {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
             {value:"◯ よく効く",label:"◯ よく効く"},
@@ -1764,7 +2210,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q10", type: "slider_named", label: "Q11", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
             {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
@@ -1851,10 +2297,35 @@ var SCHEMA_SAISHIN = {
             {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた"},
-            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた"},
-            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた"},
-            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた"}
+            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🌙 気分・睡眠の変化",
+      questions: [
+        {
+          code: "Q14", type: "slider_named", label: "Q8", text: "睡眠の質は、治療を始める前と比べてどうですか？",
+          options: [
+            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
+            {value:"-1 少し悪化した",label:"-1 少し悪化"},
+            {value:"±0 変わらない",label:"±0 変わらない"},
+            {value:"+1 少し改善した",label:"+1 少し改善"},
+            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
+          ]
+        },
+        {
+          code: "Q15", type: "slider_named", label: "Q9", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
+          options: [
+            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
+            {value:"-1 少し悪化した",label:"-1 少し悪化"},
+            {value:"±0 変わらない",label:"±0 変わらない"},
+            {value:"+1 少し改善した",label:"+1 少し改善"},
+            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
           ]
         }
       ]
@@ -1863,7 +2334,7 @@ var SCHEMA_SAISHIN = {
       title: "■ 全体的な変化・治療満足度",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q12", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "PGIC", type: "slider_named", label: "Q10", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
           options: [
             {value:"-3",label:"-3 著明悪化"},
             {value:"-2",label:"-2 中等悪化"},
@@ -1875,7 +2346,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q13", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          code: "SATIS", type: "nrsmatrix", label: "Q11", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
           rows: [
             {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
             {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
@@ -1886,10 +2357,10 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "🔍 K　副作用・気になる症状のチェック",
+      title: "🔍 副作用・気になる症状のチェック",
       questions: [
         {
-          code: "SE", type: "sideeffects", label: "Q14", text: "副作用・気になる症状について教えてください",
+          code: "SE", type: "sideeffects", label: "Q12", text: "副作用・気になる症状について教えてください",
           rows: [
             {code:"inj",area:"💉 注射した場所（注射治療中の方のみ）",symptom:"発赤・腫れ・痛み・かゆみ・しこり"},
             {code:"benpi",area:"🚽 お腹・排便",symptom:"便秘"},
@@ -1911,10 +2382,10 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "💭 L　今後の治療について",
+      title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q15", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q13", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -1930,32 +2401,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q16", text: "治療について感じていること・ご要望を自由にご記入ください" }
-      ]
-    },
-    {
-      title: "🌙 M　気分・睡眠の変化",
-      questions: [
-        {
-          code: "Q14", type: "slider_named", label: "Q17", text: "睡眠の質は、治療を始める前と比べてどうですか？",
-          options: [
-            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
-            {value:"-1 少し悪化した",label:"-1 少し悪化"},
-            {value:"±0 変わらない",label:"±0 変わらない"},
-            {value:"+1 少し改善した",label:"+1 少し改善"},
-            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
-          ]
-        },
-        {
-          code: "Q15", type: "slider_named", label: "Q18", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
-          options: [
-            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
-            {value:"-1 少し悪化した",label:"-1 少し悪化"},
-            {value:"±0 変わらない",label:"±0 変わらない"},
-            {value:"+1 少し改善した",label:"+1 少し改善"},
-            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
-          ]
-        }
+        { code: "Q13", type: "textarea", label: "Q14", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
@@ -2044,7 +2490,7 @@ var SCHEMA_SAISHIN = {
       scoreCard("頭痛日数(MHD)", scores.mhd, "日/月") +
       scoreCard("鎮痛薬使用日数(AMD)", scores.amd, "日/月");
 
-    var chunkResult = FE.chunkPayload(FE.buildPayload(KIND, answers, scores));
+    var chunkResult = FE.chunkCompact(SAISHIN_CODEC.encode(answers));
     var csvText = FE.toCSV(KIND, answers, scores);
     var textText = FE.toText(KIND, SCHEMA, answers, scores);
 
@@ -2057,7 +2503,6 @@ var SCHEMA_SAISHIN = {
       '<div class="tabbar">' +
       '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
       '<button class="tab-btn" data-tab="text">📝 テキスト</button>' +
-      '<button class="tab-btn" data-tab="csv">📊 CSV(Excel用)</button>' +
       "</div>" +
       '<div class="output-panel active" data-panel="qr">' +
       '<div class="qr-wrap">' +
@@ -2079,13 +2524,6 @@ var SCHEMA_SAISHIN = {
       '<button class="small-btn filled" id="btnCopyText">📋 テキストをコピー</button>' +
       '<button class="small-btn" id="btnDownloadText">⬇ テキストを保存</button>' +
       "</div>" +
-      "</div>" +
-      '<div class="output-panel" data-panel="csv">' +
-      '<textarea class="readout" readonly id="csvOut" style="min-height:140px;"></textarea>' +
-      '<div class="small-btn-row">' +
-      '<button class="small-btn filled" id="btnDownloadCsv">⬇ CSVをダウンロード（Excelで開けます）</button>' +
-      "</div>" +
-      '<p class="notice">ダウンロードしたCSVは、Excelで開いて「★★2026頭痛データ.xlsx」にコピー＆ペーストできます。</p>' +
       "</div>" +
       '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
 
@@ -2169,11 +2607,6 @@ var SCHEMA_SAISHIN = {
       downloadBlob(textText, "text/plain;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".txt");
     });
 
-    // CSV出力
-    document.getElementById("csvOut").value = csvText;
-    document.getElementById("btnDownloadCsv").addEventListener("click", function () {
-      downloadBlob(csvText, "text/csv;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".csv");
-    });
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2223,18 +2656,1253 @@ var SCHEMA_SAISHIN = {
 
 </script>
 
-<!-- QRCodeライブラリの動的読み込み（失敗しても無視） -->
+<!-- QRCodeライブラリ（davidshimjs/qrcodejs, MITライセンス）をファイル内に埋め込み。オフラインでも動作します -->
 <script>
-(function() {
-  // QRCodeライブラリをCDNから非同期で読み込む
-  var script = document.createElement('script');
-  script.src = 'https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js';
-  script.async = true;
-  script.onerror = function() {
-    // CDN読み込み失敗時は、テキスト出力で対応
-    console.warn('QRコードライブラリの読み込みに失敗しました。テキスト出力を使用してください。');
-  };
-  document.head.appendChild(script);
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var b=[],d=0,e=this.data.length;e>d;d++){var f=this.data.charCodeAt(d);f>65536?(b[0]=240|(1835008&f)>>>18,b[1]=128|(258048&f)>>>12,b[2]=128|(4032&f)>>>6,b[3]=128|63&f):f>2048?(b[0]=224|(61440&f)>>>12,b[1]=128|(4032&f)>>>6,b[2]=128|63&f):f>128?(b[0]=192|(1984&f)>>>6,b[1]=128|63&f):b[0]=f,this.parsedData=this.parsedData.concat(b)}this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+</script>
+
+<!-- ===================================================================
+     ゲーム風演出・解説（Q1 頭痛日数・Q2 誘因・Q3/Q4 痛みの強さ・Q5/Q10 豆知識・Q6 おくすり情報・質問票の1問ずつ化）
+     - 入力が正しくなると右側の OK ボタンが押せるようになる
+     - OK を押すとボタンが爆発し、次の入力（次の設問）へ進む
+     - 回答データ・保存キー・必須チェックには一切手を入れていない（見た目と進み方だけ）
+     - saishin.html の </body> 直前に貼り付けるだけで動く独立ブロック
+     =================================================================== -->
+<style>
+.gm-wait{display:none !important;}
+.gm-ok{
+  margin-left:auto;flex:0 0 auto;
+  min-width:64px;height:48px;padding:0 16px;
+  border:none;border-radius:24px;
+  font-size:1.05rem;font-weight:800;letter-spacing:0.05em;
+  background:#d9d6cf;color:#fff;cursor:not-allowed;
+  transition:background .2s, transform .2s, box-shadow .2s;
+  -webkit-tap-highlight-color:transparent;
+}
+.gm-ok.ready{
+  background:linear-gradient(135deg,#ff9a5a,#e8734a 55%,#d4552a);
+  cursor:pointer;
+  box-shadow:0 4px 0 #b5441f, 0 6px 14px rgba(232,115,74,.45);
+  animation:gm-ready-in .35s cubic-bezier(.3,1.6,.5,1), gm-glow 1.4s ease-in-out .35s infinite;
+}
+.gm-ok.ready:active{transform:translateY(3px);box-shadow:0 1px 0 #b5441f, 0 2px 6px rgba(232,115,74,.45);}
+.gm-ok.gm-gone{visibility:hidden;pointer-events:none;}
+/* OK付きの行：1行目に説明、2行目に「入力欄・日・OK（右端）」 */
+.dt-row.gm-has-ok .dt-label{flex-basis:100%;}
+@keyframes gm-ready-in{0%{transform:scale(.6)}100%{transform:scale(1)}}
+@keyframes gm-glow{
+  0%,100%{box-shadow:0 4px 0 #b5441f, 0 6px 14px rgba(232,115,74,.45), 0 0 0 0 rgba(232,115,74,.5);}
+  50%{box-shadow:0 4px 0 #b5441f, 0 6px 14px rgba(232,115,74,.45), 0 0 0 10px rgba(232,115,74,0);}
+}
+/* 入力し終えたステップ */
+.dt-step{position:relative;transition:border-color .3s, background .3s;}
+.dt-step.gm-done{border-color:#27ae60;background:#f3fbf5;}
+.dt-step.gm-done::after{
+  content:"✓ OK!";position:absolute;top:8px;right:10px;
+  font-size:.78rem;font-weight:800;color:#fff;background:#27ae60;
+  padding:2px 9px;border-radius:10px;
+  animation:gm-stamp .45s cubic-bezier(.3,1.8,.5,1);
+}
+@keyframes gm-stamp{0%{transform:scale(2.2) rotate(-12deg);opacity:0}100%{transform:scale(1) rotate(0);opacity:1}}
+/* 次のステップが登場するとき */
+.gm-enter{animation:gm-slide-in .5s cubic-bezier(.2,1.2,.4,1);}
+@keyframes gm-slide-in{0%{transform:translateX(60px) scale(.92);opacity:0}100%{transform:none;opacity:1}}
+/* 自動計算の数字がぴょこっと跳ねる */
+.dt-auto.gm-bump{animation:gm-bump .4s cubic-bezier(.3,1.8,.5,1);}
+@keyframes gm-bump{0%{transform:scale(1)}40%{transform:scale(1.35);color:#e8734a}100%{transform:scale(1)}}
+/* 選択肢を押したときのポップ */
+.opt-btn.gm-pop{animation:gm-pop .3s cubic-bezier(.3,1.8,.5,1);}
+@keyframes gm-pop{0%{transform:scale(.9)}60%{transform:scale(1.08)}100%{transform:scale(1)}}
+/* Q3・Q4 をひとまとまりに */
+.gm-pair{border:2px solid #b9d9d5;border-radius:14px;padding:4px 12px 12px;margin:10px 0;background:#fbfdfc;}
+.gm-pair .qblock:last-of-type{border-bottom:none;}
+.gm-pair-cmp{font-size:.85rem;font-weight:700;text-align:center;padding:6px 8px;border-radius:10px;margin:4px 0 0;}
+.gm-pair-cmp.ok{background:#e8f5e9;color:#1e8449;}
+.gm-pair-cmp.ng{background:#fdecea;color:#c0392b;}
+.gm-pair-cmp.wait{background:#f1f1f1;color:var(--muted);}
+.gm-pair.gm-done{border-color:#27ae60;}
+/* スライダーに連動して変わる顔（Q10） */
+.gm-face{display:flex;flex-direction:column;align-items:center;gap:2px;margin:6px 0 4px;}
+.gm-face-emoji{font-size:4rem;line-height:1;display:inline-block;}
+.gm-face-emoji.gm-face-pop{animation:gm-face-pop .4s cubic-bezier(.3,1.8,.5,1);}
+@keyframes gm-face-pop{0%{transform:scale(.5) rotate(-15deg)}100%{transform:scale(1) rotate(0)}}
+.gm-face-label{font-size:.95rem;font-weight:800;padding:2px 12px;border-radius:12px;}
+.gm-face-sub{font-size:.75rem;color:var(--muted);}
+.gm-hide{display:none !important;}
+.gm-linked .presence-toggle{display:none;}  /* 使ったかどうかは Q6 の日数で決まるので「あり/使用なし」は出さない */
+/* HIT-6・GAD-7・PHQ-9・MIBS-4 を1問ずつのカードに */
+.gm-quiz .matrix-wrap{display:none;}
+.gm-quiz-prog{display:flex;align-items:center;gap:8px;margin:6px 0 10px;}
+.gm-quiz-count{font-size:.85rem;font-weight:800;color:var(--primary-dark);white-space:nowrap;}
+.gm-quiz-dots{display:flex;gap:5px;flex-wrap:wrap;}
+.gm-quiz-dots button{width:22px;height:22px;border-radius:50%;border:2px solid var(--border);background:#fff;
+  font-size:.68rem;font-weight:700;color:var(--muted);padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.gm-quiz-dots button.done{background:#27ae60;border-color:#27ae60;color:#fff;}
+.gm-quiz-dots button.cur{border-color:#e8734a;color:#e8734a;transform:scale(1.15);}
+.gm-qcard{border:2px solid #b9d9d5;border-radius:14px;padding:12px;background:#fbfdfc;}
+.gm-qcard-q{font-weight:700;font-size:.98rem;line-height:1.55;margin-bottom:10px;}
+.gm-qcard-q .gm-qno{display:inline-block;background:var(--primary);color:#fff;border-radius:10px;font-size:.72rem;padding:0 8px;margin-right:6px;vertical-align:2px;}
+.gm-qcard-plain{font-size:.88rem;line-height:1.55;color:#1e5f5a;background:#eef7f5;border-radius:10px;padding:8px 10px;margin:-2px 0 10px;}
+.gm-qcard-opts{display:flex;flex-direction:column;gap:7px;}
+.gm-qcard-opts .opt-btn{width:100%;text-align:center;}
+.gm-qcard .gm-okbar{position:static;margin-top:10px;}
+.gm-optnote{flex:0 0 100%;font-size:.82rem;color:#b5651d;background:#fff4e0;border-radius:10px;padding:6px 10px;margin-top:-2px;}
+/* 2回目以降の「タップしてね」は控えめに */
+.gm-tip-teaser.gm-mini{font-size:.72rem;padding:3px 9px;border-style:dotted;opacity:.85;}
+/* 副作用：とくになし（全部なし） */
+.gm-allnone{display:flex;align-items:center;gap:10px;margin:4px 0 10px;padding:10px 12px;border-radius:12px;background:#e8f5e9;border:2px solid #b7dfc0;}
+.gm-allnone .gm-allnone-btn{flex:0 0 auto;border:none;border-radius:20px;padding:10px 16px;font-weight:800;font-size:.95rem;color:#fff;background:#27ae60;box-shadow:0 3px 0 #1e8449;cursor:pointer;}
+.gm-allnone .gm-allnone-btn:active{transform:translateY(2px);box-shadow:0 1px 0 #1e8449;}
+.gm-allnone span{font-size:.8rem;color:#1e5f35;}
+/* 記入日の欄を小さく（識別情報の注意は一番下にまとめる） */
+.id-card{display:flex;align-items:center;gap:10px;padding:8px 12px;border-width:1px;margin-bottom:12px;}
+.id-card label{margin:0;font-size:.85rem;white-space:nowrap;}
+.id-card input{flex:1;min-width:0;}
+.id-card .hint{display:none;}
+/* 進み具合バーは画面の一番上に細く固定 */
+header.app-header .progress-wrap{position:fixed;top:0;left:0;right:0;height:5px;margin:0;border-radius:0;z-index:50;background:rgba(47,111,107,.18);}
+header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a);}
+/* Q2 の分類ステージ */
+.gm-stage{flex:0 0 100%;display:flex;flex-wrap:wrap;gap:8px;position:relative;
+  padding:10px;border:1px solid var(--border);border-radius:12px;background:#fbfaf7;transition:border-color .3s, background .3s;}
+.gm-stage .opt-group{margin-top:0;}
+.gm-stage .other-input{flex:0 0 100%;margin-top:0 !important;}
+.gm-stage.gm-done{border-color:#27ae60;background:#f3fbf5;}
+.gm-stage .gm-okbar{flex:0 0 100%;}
+/* Q2 の OK バー（画面下に追従） */
+.gm-okbar{
+  position:sticky;bottom:88px;z-index:5;
+  display:flex;align-items:center;gap:10px;justify-content:flex-end;
+  margin-top:12px;padding:8px 8px 8px 14px;
+  background:rgba(255,255,255,.94);border:1px solid var(--border);border-radius:30px;
+  box-shadow:0 4px 14px rgba(0,0,0,.08);
+}
+/* 1問ごとの OK は設問のすぐ下に置く（画面下に追従させると下の選択肢に重なるため） */
+.qblock > .gm-okbar, .gm-pair > .gm-okbar{position:static;}
+/* Q6 痛み止めの段階入力 */
+.gm-drugflow .dt-step .options{display:flex;flex-wrap:wrap;gap:8px;}
+.gm-drugflow .gm-chip-sub{display:block;font-size:.72rem;color:var(--muted);font-weight:400;}
+.gm-drugflow .opt-btn.selected .gm-chip-sub{color:#e6f2f0;}
+.gm-drugflow .dt-step > .gm-okbar{position:static;}
+.gm-step-btn{flex:0 0 40px;height:40px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:1.3rem;font-weight:800;line-height:1;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.gm-step-btn:active{background:var(--primary);color:#fff;}
+.gm-drugflow .dt-row input{width:64px;flex:0 0 64px;text-align:center;}
+.gm-drugflow .dt-row .dt-label{flex-basis:100%;}
+.gm-flow-hint{font-size:.78rem;color:var(--muted);margin:4px 2px 0;}
+.gm-drugcard{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:10px 0;background:#fff;}
+.gm-drugcard.gm-used{border-color:var(--primary);background:#f6fbfa;}
+.gm-drugtotal{margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:#eef6f5;}
+.gm-drugtotal-line{font-size:1rem;}
+.gm-drugtotal-line b{font-size:1.4rem;color:var(--primary);margin:0 2px;}
+.gm-drugtotal-line small{font-size:.75rem;color:var(--muted);margin-left:6px;}
+.gm-adj-btn{margin-top:6px;background:none;border:none;padding:4px 0;color:var(--primary);font-size:.8rem;text-decoration:underline;cursor:pointer;}
+.gm-in-flow{margin-top:10px;padding:10px 0 0 !important;border-top:1px dashed var(--border);border-bottom:none !important;}
+.gm-in-flow > .gm-okbar{display:none;}
+.gm-in-flow .qcode{display:none;}
+.gm-okbar .gm-okbar-msg{font-size:.82rem;color:var(--muted);flex:1;}
+.gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
+.gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
+/* 爆発パーツ */
+.gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
+.gm-dot{border-radius:50%;}
+.gm-ring{position:fixed;pointer-events:none;z-index:9998;border-radius:50%;border:4px solid #f0ad4e;}
+.gm-flash{position:fixed;pointer-events:none;z-index:9998;border-radius:50%;
+  background:radial-gradient(circle,#fff 0%,#ffe08a 35%,rgba(255,154,90,.6) 60%,rgba(255,154,90,0) 72%);}
+/* クリア表示 */
+.gm-banner{
+  position:fixed;left:50%;top:42%;z-index:10000;pointer-events:none;
+  transform:translate(-50%,-50%);
+  font-size:2rem;font-weight:900;color:#fff;white-space:nowrap;
+  padding:14px 28px;border-radius:20px;
+  background:linear-gradient(135deg,#2f6f6b,#27ae60);
+  box-shadow:0 10px 30px rgba(0,0,0,.25);
+  text-shadow:0 2px 0 rgba(0,0,0,.2);
+}
+/* キャラクターの豆知識（吹き出し） */
+.gm-tip{display:flex;align-items:flex-end;gap:8px;margin:6px 0 14px;}
+.gm-tip-chara{flex:0 0 64px;width:64px;height:72px;}
+.gm-tip-chara svg{width:100%;height:100%;display:block;}
+.gm-tip-bubble{
+  position:relative;flex:1;
+  background:#fffaf0;border:2px solid #f0ad4e;border-radius:16px;
+  padding:10px 12px;font-size:.88rem;line-height:1.6;color:var(--text);
+  margin-bottom:18px;
+}
+.gm-tip-bubble::before,.gm-tip-bubble::after{content:"";position:absolute;bottom:14px;width:0;height:0;border-style:solid;}
+.gm-tip-bubble::before{left:-12px;border-width:8px 12px 8px 0;border-color:transparent #f0ad4e transparent transparent;}
+.gm-tip-bubble::after{left:-8px;border-width:6px 9px 6px 0;border-color:transparent #fffaf0 transparent transparent;bottom:16px;}
+.gm-tip-title{display:inline-block;font-weight:800;color:#fff;background:#f0ad4e;border-radius:10px;padding:0 9px;font-size:.78rem;margin-bottom:4px;}
+.gm-tip-text b{color:#c0392b;}
+.gm-tip-chara{position:relative;cursor:pointer;border:none;background:none;padding:0;-webkit-tap-highlight-color:transparent;}
+.gm-tip.gm-closed .gm-tip-chara svg{animation:gm-bob 1.6s ease-in-out infinite;}
+@keyframes gm-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
+.gm-tip-q{
+  position:absolute;top:-6px;right:-4px;width:22px;height:22px;border-radius:50%;
+  background:#e8734a;color:#fff;font-weight:900;font-size:.85rem;line-height:22px;text-align:center;
+  box-shadow:0 2px 6px rgba(232,115,74,.5);animation:gm-qpulse 1.2s ease-in-out infinite;
+}
+.gm-tip:not(.gm-closed) .gm-tip-q{display:none;}
+@keyframes gm-qpulse{0%,100%{transform:scale(1)}50%{transform:scale(1.25)}}
+.gm-tip-teaser{
+  align-self:center;margin-bottom:18px;cursor:pointer;
+  font-size:.82rem;font-weight:700;color:#b5651d;background:#fff4e0;border:2px dashed #f0ad4e;
+  border-radius:16px;padding:6px 12px;
+}
+.gm-tip.gm-closed .gm-tip-bubble{display:none;}
+.gm-tip:not(.gm-closed) .gm-tip-teaser{display:none;}
+.gm-tip-bubble{transform-origin:0 85%;}
+.gm-tip-bubble.gm-open{animation:gm-bubble .45s cubic-bezier(.3,1.6,.5,1);}
+@keyframes gm-bubble{0%{transform:scale(.3);opacity:0}100%{transform:scale(1);opacity:1}}
+.gm-tip-chara.gm-talk svg{animation:gm-talk .5s ease-in-out 3;}
+@keyframes gm-talk{0%,100%{transform:translateY(0) rotate(0)}30%{transform:translateY(-8px) rotate(-6deg)}60%{transform:translateY(0) rotate(4deg)}}
+.gm-tip-close{display:block;margin-top:4px;text-align:right;font-size:.72rem;color:var(--muted);}
+@media (prefers-reduced-motion: reduce){
+  .gm-tip.gm-closed .gm-tip-chara svg,.gm-tip-chara.gm-talk svg,.gm-tip-bubble.gm-open,.gm-tip-q{animation:none;}
+}
+}
+/* おくすり情報（折りたたみ） */
+.gm-info{margin:4px 0 12px;border:2px solid #b9d9d5;border-radius:14px;background:#f4faf9;overflow:hidden;}
+.gm-info > summary{
+  list-style:none;cursor:pointer;display:flex;align-items:center;gap:8px;
+  padding:11px 14px;font-weight:800;color:var(--primary-dark);font-size:.92rem;
+  -webkit-tap-highlight-color:transparent;
+}
+.gm-info > summary::-webkit-details-marker{display:none;}
+.gm-info > summary .gm-info-sub{font-weight:400;font-size:.75rem;color:var(--muted);}
+.gm-info > summary::after{content:"▼";margin-left:auto;font-size:.75rem;transition:transform .25s;}
+.gm-info[open] > summary::after{transform:rotate(180deg);}
+.gm-info-body{padding:0 12px 12px;display:flex;flex-direction:column;gap:8px;}
+.gm-info[open] .gm-info-body{animation:gm-info-open .35s ease-out;}
+@keyframes gm-info-open{0%{opacity:0;transform:translateY(-8px)}100%{opacity:1;transform:none}}
+.gm-drug{background:#fff;border-radius:10px;padding:10px 12px;border-left:4px solid var(--primary);font-size:.85rem;line-height:1.65;}
+.gm-drug h4{margin:0 0 3px;font-size:.92rem;color:var(--primary-dark);}
+.gm-drug b{color:#c0392b;}
+.gm-drug-list{margin:4px 0 6px;padding-left:1.3em;}
+.gm-drug-list li{margin:1px 0;}
+@media (prefers-reduced-motion: reduce){ .gm-info[open] .gm-info-body{animation:none;} }
+@media (prefers-reduced-motion: reduce){
+  .gm-ok.ready,.gm-enter,.dt-auto.gm-bump,.opt-btn.gm-pop,.dt-step.gm-done::after{animation:none;}
+}
+</style>
+<script>
+(function () {
+  "use strict";
+  var REDUCE = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var CAN_ANIMATE = !!(document.body.animate);
+  var COLORS = ["#e8734a", "#f0ad4e", "#ffd54f", "#2f6f6b", "#27ae60", "#e74c3c", "#3498db", "#9b59b6"];
+  var SHAPES = ["★", "✦", "●", "◆", "✨"];
+
+  function rand(a, b) { return a + Math.random() * (b - a); }
+  function mk(tag, cls, text) {
+    var e = document.createElement(tag);
+    if (cls) e.className = cls;
+    if (text != null) e.textContent = text;
+    return e;
+  }
+  function headerOffset() {
+    var h = document.querySelector("header.app-header");
+    var fixed = h && /sticky|fixed/.test(getComputedStyle(h).position);
+    return (fixed ? h.getBoundingClientRect().height : 0) + 12;
+  }
+  function scrollToEl(target) {
+    if (!target) return;
+    // セクションの最初の設問へ進むときは、セクションの見出しから見せる
+    if (target.classList.contains("qblock")) {
+      var sec = target.closest("section.qsection");
+      if (sec && sec.querySelector(".qblock") === target) target = sec;
+    }
+    function y() { return Math.max(0, target.getBoundingClientRect().top + window.pageYOffset - headerOffset()); }
+    window.scrollTo({ top: y(), behavior: REDUCE ? "auto" : "smooth" });
+    // スマホで指のスクロールの勢いが残っているとスクロールが打ち消されることがあるので、ずれていたらもう一度
+    setTimeout(function () {
+      if (Math.abs(target.getBoundingClientRect().top - headerOffset()) > 80) window.scrollTo({ top: y(), behavior: "auto" });
+    }, 900);
+  }
+  function replayClass(node, cls) {
+    node.classList.remove(cls);
+    void node.offsetWidth;
+    node.classList.add(cls);
+  }
+
+  /* 指定位置で火花を散らす。power: 1=小さなキラキラ / 2=爆発 */
+  function burst(cx, cy, power) {
+    if (REDUCE || !CAN_ANIMATE) return;
+    var n = power > 1 ? 34 : 9;
+    var dist = power > 1 ? [70, 190] : [24, 60];
+    for (var i = 0; i < n; i++) {
+      var useShape = Math.random() < 0.45;
+      var p = mk("div", "gm-p" + (useShape ? "" : " gm-dot"), useShape ? SHAPES[(Math.random() * SHAPES.length) | 0] : null);
+      var size = power > 1 ? rand(7, 15) : rand(4, 8);
+      var color = COLORS[(Math.random() * COLORS.length) | 0];
+      if (useShape) {
+        p.style.fontSize = size * 1.6 + "px";
+        p.style.color = color;
+        p.style.lineHeight = "1";
+      } else {
+        p.style.width = p.style.height = size + "px";
+        p.style.background = color;
+      }
+      document.body.appendChild(p);
+      var ang = rand(0, Math.PI * 2);
+      var d = rand(dist[0], dist[1]);
+      var dx = Math.cos(ang) * d, dy = Math.sin(ang) * d;
+      var start = "translate(" + (cx - size / 2) + "px," + (cy - size / 2) + "px)";
+      var end = "translate(" + (cx + dx - size / 2) + "px," + (cy + dy + (power > 1 ? 40 : 10) - size / 2) + "px) rotate(" + rand(-360, 360) + "deg) scale(" + rand(0.2, 0.6) + ")";
+      var a = p.animate(
+        [{ transform: start + " scale(1)", opacity: 1 }, { transform: end, opacity: 0 }],
+        { duration: rand(550, 950), easing: "cubic-bezier(.15,.8,.3,1)", fill: "forwards" }
+      );
+      a.onfinish = (function (el) { return function () { el.remove(); }; })(p);
+    }
+    if (power > 1) {
+      var flash = mk("div", "gm-flash");
+      flash.style.left = cx - 60 + "px"; flash.style.top = cy - 60 + "px";
+      flash.style.width = flash.style.height = "120px";
+      document.body.appendChild(flash);
+      flash.animate([{ transform: "scale(.2)", opacity: 1 }, { transform: "scale(1.6)", opacity: 0 }],
+        { duration: 380, easing: "ease-out", fill: "forwards" }).onfinish = function () { flash.remove(); };
+      var ring = mk("div", "gm-ring");
+      ring.style.left = cx - 40 + "px"; ring.style.top = cy - 40 + "px";
+      ring.style.width = ring.style.height = "80px";
+      document.body.appendChild(ring);
+      ring.animate([{ transform: "scale(.3)", opacity: 1 }, { transform: "scale(2.8)", opacity: 0, borderWidth: "1px" }],
+        { duration: 560, easing: "cubic-bezier(.1,.7,.3,1)", fill: "forwards" }).onfinish = function () { ring.remove(); };
+      // 画面がぶるっと揺れる
+      var main = document.querySelector("main");
+      if (main) main.animate(
+        [{ transform: "translate(0,0)" }, { transform: "translate(-5px,3px)" }, { transform: "translate(5px,-3px)" },
+         { transform: "translate(-3px,-2px)" }, { transform: "translate(0,0)" }],
+        { duration: 260, easing: "ease-out" });
+    }
+  }
+
+  /* OK ボタンを爆発させ、終わったら done() */
+  function explode(btn, done) {
+    var r = btn.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    if (navigator.vibrate) { try { navigator.vibrate([25, 30, 50]); } catch (e) {} }
+    burst(cx, cy, 2);
+    if (REDUCE || !CAN_ANIMATE) {
+      btn.classList.add("gm-gone");
+      done();
+      return;
+    }
+    btn.animate(
+      [{ transform: "scale(1)", opacity: 1 }, { transform: "scale(1.5) rotate(8deg)", opacity: 1, offset: 0.35 },
+       { transform: "scale(0) rotate(-30deg)", opacity: 0 }],
+      { duration: 360, easing: "cubic-bezier(.4,0,.6,1)" }
+    ).onfinish = function () {
+      btn.classList.add("gm-gone");
+      setTimeout(done, 120);
+    };
+  }
+
+  /* 「Q1 クリア！」表示 → 終わったら done() */
+  function banner(text, done) {
+    var b = mk("div", "gm-banner", text);
+    document.body.appendChild(b);
+    if (REDUCE || !CAN_ANIMATE) {
+      setTimeout(function () { b.remove(); done(); }, 600);
+      return;
+    }
+    var r = b.getBoundingClientRect();
+    b.animate(
+      [{ transform: "translate(-50%,-50%) scale(0) rotate(-10deg)", opacity: 0 },
+       { transform: "translate(-50%,-50%) scale(1.2) rotate(3deg)", opacity: 1, offset: 0.25 },
+       { transform: "translate(-50%,-50%) scale(1) rotate(0)", opacity: 1, offset: 0.4 },
+       { transform: "translate(-50%,-50%) scale(1)", opacity: 1, offset: 0.8 },
+       { transform: "translate(-50%,-90%) scale(.9)", opacity: 0 }],
+      { duration: 1150, easing: "ease-out", fill: "forwards" }
+    ).onfinish = function () { b.remove(); };
+    setTimeout(function () { burst(r.left + r.width / 2, r.top + r.height / 2, 2); }, 280);
+    setTimeout(done, 900);
+  }
+
+  function makeOkButton() {
+    var btn = mk("button", "gm-ok", "OK");
+    btn.type = "button";
+    btn.disabled = true;
+    return btn;
+  }
+  function setReady(btn, ready) {
+    if (btn.disabled === !ready) return;
+    btn.disabled = !ready;
+    btn.classList.toggle("ready", ready);
+  }
+  function nextVisibleQuestion(block) {
+    var all = Array.prototype.slice.call(document.querySelectorAll("#qContainer .qblock")).filter(function (x) {
+      return !x.parentElement.closest(".qblock");   // 副作用の各行など、入れ子の行は除く
+    });
+    for (var i = all.indexOf(block) + 1; i < all.length; i++) {
+      if (!all[i].classList.contains("hidden") && all[i].offsetParent !== null) return all[i];
+    }
+    return null;
+  }
+
+  /* ---------------- Q1：頭痛日数（ツリー入力） ---------------- */
+  function setupDayTree(block) {
+    var steps = Array.prototype.slice.call(block.querySelectorAll(".dt-step"));
+    if (!steps.length) return;
+    var inputs = steps.map(function (s) { return s.querySelector("input[data-dt]"); });
+    var confirmed = steps.map(function () { return false; });
+    var shown = steps.map(function () { return false; });
+    var cleared = false;
+    var btns = steps.map(function (s, i) {
+      var btn = makeOkButton();
+      inputs[i].parentNode.appendChild(btn);
+      inputs[i].parentNode.classList.add("gm-has-ok");
+      btn.addEventListener("click", function () {
+        if (btn.disabled || confirmed[i]) return;
+        confirmed[i] = true;
+        inputs[i].blur();
+        explode(btn, function () {
+          refresh(true);
+          var next = null;
+          for (var k = i + 1; k < steps.length; k++) {
+            if (isShown(k)) { next = k; break; }
+          }
+          if (next !== null) {
+            scrollToEl(steps[next]);
+            setTimeout(function () { try { inputs[next].focus({ preventScroll: true }); } catch (e) { inputs[next].focus(); } }, 350);
+          } else if (allDone() && !cleared) {
+            cleared = true;
+            banner("🎉 Q1 クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+          }
+        });
+      });
+      return btn;
+    });
+
+    function needed(i) { return !steps[i].classList.contains("hidden"); }
+    function isShown(i) { return needed(i) && !steps[i].classList.contains("gm-wait"); }
+    function valid(i) {
+      var err = steps[i].querySelector(".dt-err");
+      return inputs[i].value !== "" && !(err && err.classList.contains("show"));
+    }
+    function allDone() {
+      for (var i = 0; i < steps.length; i++) if (needed(i) && !confirmed[i]) return false;
+      return true;
+    }
+    function refresh(animateEntry) {
+      var gate = true;
+      for (var i = 0; i < steps.length; i++) {
+        if (!valid(i)) confirmed[i] = false;
+        if (needed(i)) steps[i].classList.toggle("gm-wait", !gate);
+        else confirmed[i] = false;
+        var now = isShown(i);
+        if (now && !shown[i] && animateEntry && !REDUCE) replayClass(steps[i], "gm-enter");
+        shown[i] = now;
+        steps[i].classList.toggle("gm-done", confirmed[i]);
+        btns[i].classList.toggle("gm-gone", confirmed[i]);
+        setReady(btns[i], !confirmed[i] && valid(i));
+        if (needed(i)) gate = gate && confirmed[i];
+      }
+      if (!allDone()) cleared = false;
+    }
+
+    // 自動計算欄の数字が変わったら跳ねさせる
+    Array.prototype.forEach.call(block.querySelectorAll(".dt-auto"), function (out) {
+      var last = out.textContent;
+      new MutationObserver(function () {
+        if (out.textContent !== last && out.textContent !== "–") replayClass(out, "gm-bump");
+        last = out.textContent;
+      }).observe(out, { childList: true, characterData: true, subtree: true });
+    });
+    inputs.forEach(function (inp) {
+      inp.addEventListener("input", function () { refresh(true); });
+      // キーボードの「完了/改行」でも OK を押したことにする
+      inp.addEventListener("keydown", function (ev) {
+        if (ev.key === "Enter") {
+          ev.preventDefault();
+          var b = btns[inputs.indexOf(inp)];
+          if (!b.disabled) b.click();
+        }
+      });
+    });
+    refresh(false);
+  }
+
+  /* ---------------- Q2：誘因（分類ごとに OK で進む） ----------------
+   * 「生活リズム」「気持ち・ストレス」…の分類ごとにステージを作り、各ステージ右下の OK で次の分類へ。
+   * 何も選ばずに OK ＝ その分類はあてはまるものなし。最後に「その他」の記入欄。
+   * 「思い当たるものはない」の選択肢は廃止（全ステージ何も選ばない＝なし）。 */
+  function setupStagedChecklist(block, label) {
+    var opts = block.querySelector(".options");
+    if (!opts) return;
+    var stages = [];
+    var cur = null;
+    Array.prototype.slice.call(opts.children).forEach(function (child) {
+      if (child.classList.contains("opt-group") || !cur) {
+        cur = mk("div", "gm-stage");
+        opts.insertBefore(cur, child);
+        stages.push(cur);
+      }
+      cur.appendChild(child);
+    });
+    var other = block.querySelector(".other-input");
+    if (other) {
+      var os = mk("div", "gm-stage");
+      os.appendChild(mk("div", "opt-group", "✏️ その他"));
+      os.appendChild(other);
+      opts.appendChild(os);
+      stages.push(os);
+    }
+    var confirmed = stages.map(function () { return false; });
+    var cleared = false;
+    var bars = stages.map(function (st, i) {
+      var bar = mk("div", "gm-okbar");
+      var msg = mk("span", "gm-okbar-msg");
+      var btn = makeOkButton();
+      bar.appendChild(msg);
+      bar.appendChild(btn);
+      st.appendChild(bar);
+      btn.addEventListener("click", function () {
+        if (btn.disabled || confirmed[i]) return;
+        confirmed[i] = true;
+        if (other) other.blur();
+        explode(btn, function () {
+          refresh(true);
+          if (i + 1 < stages.length) {
+            scrollToEl(stages[i + 1]);
+            if (stages[i + 1].contains(other)) setTimeout(function () { try { other.focus({ preventScroll: true }); } catch (e) {} }, 400);
+          } else if (!cleared) {
+            cleared = true;
+            banner("🎉 " + label + " クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+          }
+        });
+      });
+      return { bar: bar, msg: msg, btn: btn };
+    });
+
+    function stageHasAnswer(st) {
+      if (st.querySelector(".opt-btn.selected")) return true;
+      var o = st.querySelector(".other-input");
+      return !!(o && o.value.trim());
+    }
+    function refresh(animateEntry) {
+      var gate = true;
+      stages.forEach(function (st, i) {
+        var wasHidden = st.classList.contains("gm-wait");
+        st.classList.toggle("gm-wait", !gate);
+        if (wasHidden && gate && animateEntry && !REDUCE) replayClass(st, "gm-enter");
+        st.classList.toggle("gm-done", confirmed[i]);
+        var b = bars[i], has = stageHasAnswer(st);
+        b.bar.classList.toggle("gm-cleared", confirmed[i]);
+        b.btn.classList.toggle("gm-gone", confirmed[i]);
+        b.msg.textContent = confirmed[i] ? (has ? "✓ OK！" : "✓ あてはまるものなし")
+          : has ? "選び終わったら OK" : "なければ、そのまま OK";
+        setReady(b.btn, !confirmed[i]);
+        gate = gate && confirmed[i];
+      });
+    }
+    block.addEventListener("click", function (ev) {
+      var opt = ev.target.closest(".opt-btn");
+      if (!opt) return;
+      if (opt.classList.contains("selected")) {
+        replayClass(opt, "gm-pop");
+        var r = opt.getBoundingClientRect();
+        burst(r.right - 18, r.top + r.height / 2, 1);
+      }
+      setTimeout(function () { refresh(false); }, 0);
+    });
+    block.addEventListener("input", function () { refresh(false); });
+    if (other) other.addEventListener("keydown", function (ev) {
+      if (ev.key === "Enter") { ev.preventDefault(); bars[bars.length - 1].btn.click(); }
+    });
+    refresh(false);
+  }
+
+  var dt = document.querySelector('#qContainer .qblock[data-code="DAYS"]');
+  if (dt) setupDayTree(dt);
+  var trig = document.querySelector('#qContainer .qblock[data-code="TRIGGER"]');
+  if (trig) setupStagedChecklist(trig, "Q2");
+
+  /* ---------------- Q3・Q4：痛みの強さ（ひとまとまり、Q3≧Q4 で OK） ---------------- */
+  function setupPainPair(maxCode, meanCode, label) {
+    var bMax = document.querySelector('#qContainer .qblock[data-code="' + maxCode + '"]');
+    var bMean = document.querySelector('#qContainer .qblock[data-code="' + meanCode + '"]');
+    if (!bMax || !bMean) return;
+    var wrap = mk("div", "gm-pair");
+    bMax.parentNode.insertBefore(wrap, bMax);
+    wrap.appendChild(bMax);
+    wrap.appendChild(bMean);
+    var cmp = mk("div", "gm-pair-cmp");
+    var bar = mk("div", "gm-okbar");
+    var msg = mk("span", "gm-okbar-msg");
+    var btn = makeOkButton();
+    bar.appendChild(msg);
+    bar.appendChild(btn);
+    wrap.appendChild(cmp);
+    wrap.appendChild(bar);
+    var confirmed = false, cleared = false;
+    function val(b) {
+      var inp = b.querySelector(".slider-input");
+      return inp && inp.getAttribute("data-touched") === "1" ? Number(inp.value) : null;
+    }
+    function refresh() {
+      var mx = val(bMax), mn = val(bMean);
+      var both = mx !== null && mn !== null;
+      var ok = both && mx >= mn;
+      if (!ok) { confirmed = false; cleared = false; }
+      cmp.className = "gm-pair-cmp " + (!both ? "wait" : ok ? "ok" : "ng");
+      cmp.textContent = !both ? "Q3 と Q4 の両方のボタンを動かしてください"
+        : ok ? "一番ひどいとき " + mx + " ≧ 平均 " + mn + "　✓"
+        : "平均（" + mn + "）が一番ひどいとき（" + mx + "）より大きくなっています。もう一度確認してください";
+      wrap.classList.toggle("gm-done", confirmed);
+      bar.classList.toggle("gm-cleared", confirmed);
+      btn.classList.toggle("gm-gone", confirmed);
+      msg.textContent = confirmed ? "✓ OK！" : ok ? "よければ OK を押してください" : "";
+      setReady(btn, ok && !confirmed);
+    }
+    ["input", "change", "pointerup", "touchend"].forEach(function (ev) {
+      wrap.addEventListener(ev, function () { setTimeout(refresh, 0); });
+    });
+    btn.addEventListener("click", function () {
+      if (btn.disabled || confirmed) return;
+      confirmed = true;
+      explode(btn, function () {
+        refresh();
+        if (!cleared) {
+          cleared = true;
+          banner("🎉 " + label + " クリア！", function () { scrollToEl(nextVisibleQuestion(bMean)); });
+        }
+      });
+    });
+    refresh();
+  }
+  setupPainPair("Q3", "Q4", "Q3・Q4");
+
+  /* ---------------- 1問だけの OK ボタン（Q5 など） ---------------- */
+  function setupSingleOk(code, isReady, label) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
+    if (!q) return;
+    var bar = mk("div", "gm-okbar");
+    var msg = mk("span", "gm-okbar-msg");
+    var btn = makeOkButton();
+    bar.appendChild(msg);
+    bar.appendChild(btn);
+    var err = q.querySelector(".err-msg");
+    q.insertBefore(bar, err || null);
+    var confirmed = false, cleared = false;
+    function refresh() {
+      var ok = isReady(q);
+      if (!ok) { confirmed = false; cleared = false; }
+      bar.classList.toggle("gm-cleared", confirmed);
+      btn.classList.toggle("gm-gone", confirmed);
+      msg.textContent = confirmed ? "✓ OK！" : ok ? "よければ OK を押してください" : "答えると OK が押せます";
+      setReady(btn, ok && !confirmed);
+    }
+    ["click", "input", "change", "pointerup"].forEach(function (ev) {
+      q.addEventListener(ev, function () { setTimeout(refresh, 0); });
+    });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (btn.disabled || confirmed) return;
+      confirmed = true;
+      explode(btn, function () {
+        refresh();
+        if (!cleared) {
+          cleared = true;
+          banner("🎉 " + label + " クリア！", function () { scrollToEl(nextVisibleQuestion(q)); });
+        }
+      });
+    });
+    refresh();
+  }
+  // あり/なし＋スライダー型：「なし」を選ぶか、「あり」でスライダーを動かしたら OK
+  function presenceAnswered(q) {
+    var p = q.getAttribute("data-presence");
+    if (p === "none") return true;
+    if (p !== "has") return false;
+    var inp = q.querySelector(".slider-input");
+    return !!(inp && inp.getAttribute("data-touched") === "1");
+  }
+  setupSingleOk("Q5", presenceAnswered, "Q5");
+
+  // 治療満足度（Q14）の「副作用」行：0・10 の下に意味を追記
+  (function () {
+    var inp = document.querySelector('#qContainer input[data-code="SATIS_fukusayou"]');
+    var row = inp && inp.closest(".slider-container").querySelector(".slider-labels-row");
+    if (!row) return;
+    var sp = row.children;
+    if (sp.length < 3) return;
+    sp[0].innerHTML = "0 不満<br><small>（副作用あり）</small>";
+    sp[2].innerHTML = "10 満足<br><small>（副作用なし）</small>";
+    sp[2].style.textAlign = "right";
+  })();
+
+  /* ---------------- 段階スライダーの両端に顔（Q3・Q4 と同じ見た目に） ---------------- */
+  function faceEnds(code, left, right, hint) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
+    var row = q && q.querySelector(".slider-labels-row");
+    if (!row) return;
+    function part(f) {
+      return "<span class='slider-face-label'><span class='face-emoji'>" + f[0] + "</span><span class='face-text'>" + f[1] + "</span></span>";
+    }
+    row.innerHTML = part(left) + part(right);
+    var sc = row.closest(".slider-container");
+    if (hint && sc) {
+      var h = mk("p", "slider-hint", hint);
+      sc.parentNode.insertBefore(h, sc);
+    }
+  }
+  // Q5（頭痛以外の症状）：「あり」を選んだあとのスライダー
+  faceEnds("Q5", ["😄", "とてもよくなった"], ["😖", "明らかに悪くなった"], "ボタンを左右にスライドさせて回答してください");
+  // Q7〜Q9（薬の効き目）
+  ["Q7", "Q8", "Q9"].forEach(function (c) {
+    faceEnds(c, ["😄", "とてもよく効く"], ["😖", "全然効かない"], "ボタンを左右にスライドさせて回答してください");
+  });
+
+  /* ---------------- 残りの設問にも OK ボタン ---------------- */
+  function sliderTouched(q) {
+    var inp = q.querySelector(".slider-input");
+    return !!(inp && inp.getAttribute("data-touched") === "1");
+  }
+  function allSlidersTouched(q) {
+    var a = q.querySelectorAll(".slider-input");
+    if (!a.length) return false;
+    for (var i = 0; i < a.length; i++) if (a[i].getAttribute("data-touched") !== "1") return false;
+    return true;
+  }
+  setupSingleOk("Q6", function (q) { var t = q.querySelector('input[data-code="Q6_total"]'); return !!(t && t.value !== ""); }, "Q6");
+  setupSingleOk("Q7", sliderTouched, "Q7");
+  setupSingleOk("Q8", sliderTouched, "Q8");
+  setupSingleOk("Q9", sliderTouched, "Q9");
+  setupSingleOk("Q10", sliderTouched, "Q7");
+  setupSingleOk("Q14", sliderTouched, "Q8");      // 睡眠（画面上の番号は Q8）
+  setupSingleOk("Q15", sliderTouched, "Q9");      // 疲れやすさ（Q9）
+  setupSingleOk("PGIC", sliderTouched, "Q10");
+  setupSingleOk("SATIS", allSlidersTouched, "Q11");
+  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q13"); // 今後の治療（Q13）
+
+  /* ---------------- 副作用チェック：とくになし（全部なし） ---------------- */
+  (function () {
+    var q = document.querySelector('#qContainer .qblock[data-code="SE"]');
+    if (!q) return;
+    var rows = Array.prototype.slice.call(q.querySelectorAll('.options[data-code^="SE_"]'));
+    var box = mk("div", "gm-allnone");
+    var b = mk("button", "gm-allnone-btn", "✓ とくになし");
+    b.type = "button";
+    box.appendChild(b);
+    box.appendChild(mk("span", null, "全部「なし」にします。気になる項目があれば、そこだけ「あり」に変えてください"));
+    var first = q.querySelector(".qblock");
+    q.insertBefore(box, first);
+    b.addEventListener("click", function () {
+      rows.forEach(function (o) {
+        var none = o.querySelector('.opt-btn[data-value="なし"]');
+        if (none && !none.classList.contains("selected")) none.click();
+      });
+      var r = b.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 2, 1);
+    });
+    setupSingleOk("SE", function () {
+      return rows.every(function (o) { return !!o.querySelector(".opt-btn.selected"); });
+    }, "Q12");
+  })();
+
+  /* ---------------- Q11〜Q13 のスライダーにも両端の顔 ---------------- */
+  ["Q14", "Q15"].forEach(function (c) {
+    faceEnds(c, ["😖", "明らかに悪化した"], ["😄", "明らかに改善した"], "ボタンを左右にスライドさせて回答してください");
+  });
+  faceEnds("PGIC", ["😖", "著明悪化"], ["😄", "著明改善"], "ボタンを左右にスライドさせて回答してください");
+
+  /* ---------------- Q14 治療満足度：各スライダーの両端に顔 ---------------- */
+  (function () {
+    var q = document.querySelector('#qContainer .qblock[data-code="SATIS"]');
+    if (!q) return;
+    function part(f) {
+      return "<span class='slider-face-label'><span class='face-emoji'>" + f[0] + "</span><span class='face-text'>" + f[1] + "</span></span>";
+    }
+    Array.prototype.forEach.call(q.querySelectorAll(".slider-input"), function (inp) {
+      var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
+      if (!row) return;
+      var ae = inp.getAttribute("data-code") === "SATIS_fukusayou";
+      row.innerHTML = part(["😖", ae ? "0 不満<br><small>（副作用あり）</small>" : "0 不満"]) +
+                      part(["😄", ae ? "10 満足<br><small>（副作用なし）</small>" : "10 とても満足"]);
+    });
+  })();
+
+  /* ---------------- 選択肢の下にひとことコメント ---------------- */
+  function addOptionNote(code, value, text) {
+    var o = document.querySelector('#qContainer .qblock[data-code="' + code + '"] .opt-btn[data-value="' + value + '"]');
+    if (!o) return;
+    o.parentNode.insertBefore(mk("div", "gm-optnote", text), o.nextSibling);
+  }
+  // Q14（今後も続けたいか）
+  addOptionNote("Q11", "中止したい", "💬 直接言いだしにくかったら、ここで選んでしまってね！");
+
+  /* ---------------- 質問票（HIT-6 など）を1問ずつ：選んで OK → 次の問題 ----------------
+   * 元の表（ラジオボタン）は隠して残し、カードで選んだ内容をそのまま表のラジオに反映する。
+   * 上の丸い番号を押すと前の問題に戻れる。 */
+  function setupQuiz(q) {
+    var block = document.querySelector('#qContainer .qblock[data-code="' + q.code + '"]');
+    if (!block) return;
+    block.classList.add("gm-quiz");
+    var name = q.title || q.code;
+    function radio(r, ci) {
+      return block.querySelector('input[name="' + q.code + "_" + r.code + '"][value="' + ci + '"]');
+    }
+    function chosen(r) {
+      var c = block.querySelector('input[name="' + q.code + "_" + r.code + '"]:checked');
+      return c ? Number(c.value) : null;
+    }
+    var prog = mk("div", "gm-quiz-prog");
+    var count = mk("span", "gm-quiz-count");
+    var dots = mk("div", "gm-quiz-dots");
+    prog.appendChild(count);
+    prog.appendChild(dots);
+    var card = mk("div", "gm-qcard");
+    var anchor = block.querySelector(".matrix-wrap");
+    block.insertBefore(prog, anchor);
+    block.insertBefore(card, anchor);
+    var done = q.rows.map(function () { return false; });
+    var cur = 0, cleared = false;
+
+    function renderDots() {
+      dots.innerHTML = "";
+      q.rows.forEach(function (r, i) {
+        var d = mk("button", (done[i] ? "done" : "") + (i === cur ? " cur" : ""), String(i + 1));
+        d.type = "button";
+        d.disabled = !(done[i] || i === cur || (i > 0 && done[i - 1]));
+        d.addEventListener("click", function () { if (!d.disabled) show(i, true); });
+        dots.appendChild(d);
+      });
+      var n = done.filter(Boolean).length;
+      count.textContent = n === q.rows.length ? "✓ " + name + " ぜんぶ回答済み" : name + "　" + (cur + 1) + " / " + q.rows.length;
+    }
+    function show(i, animate) {
+      cur = i;
+      var r = q.rows[i];
+      card.innerHTML = "";
+      var qq = mk("div", "gm-qcard-q");
+      qq.appendChild(mk("span", "gm-qno", "問" + r.code));
+      qq.appendChild(document.createTextNode(r.text));
+      card.appendChild(qq);
+      if (r.plain) card.appendChild(mk("div", "gm-qcard-plain", "💬 わかりやすく言うと：" + r.plain));
+      var opts = mk("div", "gm-qcard-opts");
+      var bar = mk("div", "gm-okbar");
+      var msg = mk("span", "gm-okbar-msg");
+      var btn = makeOkButton();
+      q.columns.forEach(function (c, ci) {
+        var o = mk("div", "opt-btn", String(c.label).replace(/\s*[\(（][^)）]*点[\)）]\s*$/, "").replace(/\n/g, ""));
+        if (chosen(r) === ci) o.classList.add("selected");
+        o.addEventListener("click", function () {
+          Array.prototype.forEach.call(opts.children, function (x) { x.classList.remove("selected"); });
+          o.classList.add("selected");
+          replayClass(o, "gm-pop");
+          var rd = radio(r, ci);
+          if (rd) { rd.checked = true; rd.dispatchEvent(new Event("change", { bubbles: true })); }
+          refreshBar();
+        });
+        opts.appendChild(o);
+      });
+      card.appendChild(opts);
+      bar.appendChild(msg);
+      bar.appendChild(btn);
+      card.appendChild(bar);
+      function refreshBar() {
+        var has = chosen(r) !== null;
+        msg.textContent = has ? (i + 1 < q.rows.length ? "OK で次の問題へ" : "OK で " + name + " おわり！") : "あてはまるものを選んでください";
+        setReady(btn, has);
+      }
+      btn.addEventListener("click", function () {
+        if (btn.disabled) return;
+        done[i] = true;
+        explode(btn, function () {
+          var next = -1;
+          for (var k = i + 1; k < q.rows.length; k++) if (!done[k]) { next = k; break; }
+          if (next === -1) for (var k2 = 0; k2 < i; k2++) if (!done[k2]) { next = k2; break; }
+          if (next !== -1) {
+            show(next, true);
+          } else {
+            show(i, false);
+            if (!cleared) {
+              cleared = true;
+              banner("🎉 " + name + " クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+            } else {
+              scrollToEl(nextVisibleQuestion(block));   // 戻って答え直したときも次へ進む
+            }
+          }
+        });
+      });
+      refreshBar();
+      renderDots();
+      if (animate && !REDUCE) replayClass(card, "gm-enter");
+      if (animate) {
+        var top = prog.getBoundingClientRect().top;
+        if (top < 0 || top > window.innerHeight * 0.5) scrollToEl(prog);
+      }
+    }
+    show(0, false);
+  }
+  if (window.SCHEMA_SAISHIN) {
+    SCHEMA_SAISHIN.sections.forEach(function (sec) {
+      sec.questions.forEach(function (q) { if (q.type === "matrix") setupQuiz(q); });
+    });
+  }
+
+  /* ---------------- Q6 の日数に応じて効き目の質問（Q7〜Q9）を出す ----------------
+   * 1日以上 → その薬の効き目の質問が出る（「あり」を自動で選んでスライダーを表示）
+   * 0日     → 質問は隠し、「使用なし」として記録
+   * 未入力  → 質問は隠し、未回答のまま */
+  function linkUsageToEffect(pairs) {
+    pairs.forEach(function (pr) {
+      var inp = document.querySelector('#qContainer input[data-code="' + pr[0] + '"]');
+      var q = document.querySelector('#qContainer .qblock[data-code="' + pr[1] + '"]');
+      if (!inp || !q) return;
+      var btns = q.querySelectorAll(".presence-toggle .presence-btn");
+      var btnHas = btns[0], btnNone = btns[1];
+      var state = null;
+      q.classList.add("gm-linked");
+      function update() {
+        var v = inp.value === "" ? null : Number(inp.value);
+        var next = v === null || isNaN(v) ? "blank" : v > 0 ? "used" : "zero";
+        if (next === state) return;
+        var wasHidden = state !== "used";
+        state = next;
+        q.classList.toggle("gm-hide", next !== "used");
+        if (next === "used") {
+          if (btnHas && q.getAttribute("data-presence") !== "has") btnHas.click();
+          if (wasHidden && !REDUCE) replayClass(q, "gm-enter");
+        } else if (next === "zero") {
+          if (btnNone && q.getAttribute("data-presence") !== "none") btnNone.click();
+        } else {
+          q.setAttribute("data-presence", "");
+          Array.prototype.forEach.call(btns, function (b) { b.classList.remove("selected"); });
+          var dw = q.querySelector(".degree-slider-wrap");
+          if (dw) dw.classList.add("hidden");
+          FE._onAnswerChanged();
+        }
+      }
+      inp.addEventListener("input", update);
+      update();
+    });
+  }
+  linkUsageToEffect([["Q6_naru", "Q7"], ["Q6_trip", "Q8"], ["Q6_otc", "Q9"]]);
+
+  /* ---------------- Q6：痛み止めは薬ごとに日数 → 合計は自動、1日以上の薬はすぐ下に効き目 ----------------
+   * 元の日数欄（Q6_total など）と効き目の設問（Q7〜Q9）はそのまま使い、値を流し込むだけ。記録されるデータは従来と同じ。 */
+  (function setupDrugFlow() {
+    var q6 = document.querySelector('#qContainer .qblock[data-code="Q6"]');
+    if (!q6) return;
+    var DRUGS = [
+      { key: "Q6_naru", name: "ナルティーク", eff: "Q7" },
+      { key: "Q6_trip", name: "トリプタン", sub: "イミグラン・ゾーミッグ・レルパックス・マクサルト・アマージ", eff: "Q8" },
+      { key: "Q6_rayvow", name: "レイボー" },
+      { key: "Q6_rx", name: "病院でもらったその他の痛み止め", sub: "カロナール・ロキソニン・ボルタレンなど" },
+      { key: "Q6_otc", name: "市販の痛み止め", eff: "Q9" }
+    ];
+    function hidden(code) { return q6.querySelector('input[data-code="' + code + '"]'); }
+    function setHidden(code, v) {
+      var inp = hidden(code);
+      if (!inp) return;
+      var s = v === null ? "" : String(v);
+      if (inp.value === s) return;
+      inp.value = s;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    // 元の入力欄・注記・OK は隠す
+    Array.prototype.forEach.call(q6.querySelectorAll(".num-row, .field-note, .qnote"), function (n) { n.classList.add("gm-hide"); });
+    var oldBar = q6.querySelector(":scope > .gm-okbar");
+    if (oldBar) oldBar.classList.add("gm-hide");
+
+    var wrap = mk("div", "dt-wrap gm-drugflow");
+    q6.insertBefore(wrap, q6.querySelector(".err-msg"));
+    var box = mk("div", "dt-step");
+    box.appendChild(mk("div", "dt-step-title", "この1ヶ月（30日）に使った日数を、薬ごとに入力してください"));
+    box.appendChild(mk("div", "gm-flow-hint", "使っていない薬は 0 のままで大丈夫です。1日以上の薬は、すぐ下で効き目を教えてください"));
+    var noneBtn = mk("button", "gm-adj-btn", "痛み止めは1回も使っていない → すべて 0 にする"); noneBtn.type = "button";
+    box.appendChild(noneBtn);
+    wrap.appendChild(box);
+
+    function stepper(parent, label, sub, cls) {
+      var row = mk("div", "dt-row " + (cls || "c-teal"));
+      var lb = mk("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var minus = mk("button", "gm-step-btn", "−"); minus.type = "button";
+      var inp = mk("input", "field-input"); inp.type = "number"; inp.inputMode = "numeric"; inp.min = "0"; inp.max = "30"; inp.placeholder = "0";
+      var plus = mk("button", "gm-step-btn", "＋"); plus.type = "button";
+      row.appendChild(minus); row.appendChild(inp); row.appendChild(plus);
+      row.appendChild(mk("span", "unit", "日"));
+      parent.appendChild(row);
+      function bump(d) {
+        var v = inp.value === "" ? 0 : Number(inp.value);
+        v = Math.max(0, Math.min(30, (isFinite(v) ? v : 0) + d));
+        inp.value = String(v);
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      minus.addEventListener("click", function () { bump(-1); });
+      plus.addEventListener("click", function () { bump(1); });
+      return inp;
+    }
+    function readDays(inp) {
+      if (inp.value === "") return null;
+      var n = Number(inp.value);
+      return isFinite(n) && Math.floor(n) === n && n >= 0 && n <= 30 ? n : NaN;
+    }
+
+    // 薬ごとの日数と、そのすぐ下に効き目
+    var rows = DRUGS.map(function (d) {
+      var card = mk("div", "gm-drugcard");
+      box.appendChild(card);
+      var inp = stepper(card, "💊 " + d.name, d.sub ? "（" + d.sub + "）" : "");
+      var err = mk("div", "dt-err");
+      card.appendChild(err);
+      var effQ = d.eff ? document.querySelector('#qContainer .qblock[data-code="' + d.eff + '"]') : null;
+      if (effQ) { effQ.classList.add("gm-in-flow"); card.appendChild(effQ); }
+      return { d: d, card: card, inp: inp, err: err, effQ: effQ };
+    });
+
+    // 合計（自動）。2種類以上使った人は、同じ日に重なった分を直せる
+    var tBox = mk("div", "gm-drugtotal");
+    box.appendChild(tBox);
+    var tLine = mk("div", "gm-drugtotal-line");
+    tBox.appendChild(tLine);
+    var adjBtn = mk("button", "gm-adj-btn", "同じ日に2種類以上使った日があった → 合計を直す"); adjBtn.type = "button";
+    tBox.appendChild(adjBtn);
+    var adjWrap = mk("div", "gm-hide");
+    tBox.appendChild(adjWrap);
+    var tInp = stepper(adjWrap, "痛み止めを使った日数（合計）", "同じ日に2種類使った日は「1日」と数えます");
+    var tHint = mk("div", "gm-flow-hint");
+    adjWrap.appendChild(tHint);
+    var tErr = mk("div", "dt-err");
+    adjWrap.appendChild(tErr);
+
+    var bar = mk("div", "gm-okbar");
+    var msg = mk("span", "gm-okbar-msg");
+    var btn = makeOkButton();
+    bar.appendChild(msg); bar.appendChild(btn);
+    box.appendChild(bar);
+
+    var adjusting = false, cleared = false, done = false;
+    function vals() { return rows.map(function (r) { return readDays(r.inp); }); }
+    function effReady(r) {
+      if (!r.effQ || r.effQ.classList.contains("gm-hide")) return true;
+      var sl = r.effQ.querySelector(".slider-input");
+      return !!(sl && sl.getAttribute("data-touched") === "1");
+    }
+    function refresh() {
+      var v = vals();
+      var bad = false, any = false, mx = 0, sum = 0, used = 0;
+      rows.forEach(function (r, i) {
+        var isBad = v[i] !== null && isNaN(v[i]);
+        r.err.textContent = isBad ? "0〜30の整数で入力してください" : "";
+        r.err.classList.toggle("show", isBad);
+        if (isBad) bad = true;
+        if (v[i] !== null && !isNaN(v[i])) { any = true; mx = Math.max(mx, v[i]); sum += v[i]; if (v[i] > 0) used++; }
+        r.card.classList.toggle("gm-used", v[i] > 0);
+      });
+      // 元の欄へ（どれか入力があれば、空欄の薬は 0 日として記録）
+      rows.forEach(function (r, i) { setHidden(r.d.key, !any || isNaN(v[i]) ? null : (v[i] === null ? 0 : v[i])); });
+      sum = Math.min(30, sum);
+      adjBtn.classList.toggle("gm-hide", used < 2 || adjusting);
+      if (used < 2) adjusting = false;
+      adjWrap.classList.toggle("gm-hide", !adjusting);
+      var total = any ? sum : null, tBad = false;
+      if (adjusting) {
+        var vt = readDays(tInp);
+        tHint.textContent = "（いちばん多い薬の日数 " + mx + "日 〜 全部の合計 " + sum + "日 の間になります）";
+        tBad = vt !== null && (isNaN(vt) || vt < mx || vt > sum);
+        tErr.textContent = tBad ? mx + "〜" + sum + "日の間で入力してください" : "";
+        tErr.classList.toggle("show", tBad);
+        total = vt === null || tBad ? null : vt;
+      }
+      tLine.innerHTML = "合計：<b>" + (total === null ? "–" : total) + "</b> 日" + (adjusting ? "" : "<small>（自動で計算されます）</small>");
+      setHidden("Q6_total", total);
+      var effOk = rows.every(effReady);
+      var ok = any && !bad && !tBad && total !== null && effOk;
+      if (!ok) { done = false; cleared = false; }
+      box.classList.toggle("gm-done", done);
+      btn.classList.toggle("gm-gone", done);
+      msg.textContent = done ? "✓ OK！" : !any ? "日数を入れてください（＋−でも入力できます）"
+        : !effOk ? "効き目のボタンを動かしてください" : total === null ? "合計の日数を入れてください" : "よければ OK";
+      setReady(btn, ok && !done);
+    }
+    function later() { setTimeout(refresh, 0); }
+    rows.forEach(function (r) {
+      r.inp.addEventListener("input", later);
+      if (r.effQ) ["input", "change", "pointerup", "click"].forEach(function (ev) { r.effQ.addEventListener(ev, later); });
+    });
+    tInp.addEventListener("input", later);
+    noneBtn.addEventListener("click", function () {
+      adjusting = false;
+      rows.forEach(function (r) { r.inp.value = "0"; });
+      refresh();
+    });
+    adjBtn.addEventListener("click", function () {
+      adjusting = true;
+      var s = 0;
+      vals().forEach(function (x) { if (x) s += x; });
+      tInp.value = String(Math.min(30, s));
+      refresh();
+      tInp.focus();
+    });
+    btn.addEventListener("click", function () {
+      if (btn.disabled) return;
+      rows.forEach(function (r) { if (r.inp.value === "") r.inp.value = "0"; });
+      done = true;
+      refresh();
+      explode(btn, function () {
+        if (!cleared) { cleared = true; banner("🎉 Q6 クリア！", function () { scrollToEl(nextVisibleQuestion(q6)); }); }
+      });
+    });
+    refresh();
+  })();
+
+  /* ---------------- スライダーに連動して顔が変わる（Q10） ---------------- */
+  function addFaceToSlider(code, faces) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
+    var inp = q && q.querySelector(".slider-input");
+    if (!inp) return;
+    var box = mk("div", "gm-face");
+    var emo = mk("span", "gm-face-emoji", "🤔");
+    var lab = mk("span", "gm-face-label", "スライドしてね");
+    var sub = mk("span", "gm-face-sub", "");
+    box.appendChild(emo);
+    box.appendChild(lab);
+    box.appendChild(sub);
+    var sc = inp.closest(".slider-container");
+    sc.parentNode.insertBefore(box, sc.nextSibling);
+    var last = null;
+    function update() {
+      if (inp.getAttribute("data-touched") !== "1") return;
+      var f = faces[Number(inp.value)];
+      if (!f) return;
+      emo.textContent = f[0];
+      lab.textContent = f[1];
+      lab.style.background = f[2];
+      lab.style.color = f[3];
+      sub.textContent = f[4] || "";
+      if (last !== inp.value) replayClass(emo, "gm-face-pop");
+      last = inp.value;
+    }
+    ["input", "change", "pointerup"].forEach(function (ev) {
+      inp.addEventListener(ev, function () { setTimeout(update, 0); });
+    });
+  }
+  // [顔, 評定, 背景色, 文字色, ひとこと]（並びは Q10 の選択肢順）
+  addFaceToSlider("Q10", [
+    ["😆", "◎ 明らかに減った", "#e8f5e9", "#1e8449", "半分以下に！すばらしいです"],
+    ["😊", "◯ 少し減った", "#eef7e6", "#4a8a1c", "いい調子です"],
+    ["😐", "△ 変わらない", "#f1f1f1", "#555", ""],
+    ["😣", "✗ 増えた", "#fdecea", "#c0392b", "先生に相談してみましょう"]
+  ]);
+
+  /* ---------------- キャラクターの豆知識（吹き出し） ---------------- */
+  // 脳のキャラクター（ずつうくん）
+  var CHARA_SVG =
+    '<svg viewBox="0 0 64 72" aria-hidden="true">' +
+    '<ellipse cx="32" cy="69" rx="16" ry="3" fill="rgba(0,0,0,.12)"/>' +
+    '<path d="M14 36c-6-2-8-10-4-15 0-7 7-12 13-10 3-5 11-6 15-2 5-3 13 0 14 6 6 1 9 8 6 13 4 4 2 12-4 13-1 6-8 9-13 7-4 4-12 4-16 0-6 2-12-3-11-12z" fill="#f7a8b8" stroke="#d9707f" stroke-width="2"/>' +
+    '<path d="M24 16c2 3 1 6-2 8M40 13c-1 4 1 6 4 7M32 22c0 3 2 5 5 5M18 31c3-1 5 0 6 3M47 30c-3 0-4 2-4 4" fill="none" stroke="#d9707f" stroke-width="1.6" stroke-linecap="round"/>' +
+    '<circle cx="25" cy="40" r="3.4" fill="#3a2a2a"/><circle cx="39" cy="40" r="3.4" fill="#3a2a2a"/>' +
+    '<circle cx="26.2" cy="38.8" r="1.1" fill="#fff"/><circle cx="40.2" cy="38.8" r="1.1" fill="#fff"/>' +
+    '<ellipse cx="19.5" cy="46" rx="3.2" ry="2" fill="#f27a8f" opacity=".6"/><ellipse cx="44.5" cy="46" rx="3.2" ry="2" fill="#f27a8f" opacity=".6"/>' +
+    '<path d="M28 47c2 2.4 6 2.4 8 0" fill="none" stroke="#3a2a2a" stroke-width="1.8" stroke-linecap="round"/>' +
+    '<path d="M24 58v8M40 58v8" stroke="#d9707f" stroke-width="3" stroke-linecap="round"/>' +
+    '<path d="M50 20l3-5M54 25l5-2M51 15l1-6" stroke="#f0ad4e" stroke-width="2" stroke-linecap="round"/>' +
+    '</svg>';
+
+  // キャラクター（または「タップしてね」）を押すと吹き出しが飛び出す。もう一度押すと閉じる。
+  var tipCount = 0;
+  function addTip(afterCode, title, html, teaser) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + afterCode + '"]');
+    if (!q) return;
+    var tip = mk("div", "gm-tip gm-closed");
+    var chara = mk("button", "gm-tip-chara");
+    chara.type = "button";
+    chara.setAttribute("aria-label", title + "を見る");
+    chara.innerHTML = CHARA_SVG;
+    chara.appendChild(mk("span", "gm-tip-q", "?"));
+    var tease = mk("div", "gm-tip-teaser" + (tipCount > 0 ? " gm-mini" : ""), teaser || (tipCount > 0 ? "💡 タップ" : "タップしてね！ 💡"));
+    tipCount++;
+    var bubble = mk("div", "gm-tip-bubble");
+    bubble.appendChild(mk("div", "gm-tip-title", title));
+    var text = mk("div", "gm-tip-text");
+    text.innerHTML = html;
+    bubble.appendChild(text);
+    bubble.appendChild(mk("span", "gm-tip-close", "（キャラクターをタップでとじる）"));
+    tip.appendChild(chara);
+    tip.appendChild(tease);
+    tip.appendChild(bubble);
+    q.appendChild(tip);
+    function toggle() {
+      var opening = tip.classList.contains("gm-closed");
+      tip.classList.toggle("gm-closed", !opening);
+      chara.setAttribute("aria-expanded", opening ? "true" : "false");
+      if (!opening) return;
+      replayClass(chara, "gm-talk");
+      replayClass(bubble, "gm-open");
+      var r = chara.getBoundingClientRect();
+      burst(r.left + r.width / 2, r.top + r.height / 3, 1);
+      if (navigator.vibrate) { try { navigator.vibrate(15); } catch (e) {} }
+    }
+    chara.addEventListener("click", toggle);
+    tease.addEventListener("click", toggle);
+    bubble.addEventListener("click", toggle);
+  }
+
+  addTip("Q5", "💡 豆知識",
+    "片頭痛では、はき気や光・音への過敏さなど、<b>頭痛以外の症状</b>をともなうことがよくあります。これらは、発作のときに脳が刺激に敏感になっている状態を表していると考えられています。");
+
+  // Q10 のコメントも豆知識に（元の注記は隠す）
+  var q10note = document.querySelector('#qContainer .qblock[data-code="Q10"] .qnote');
+  if (q10note && q10note.textContent.indexOf("痛み止めを飲む量") !== -1) q10note.style.display = "none";
+  addTip("Q10", "💡 豆知識", "痛み止めを飲む量が減ると、<b>頭痛が良くなる人が多い</b>ですよ。");
+  addTip("PHQ9", "💡 PHQ-9 とは",
+    "過去2週間の気分の落ち込みや意欲の低下など、<b>心の疲れやうつ症状の度合い</b>を測定するための世界的な評価指標です。");
+  addTip("MIBS4", "💡 MIBS-4 とは",
+    "頭痛が起きていない「痛みのない日」に、「また頭痛が来るのではないか」という<b>不安や予期不安</b>が日常生活・心にどれくらい影響しているかを評価する指標です。片頭痛の方は、頭痛が起きていない日にも、片頭痛による脳の敏感さのために、心身の不調が続くことがあると知られています。");
+  addTip("HIT6", "💡 HIT-6 とは",
+    "HIT-6は<b>あなたの頭痛のひどさを点数化</b>するためによく使われるスコアです。過去4週間の頭痛が日常生活や仕事、気分にどれくらい影響を与えているかを簡易的に評価できます。");
+  addTip("GAD7", "💡 GAD-7 とは",
+    "過去2週間における<b>不安の強さや心のプレッシャーの程度</b>を客観的に把握し、適切なケアにつなげるための指標です。片頭痛は、発作が起きるとメンタルに影響が出ることがよくあるため、こちらも点数化させて評価しています。");
+  addTip("TRIGGER", "💡 豆知識",
+    "たくさん聞いてしまいましたが、<b>頭痛のきっかけを知って上手に付き合うこと</b>が、くすりに頼りすぎずに頭痛をコントロールしていくコツです。");
+
+  addTip("Q14", "💡 豆知識", "片頭痛は、<b>睡眠のリズムを安定</b>させることにより改善してくることが多いです。");
+  addTip("Q15", "💡 豆知識",
+    "片頭痛の発作によって激しく体力が削られたり気分が落ち込んだりするのは、発作に伴って「<b>セロトニン</b>」という神経伝達物質が急激に減少し、<b>脳のメンタル防御や痛みを和らげる機能が低下</b>することも関係していると考えられています。");
+
+  /* ---------------- おくすり情報（Q6の下、折りたたみ） ---------------- */
+  function addInfo(afterCode, title, sub, items) {
+    var q = document.querySelector('#qContainer .qblock[data-code="' + afterCode + '"]');
+    if (!q) return;
+    var d = mk("details", "gm-info");
+    var s = mk("summary");
+    s.appendChild(document.createTextNode(title));
+    s.appendChild(mk("span", "gm-info-sub", sub));
+    d.appendChild(s);
+    var body = mk("div", "gm-info-body");
+    items.forEach(function (it) {
+      var card = mk("div", "gm-drug");
+      card.appendChild(mk("h4", null, it[0]));
+      var p = mk("div");
+      p.innerHTML = it[1];
+      card.appendChild(p);
+      body.appendChild(card);
+    });
+    d.appendChild(body);
+    q.appendChild(d);
+  }
+
+  addInfo("Q6", "💊 豆知識：急性期薬、痛み止めについて", "（タップでひらく）", [
+    ["ナルティーク",
+     "「<b>ゲパント</b>」という新しい種類の片頭痛薬で、片頭痛を起こす物質（CGRP）の受け皿をブロックする飲み薬です。発作のときに飲む治療薬としても、決められた飲み方で続ける予防薬としても使えます。"],
+    ["トリプタン",
+     "次の<b>5つの種類</b>があります。<ul class=\"gm-drug-list\">" +
+     "<li>スマトリプタン（イミグラン）</li>" +
+     "<li>ゾルミトリプタン（ゾーミッグ）</li>" +
+     "<li>エレトリプタン（レルパックス）</li>" +
+     "<li>リザトリプタン（マクサルト）</li>" +
+     "<li>ナラトリプタン（アマージ）</li></ul>" +
+     "強さや効き目の速さが種類により異なるため、おひとりおひとりの頭痛に合わせて使い分けを提案しています。"],
+    ["レイボー",
+     "他の頭痛薬と違って、レイボーは<b>脳の中にも届いて</b>効くため、はき気やめまい感など頭痛以外の症状がつらいときにも頼りになる薬です。当院では、頭痛が出てしばらくして、頭痛以外の症状も重なってきたときに飲むと、スッキリすることがあるとお伝えしています。<br>" +
+     "⚠️ <b>飲んだあとは、めまいや眠気が出ることがあるため、車の運転や危険をともなう作業は控えてください。</b>"]
+  ]);
+
 })();
 </script>
 
