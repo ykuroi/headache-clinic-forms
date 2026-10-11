@@ -1978,10 +1978,13 @@ var SAISHIN_CODEC = (function () {
   add("CONT_WHY", "Q12", "multi", CONT_WHY);
   add("CONT_O", "Q12_other", "text");
   add("CMT", "Q13", "text");
+  // 2026-10-11 追加：QRの並びは末尾に足す（以前のQRもそのまま読めるように）
+  add("EFF_LAS", "Q9las", "map", effMap("N レイボーを使っていない"));
+  add("EFF_RX", "Q9rx", "map", effMap("N 病院でもらったその他の痛み止めを使っていない"));
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
-    "AMD", "AMD_RIM", "AMD_TRP", "AMD_LAS", "AMD_RX", "AMD_OTC", "EFF_RIM", "EFF_TRP", "EFF_OTC", "AMD_CHG",
+    "AMD", "AMD_RIM", "AMD_TRP", "AMD_LAS", "AMD_RX", "AMD_OTC", "EFF_RIM", "EFF_TRP", "EFF_LAS", "EFF_RX", "EFF_OTC", "AMD_CHG",
     "HIT6", "MIBS4", "GAD7", "PHQ9", "PHQ9_9", "PGIC", "SAT_EFF", "SAT_USE", "SAT_AE", "SAT_ALL"]
     .concat(SE_ROWS.map(function (r) { return "AE_" + r[1]; }))
     .concat(["AE_D", "SLEEP", "FATIG", "CONT", "CONT_WHY", "CONT_O", "CMT"]);
@@ -2216,6 +2219,26 @@ var SCHEMA_SAISHIN = {
             {value:"△ それほど効かない",label:"△ それほど効かない"},
             {value:"✗ 全然効かない",label:"✗ 全然効かない"},
             {value:"N 市販の痛み止めを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q9las", type: "slider_named", label: "", text: "レイボーを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N レイボーを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q9rx", type: "slider_named", label: "", text: "病院でもらったその他の痛み止めを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N 病院でもらったその他の痛み止めを使っていない",label:"N 使用なし"}
           ]
         },
         {
@@ -2738,6 +2761,14 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 @keyframes gm-face-pop{0%{transform:scale(.5) rotate(-15deg)}100%{transform:scale(1) rotate(0)}}
 .gm-face-label{font-size:.95rem;font-weight:800;padding:2px 12px;border-radius:12px;}
 .gm-face-sub{font-size:.75rem;color:var(--muted);}
+/* 2026-10-11 スライダーは「左＝悪い・右＝良い」にそろえる。値が「良い→悪い」の順のものは見た目だけ左右反転（記録する値は従来どおり） */
+.slider-input.gm-flip{transform:scaleX(-1);}
+.slider-container.gm-has-face .slider-value-display{display:none;}
+.slider-labels-row.gm-ends{font-size:.72rem;align-items:flex-start;}
+.slider-labels-row.gm-ends span{max-width:45%;line-height:1.3;}
+.slider-labels-row.gm-ends span:last-child{text-align:right;}
+.gm-face.gm-face-sm .gm-face-emoji{font-size:2.6rem;}
+.gm-face.gm-face-sm .gm-face-label{font-size:.85rem;}
 .gm-hide{display:none !important;}
 .gm-linked .presence-toggle{display:none;}  /* 使ったかどうかは Q6 の日数で決まるので「あり/使用なし」は出さない */
 /* HIT-6・GAD-7・PHQ-9・MIBS-4 を1問ずつのカードに */
@@ -3359,7 +3390,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   // Q5（頭痛以外の症状）：「あり」を選んだあとのスライダー
   faceEnds("Q5", ["😄", "とてもよくなった"], ["😖", "明らかに悪くなった"], "ボタンを左右にスライドさせて回答してください");
   // Q7〜Q9（薬の効き目）
-  ["Q7", "Q8", "Q9"].forEach(function (c) {
+  ["Q7", "Q8", "Q9", "Q9las", "Q9rx"].forEach(function (c) {
     faceEnds(c, ["😄", "とてもよく効く"], ["😖", "全然効かない"], "ボタンを左右にスライドさせて回答してください");
   });
 
@@ -3378,6 +3409,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   setupSingleOk("Q7", sliderTouched, "Q7");
   setupSingleOk("Q8", sliderTouched, "Q8");
   setupSingleOk("Q9", sliderTouched, "Q9");
+  setupSingleOk("Q9las", sliderTouched, null);
+  setupSingleOk("Q9rx", sliderTouched, null);
   setupSingleOk("Q10", sliderTouched, "Q7");
   setupSingleOk("Q14", sliderTouched, "Q8");      // 睡眠（画面上の番号は Q8）
   setupSingleOk("Q15", sliderTouched, "Q9");      // 疲れやすさ（Q9）
@@ -3588,7 +3621,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       update();
     });
   }
-  linkUsageToEffect([["Q6_naru", "Q7"], ["Q6_trip", "Q8"], ["Q6_otc", "Q9"]]);
+  linkUsageToEffect([["Q6_naru", "Q7"], ["Q6_trip", "Q8"], ["Q6_rayvow", "Q9las"], ["Q6_rx", "Q9rx"], ["Q6_otc", "Q9"]]);
 
   /* ---------------- Q6：痛み止めは薬ごとに日数 → 合計は自動、1日以上の薬はすぐ下に効き目 ----------------
    * 元の日数欄（Q6_total など）と効き目の設問（Q7〜Q9）はそのまま使い、値を流し込むだけ。記録されるデータは従来と同じ。 */
@@ -3598,8 +3631,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     var DRUGS = [
       { key: "Q6_naru", name: "ナルティーク", eff: "Q7" },
       { key: "Q6_trip", name: "トリプタン", sub: "イミグラン・ゾーミッグ・レルパックス・マクサルト・アマージ", eff: "Q8" },
-      { key: "Q6_rayvow", name: "レイボー" },
-      { key: "Q6_rx", name: "病院でもらったその他の痛み止め", sub: "カロナール・ロキソニン・ボルタレンなど" },
+      { key: "Q6_rayvow", name: "レイボー", eff: "Q9las" },
+      { key: "Q6_rx", name: "病院でもらったその他の痛み止め", sub: "カロナール・ロキソニン・ボルタレンなど", eff: "Q9rx" },
       { key: "Q6_otc", name: "市販の痛み止め", eff: "Q9" }
     ];
     function hidden(code) { return q6.querySelector('input[data-code="' + code + '"]'); }
@@ -3798,6 +3831,98 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     ["😐", "△ 変わらない", "#f1f1f1", "#555", ""],
     ["😣", "✗ 増えた", "#fdecea", "#c0392b", "先生に相談してみましょう"]
   ]);
+
+  /* ---------------- すべてのスライダー：左＝悪い・右＝良い、真ん中に顔（2026-10-11） ----------------
+   * Q3・Q4・Q5・薬の効き目・Q7（痛み止めの量）は、もともと値が「良い→悪い」の順なので、つまみの動きだけ左右反転する。
+   * 記録・QR・CSV の値は従来とまったく同じ。 */
+  var MOODS = [   // 良さ 0（悪い）〜 1（良い）に応じた顔と色
+    [0.15, "😖", "#fdecea", "#c0392b"], [0.4, "😣", "#fdf0e6", "#c0602b"], [0.6, "😐", "#f1f1f1", "#555"],
+    [0.85, "😊", "#eef7e6", "#4a8a1c"], [1.01, "😆", "#e8f5e9", "#1e8449"]
+  ];
+  function moodFace(g) { for (var i = 0; i < MOODS.length; i++) if (g < MOODS[i][0]) return MOODS[i]; return MOODS[MOODS.length - 1]; }
+  // 顔のカード（Q7 と同じ見た目）。describe(value) → [良さ0〜1, 表示する言葉, ひとこと]
+  function faceCard(inp, describe, small) {
+    var sc = inp.closest(".slider-container");
+    if (!sc || sc.classList.contains("gm-has-face")) return;
+    sc.classList.add("gm-has-face");
+    var box = mk("div", "gm-face" + (small ? " gm-face-sm" : ""));
+    var emo = mk("span", "gm-face-emoji", "🤔");
+    var lab = mk("span", "gm-face-label", "スライドしてね");
+    var sub = mk("span", "gm-face-sub", "");
+    box.appendChild(emo); box.appendChild(lab); box.appendChild(sub);
+    sc.parentNode.insertBefore(box, sc.nextSibling);
+    var last = null;
+    function update() {
+      if (inp.getAttribute("data-touched") !== "1") return;
+      var d = describe(Number(inp.value)), m = moodFace(d[0]);
+      emo.textContent = m[1];
+      lab.textContent = d[1];
+      lab.style.background = m[2];
+      lab.style.color = m[3];
+      sub.textContent = d[2] || "";
+      if (last !== inp.value) replayClass(emo, "gm-face-pop");
+      last = inp.value;
+    }
+    ["input", "change", "pointerup"].forEach(function (ev) {
+      inp.addEventListener(ev, function () { setTimeout(update, 0); });
+    });
+  }
+  function setEnds(inp, left, right) {   // 両端の小さな言葉（左＝悪い、右＝良い）
+    var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
+    if (!row) return;
+    row.className = "slider-labels-row gm-ends";
+    row.innerHTML = "<span>" + left + "</span><span>" + right + "</span>";
+  }
+  function sliderOf(code) { return document.querySelector('#qContainer .qblock[data-code="' + code + '"] .slider-input'); }
+  function schemaQ(code) {
+    var found = null;
+    SCHEMA_SAISHIN.sections.forEach(function (sec) { sec.questions.forEach(function (q) { if (q.code === code) found = q; }); });
+    return found;
+  }
+  function plain(label) { return String(label).replace(/^[◎◯△✗N]+\s*/, ""); }
+
+  // Q3・Q4（0〜10 の痛み）：右が「痛くない」
+  function painWord(v) { return v === 0 ? "痛みなし" : v <= 3 ? "軽い痛み" : v <= 6 ? "中くらいの痛み" : v <= 9 ? "強い痛み" : "これ以上ない激しい痛み"; }
+  ["Q3", "Q4"].forEach(function (c) {
+    var inp = sliderOf(c);
+    if (!inp) return;
+    inp.classList.add("gm-flip");
+    setEnds(inp, "😖 これ以上ない<br>激しい痛み", "全く痛くない 🙂");
+    faceCard(inp, function (v) { return [1 - v / 10, v + "　" + painWord(v)]; });
+  });
+
+  // 選択肢つきのスライダー。goodFirst＝選択肢が「良い→悪い」の順（＝左右反転する）
+  function namedSlider(code, goodFirst, subs) {
+    var inp = sliderOf(code), q = schemaQ(code);
+    if (!inp || !q) return;
+    var opts = q.options.filter(function (o) { return !/^N[\s　]/.test(String(o.value)); });
+    var n = opts.length - 1;
+    var good = goodFirst ? opts[0] : opts[n], bad = goodFirst ? opts[n] : opts[0];
+    if (goodFirst) inp.classList.add("gm-flip");
+    setEnds(inp, "😖 " + plain(bad.label), plain(good.label) + " 😄");
+    if (code === "Q10") {   // Q7（痛み止めの量）は前からある顔のカードを使う
+      var sc = inp.closest(".slider-container");
+      if (sc) sc.classList.add("gm-has-face");
+      return;
+    }
+    faceCard(inp, function (v) {
+      return [goodFirst ? 1 - v / n : v / n, plain(opts[v].label), subs ? subs[v] : ""];
+    });
+  }
+  namedSlider("Q5", true);
+  ["Q7", "Q8", "Q9", "Q9las", "Q9rx"].forEach(function (c) { namedSlider(c, true); });
+  namedSlider("Q10", true);
+  namedSlider("Q14", false);
+  namedSlider("Q15", false);
+  namedSlider("PGIC", false);
+
+  // 治療満足度（0 不満 〜 10 とても満足）：もともと右が良い
+  function satisWord(v) { return v <= 2 ? "不満" : v <= 4 ? "やや不満" : v <= 6 ? "ふつう" : v <= 8 ? "満足" : "とても満足"; }
+  Array.prototype.forEach.call(document.querySelectorAll('#qContainer .qblock[data-code="SATIS"] .slider-input'), function (inp) {
+    var ae = inp.getAttribute("data-code") === "SATIS_fukusayou";
+    setEnds(inp, ae ? "😖 0 不満<br><small>（副作用あり）</small>" : "😖 0 不満", ae ? "10 満足 😄<br><small>（副作用なし）</small>" : "10 とても満足 😄");
+    faceCard(inp, function (v) { return [v / 10, v + "　" + satisWord(v)]; }, true);
+  });
 
   /* ---------------- キャラクターの豆知識（吹き出し） ---------------- */
   // 脳のキャラクター（ずつうくん）
