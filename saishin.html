@@ -1725,12 +1725,16 @@ textarea.readout{
       var box = el("div");
       box.id = "qr-render-box";
       holderEl.appendChild(box);
-      qrObj = new QRCode(box, {
-        text: frames[idx],
-        width: 300,
-        height: 300,
-        correctLevel: QRCode.CorrectLevel.L
-      });
+      try {
+        qrObj = new QRCode(box, {
+          text: frames[idx],
+          width: 300,
+          height: 300,
+          correctLevel: QRCode.CorrectLevel.L
+        });
+      } catch (e) {   // 万一 QR が作れなくても、送信内容タブは使えるようにする
+        box.textContent = "QRコードを作れませんでした。「送信内容」タブの文字列をスタッフにお見せください。";
+      }
       if (opts.onDraw) opts.onDraw(idx, frames.length);
     }
 
@@ -1990,8 +1994,17 @@ var SAISHIN_CODEC = (function () {
   };
 
   function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
-  function escText(s) { return String(s).replace(/\|/g, "｜").replace(/\r\n|\r|\n/g, "⏎"); }
-  function unescText(s) { return s.replace(/⏎/g, "\n"); }
+  // 自由記載：半角英数字だけならそのまま、日本語などを含むときは「~」＋Base64（UTF-8）にして、QR本文を半角英数字だけにする
+  // （日本語をそのまま載せると QR が作れない・読み取り側で文字化けすることがあるため）。「~」で始まらない旧形式もそのまま読める。
+  function escText(s) {
+    s = String(s);
+    if (/^[\x20-\x7b\x7d\x7e]*$/.test(s) && s.charAt(0) !== "~") return s;   // 「|」と改行を含まない半角英数字
+    return "~" + btoa(unescape(encodeURIComponent(s)));
+  }
+  function unescText(s) {
+    if (s.charAt(0) === "~") { try { return decodeURIComponent(escape(atob(s.slice(1)))); } catch (e) { return s; } }
+    return s.replace(/⏎/g, "\n");   // 旧形式（日本語をそのまま載せていた頃）
+  }
 
   function encodeValue(f, v) {
     if (empty(v)) return "";
@@ -2109,10 +2122,9 @@ var SCHEMA_SAISHIN = {
             {value:"睡眠不足",label:"睡眠不足"},
             {value:"寝すぎ・寝だめ",label:"寝すぎ・寝だめ"},
             {value:"食事抜き・空腹",label:"食事を抜いた・空腹"},
-            {value:"疲れ・過労",label:"疲れ・過労"},
-            {value:"運動",label:"激しい運動・運動のあと"},
             {value:"水分不足",label:"水分不足"},
-            {value:"画面作業",label:"長時間のスマホ・パソコン"},
+            {value:"運動",label:"激しい運動・運動のあと"},
+            {value:"疲れ・過労",label:"疲れ・過労"},
             {value:"肩こり・姿勢",label:"首・肩のこり、悪い姿勢"},
             {group:"💭 気持ち・ストレス"},
             {value:"ストレス",label:"ストレス（仕事・学業・人間関係など）"},
@@ -2137,9 +2149,6 @@ var SCHEMA_SAISHIN = {
             {value:"におい",label:"強いにおい（香水・タバコ・柔軟剤など）"},
             {value:"人混み・乗り物",label:"人混み・乗り物・旅行"},
             {value:"入浴",label:"入浴・サウナ"},
-            {group:"💊 お薬"},
-            {value:"鎮痛薬の飲みすぎ",label:"痛み止めの飲みすぎ"},
-            {value:"血管拡張薬",label:"血管を広げる薬（ニトログリセリンなど）"}
             // 「思い当たるものはない」は廃止：何も選ばずにOK＝なし（コード表の番号は欠番として残す）
           ]
         },
