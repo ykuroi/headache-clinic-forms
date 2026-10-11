@@ -2373,6 +2373,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-okbar .gm-okbar-msg{font-size:.82rem;color:var(--muted);flex:1;}
 .gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
 .gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
+.gm-okbar .gm-okbar-msg.gm-okbar-err{color:#c0392b;font-weight:700;}
 /* 爆発パーツ */
 .gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
 .gm-dot{border-radius:50%;}
@@ -2611,7 +2612,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
 
   /* ---------------- 1問だけの OK ボタン（Q5 など） ---------------- */
-  function setupSingleOk(code, isReady, label, emptyMsg) {
+  function setupSingleOk(code, isReady, label, emptyMsg, whyNot) {
     var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
     if (!q) return;
     var bar = mk("div", "gm-okbar");
@@ -2623,11 +2624,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     q.insertBefore(bar, err || null);
     var confirmed = false, cleared = false;
     function refresh() {
-      var ok = isReady(q);
+      var why = whyNot ? whyNot(q) : "";     // 他の設問と矛盾するときのエラー文（OK を押せなくする）
+      var ok = !why && isReady(q);
       if (!ok) { confirmed = false; cleared = false; }
+      msg.classList.toggle("gm-okbar-err", !!why);
       bar.classList.toggle("gm-cleared", confirmed);
       btn.classList.toggle("gm-gone", confirmed);
-      msg.textContent = confirmed ? "✓ OK！" : ok ? (emptyMsg && !hasAnswer(q) ? emptyMsg : "よければ OK を押してください") : "答えると OK が押せます";
+      msg.textContent = why ? why : confirmed ? "✓ OK！" : ok ? (emptyMsg && !hasAnswer(q) ? emptyMsg : "よければ OK を押してください") : "答えると OK が押せます";
       setReady(btn, ok && !confirmed);
     }
     ["click", "input", "change", "pointerup"].forEach(function (ev) {
@@ -2780,13 +2783,39 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   if (dtBlock) setupDayTree(dtBlock);
   var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1 };          // 自由記入はOKなし
   var EMPTY_OK = { Q3: 1, Q16trigger: 1, Q32: 1 };                    // 何も選ばずOK＝あてはまるものなし
+  /* Q5 で「いいえ（月15日未満）」なのに、Q6 の片頭痛日数が月15日以上ならエラー（頭痛日数 ≧ 片頭痛日数のはず） */
+  function q5Under15() {
+    var b = document.querySelector('#qContainer .qblock[data-code="Q5"] .opt-btn.selected');
+    return !!b && b.getAttribute("data-value") === "今も月15日未満（該当しない）";
+  }
+  var Q6_MSG = "Q5で「月15日未満」と答えています。Q5かこちらを見直してください";
+  var CONFLICT = {
+    Q6: function (q) {
+      var b = q.querySelector(".opt-btn.selected");
+      var v = b && b.getAttribute("data-value");
+      return q5Under15() && (v === "15〜20日" || v === "21〜28日" || v === "ほぼ毎日") ? Q6_MSG : "";
+    },
+    Q6days: function (q) {
+      var i = q.querySelector("input[type=number]");
+      return q5Under15() && i && i.value.trim() !== "" && Number(i.value) >= 15 ? Q6_MSG : "";
+    }
+  };
+  var q5Block = document.querySelector('#qContainer .qblock[data-code="Q5"]');
+  if (q5Block) q5Block.addEventListener("click", function () {   // Q5 を答え直したら Q6 の判定もやり直す
+    setTimeout(function () {
+      ["Q6", "Q6days"].forEach(function (c) {
+        var b = document.querySelector('#qContainer .qblock[data-code="' + c + '"]');
+        if (b) b.dispatchEvent(new Event("input", { bubbles: true }));
+      });
+    }, 0);
+  });
   if (window.SCHEMA_SHOKI) {
     SCHEMA_SHOKI.sections.forEach(function (sec) {
       sec.questions.forEach(function (q) {
         if (q.type === "matrix") { setupQuiz(q); return; }
         if (NO_OK[q.code]) return;
         if (EMPTY_OK[q.code]) setupSingleOk(q.code, always, q.label || null, "なければ、そのまま OK");
-        else setupSingleOk(q.code, hasAnswer, q.label || null);
+        else setupSingleOk(q.code, hasAnswer, q.label || null, null, CONFLICT[q.code]);
       });
     });
   }
