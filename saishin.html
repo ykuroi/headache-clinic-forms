@@ -2492,7 +2492,8 @@ var SCHEMA_SAISHIN = {
 
     var chunkResult = FE.chunkCompact(SAISHIN_CODEC.encode(answers));
     var csvText = FE.toCSV(KIND, answers, scores);
-    var textText = FE.toText(KIND, SCHEMA, answers, scores);
+    // 「送信内容」タブ：QRコードに載せている文字列そのもの（複数枚のときは1行に1枚分。医師画面にそのまま貼り付けて読み込める）
+    var textText = chunkResult.frames.join("\n");
 
     resultScreen.innerHTML =
       '<h2 style="margin:6px 0 2px;">ご回答ありがとうございました</h2>' +
@@ -2502,7 +2503,7 @@ var SCHEMA_SAISHIN = {
       '<div class="notice">この画面を受付・診察までお持ちください。下のタブから、医療スタッフへの共有方法をお選びいただけます。</div>' +
       '<div class="tabbar">' +
       '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
-      '<button class="tab-btn" data-tab="text">📝 テキスト</button>' +
+      '<button class="tab-btn" data-tab="text">📝 送信内容</button>' +
       "</div>" +
       '<div class="output-panel active" data-panel="qr">' +
       '<div class="qr-wrap">' +
@@ -2518,11 +2519,11 @@ var SCHEMA_SAISHIN = {
       "</div>" +
       "</div>" +
       '<div class="output-panel" data-panel="text">' +
-      '<p class="notice" style="text-align:left; margin-top:0;">以下の情報をQRコード経由で送信します：</p>' +
+      '<p class="notice" style="text-align:left; margin-top:0;">QRコードで送信される内容です。回答は番号に置きかえてあり、お名前などは含まれません。</p>' +
       '<textarea class="readout" readonly id="textOut"></textarea>' +
       '<div class="small-btn-row">' +
-      '<button class="small-btn filled" id="btnCopyText">📋 テキストをコピー</button>' +
-      '<button class="small-btn" id="btnDownloadText">⬇ テキストを保存</button>' +
+      '<button class="small-btn filled" id="btnCopyText">📋 送信内容をコピー</button>' +
+      '<button class="small-btn" id="btnDownloadText">⬇ 送信内容を保存</button>' +
       "</div>" +
       "</div>" +
       '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
@@ -2595,12 +2596,12 @@ var SCHEMA_SAISHIN = {
     document.getElementById("textOut").value = textText;
     document.getElementById("btnCopyText").addEventListener("click", function () {
       navigator.clipboard.writeText(textText).then(function () {
-        alert("テキストをコピーしました");
+        alert("送信内容をコピーしました");
       }).catch(function () {
         var ta = document.getElementById("textOut");
         ta.select();
         document.execCommand("copy");
-        alert("テキストをコピーしました");
+        alert("送信内容をコピーしました");
       });
     });
     document.getElementById("btnDownloadText").addEventListener("click", function () {
