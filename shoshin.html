@@ -2409,6 +2409,10 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-vs{display:none;flex:0 0 112px;flex-direction:column;align-items:center;padding:6px 4px;border-radius:10px;background:#fff;border:1px dashed var(--primary);}
 .gm-drugcard.gm-used .gm-vs{display:flex;}
 .gm-vs-title{font-size:.78rem;font-weight:700;color:var(--primary);}
+.gm-dc-face{display:none;flex-direction:column;align-items:center;margin-top:10px;padding:8px 4px;border-radius:10px;background:#fff;border:1px solid var(--border);}
+.gm-drugcard.gm-used .gm-dc-face{display:flex;}
+.gm-dc-face .gm-vs-face{font-size:2.6rem;}
+.gm-dc-face-lab{font-size:.85rem;font-weight:800;color:var(--muted);text-align:center;}
 .gm-vs-face{font-size:1.9rem;line-height:1.2;}
 .gm-vs-body{display:flex;gap:6px;height:150px;margin:16px 0 14px;}
 .gm-vs-track{position:relative;width:30px;height:100%;touch-action:none;cursor:pointer;}
@@ -2901,7 +2905,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 
   /* ---------------- 0〜10 のスライダーを「右側の縦スライダー」に（痛み止めの効き目と同じ配置） ----------------
    * 元の横スライダー（.slider-input）は隠して残し、値と「触った」印をそのまま流し込む。記録されるデータは従来と同じ。
-   * 上＝10（強い）、下＝0。親指で操作しやすいよう画面の右側に置く。 */
+   * 上＝10（強い痛み、温度計のように上ほど強い。ユーザー指定 2026-10-12）、下＝0。親指で操作しやすいよう画面の右側に置く。 */
   var NRS_LOOK = [
     { max: 0, face: "🙂", color: "#27ae60" }, { max: 2, face: "😐", color: "#7cb342" },
     { max: 4, face: "😕", color: "#c0ca33" }, { max: 6, face: "😣", color: "#f39c12" },
@@ -3052,11 +3056,15 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       { v: 1, label: "それほど効かない", face: "😣", color: "#f39c12" },
       { v: 0, label: "全然効かない", face: "😖", color: "#e74c3c" }
     ];
-    function vslider(parent, onChange) {
+    function vslider(parent, onChange, faceParent) {
       var wrap = mk("div", "gm-vs");
       wrap.appendChild(mk("div", "gm-vs-title", "効き目は？"));
+      // 顔は左の列に出す（右のスライダーを操作する指で隠れないように）
+      var faceBox = mk("div", "gm-dc-face");
       var face = mk("div", "gm-vs-face", "🤔");
-      wrap.appendChild(face);
+      var faceLab = mk("div", "gm-dc-face-lab", "右で効き目を選んでね");
+      faceBox.appendChild(face); faceBox.appendChild(faceLab);
+      faceParent.appendChild(faceBox);
       var body = mk("div", "gm-vs-body");
       var track = mk("div", "gm-vs-track");
       var fill = mk("div", "gm-vs-fill");
@@ -3086,6 +3094,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         fill.style.top = pos + "%";
         var st = idx === null ? null : EFF_STOPS[idx];
         face.textContent = st ? st.face : "🤔";
+        faceLab.textContent = st ? st.label : "右で効き目を選んでね";
+        faceLab.style.color = st ? st.color : "";
         thumb.style.background = st ? st.color : "#b0bec5";
         fill.style.background = st ? st.color : "transparent";
         Array.prototype.forEach.call(labels.children, function (l, i) { l.classList.toggle("on", i === idx); });
@@ -3129,7 +3139,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var err = mk("div", "dt-err");
       left.appendChild(err);
       var row = { d: d, card: card, inp: inp, err: err };
-      row.vs = vslider(cols, function (v) { setHidden(d.eff, v); later(); });
+      row.vs = vslider(cols, function (v) { setHidden(d.eff, v); later(); }, left);
       return row;
     });
 
