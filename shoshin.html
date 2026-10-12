@@ -2424,6 +2424,20 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-vs-hint{font-size:.66rem;color:var(--muted);}
 .gm-vs-touched .gm-vs-hint{visibility:hidden;}
 @media (prefers-reduced-motion: reduce){.gm-vs-thumb{transition:none;animation:none !important;}}
+/* 0〜10 の縦スライダー（右側） */
+.gm-vpanel{display:flex;gap:10px;align-items:stretch;margin:8px 0 4px;}
+.gm-vp-left{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:12px;background:#f6fbfa;border:1px solid var(--border);padding:10px;}
+.gm-vp-face{font-size:3.2rem;line-height:1.1;}
+.gm-vp-num{font-size:2.6rem;font-weight:800;line-height:1.1;color:var(--muted);}
+.gm-vp-desc{font-size:.8rem;color:var(--muted);text-align:center;}
+.gm-vp-right{flex:0 0 132px;display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:12px;background:#fff;border:1px dashed var(--primary);}
+.gm-vp-end{font-size:.68rem;line-height:1.2;color:var(--muted);text-align:center;}
+.gm-vp-body{display:flex;gap:6px;height:240px;margin:14px 0;}
+.gm-vp-track::before{background:linear-gradient(#e74c3c,#f1c40f,#27ae60) !important;}
+.gm-vp-ticks{position:relative;width:24px;height:100%;}
+.gm-vp-tick{position:absolute;left:0;font-size:.72rem;color:var(--muted);transform:translateY(-50%);cursor:pointer;padding:0 4px;}
+.gm-vp-tick.on{color:var(--text,#222);font-weight:800;font-size:.9rem;}
+.gm-vpanel:not(.gm-vs-touched) .gm-vs-thumb{animation:gm-vs-wiggle 1.4s ease-in-out infinite;}
 /* 爆発パーツ */
 .gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
 .gm-dot{border-radius:50%;}
@@ -2882,6 +2896,96 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         if (EMPTY_OK[q.code]) setupSingleOk(q.code, always, q.label || null, "なければ、そのまま OK");
         else setupSingleOk(q.code, hasAnswer, q.label || null, null, CONFLICT[q.code]);
       });
+    });
+  }
+
+  /* ---------------- 0〜10 のスライダーを「右側の縦スライダー」に（痛み止めの効き目と同じ配置） ----------------
+   * 元の横スライダー（.slider-input）は隠して残し、値と「触った」印をそのまま流し込む。記録されるデータは従来と同じ。
+   * 上＝10（強い）、下＝0。親指で操作しやすいよう画面の右側に置く。 */
+  var NRS_LOOK = [
+    { max: 0, face: "🙂", color: "#27ae60" }, { max: 2, face: "😐", color: "#7cb342" },
+    { max: 4, face: "😕", color: "#c0ca33" }, { max: 6, face: "😣", color: "#f39c12" },
+    { max: 8, face: "😫", color: "#e67e22" }, { max: 10, face: "😭", color: "#e74c3c" }
+  ];
+  function setupVerticalNrs(q) {
+    var block = document.querySelector('#qContainer .qblock[data-code="' + q.code + '"]');
+    var inp = block && block.querySelector(".slider-input");
+    if (!inp) return;
+    var scont = block.querySelector(".slider-container");
+    scont.classList.add("gm-hide");
+    var hint = block.querySelector(".slider-hint");
+    if (hint) hint.textContent = "右のつまみを上下に動かして答えてください";
+    var MAX = 10;
+
+    var panel = mk("div", "gm-vpanel");
+    block.insertBefore(panel, scont);
+    var left = mk("div", "gm-vp-left");
+    var face = mk("div", "gm-vp-face", "🤔");
+    var num = mk("div", "gm-vp-num", "–");
+    var desc = mk("div", "gm-vp-desc", "まだ選ばれていません");
+    left.appendChild(face); left.appendChild(num); left.appendChild(desc);
+    panel.appendChild(left);
+
+    var right = mk("div", "gm-vp-right");
+    right.appendChild(mk("div", "gm-vp-end", MAX + "　" + (q.rightLabel || "")));
+    var body = mk("div", "gm-vp-body");
+    var track = mk("div", "gm-vs-track gm-vp-track");
+    var thumb = mk("div", "gm-vs-thumb");
+    var ticks = mk("div", "gm-vp-ticks");
+    for (var v = MAX; v >= 0; v--) {
+      var dot = mk("div", "gm-vs-dot");
+      dot.style.top = ((MAX - v) / MAX * 100) + "%";
+      track.appendChild(dot);
+      var tk = mk("div", "gm-vp-tick", String(v));
+      tk.style.top = dot.style.top;
+      (function (val) { tk.addEventListener("click", function () { set(val); }); })(v);
+      ticks.appendChild(tk);
+    }
+    track.appendChild(thumb);
+    body.appendChild(track);
+    body.appendChild(ticks);
+    right.appendChild(body);
+    right.appendChild(mk("div", "gm-vp-end", "0　" + (q.leftLabel || "")));
+    panel.appendChild(right);
+
+    var cur = null;
+    function look(v) { for (var i = 0; i < NRS_LOOK.length; i++) if (v <= NRS_LOOK[i].max) return NRS_LOOK[i]; return NRS_LOOK[NRS_LOOK.length - 1]; }
+    function draw() {
+      panel.classList.toggle("gm-vs-touched", cur !== null);
+      thumb.style.top = (cur === null ? 50 : (MAX - cur) / MAX * 100) + "%";
+      var lk = cur === null ? null : look(cur);
+      thumb.style.background = lk ? lk.color : "#b0bec5";
+      face.textContent = lk ? lk.face : "🤔";
+      num.textContent = cur === null ? "–" : String(cur);
+      num.style.color = lk ? lk.color : "";
+      desc.textContent = cur === null ? "まだ選ばれていません" : cur === 0 ? (q.leftLabel || "") : cur === MAX ? (q.rightLabel || "") : "（0〜10 の " + cur + "）";
+      Array.prototype.forEach.call(ticks.children, function (t) { t.classList.toggle("on", Number(t.textContent) === cur); });
+    }
+    function set(v) {
+      if (v === cur) return;
+      cur = v;
+      inp.value = String(v);
+      inp.dispatchEvent(new Event("input", { bubbles: true }));   // 元のスライダーに「触った」印と値が入る
+      draw();
+      replayClass(face, "gm-pop");
+    }
+    function fromY(y) {
+      var r = track.getBoundingClientRect();
+      var t = Math.max(0, Math.min(1, (y - r.top) / r.height));
+      set(MAX - Math.round(t * MAX));
+    }
+    track.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+      fromY(ev.clientY);
+    });
+    track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+    if (inp.getAttribute("data-touched") === "1") cur = Number(inp.value);
+    draw();
+  }
+  if (window.SCHEMA_SHOKI) {
+    SCHEMA_SHOKI.sections.forEach(function (sec) {
+      sec.questions.forEach(function (q) { if (q.type === "slider") setupVerticalNrs(q); });
     });
   }
 
