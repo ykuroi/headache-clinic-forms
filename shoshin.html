@@ -1641,7 +1641,7 @@ var SCHEMA_SHOKI = {
           code: "Q2job", type: "radio", label: "Q2", text: "現在の就労・就学状況を教えてください", wide: true,
           options: ["常勤・正規雇用","非常勤・パート","自営業・フリーランス","専業主婦（主夫）","学生","退職・無職","その他"].map(function(l){return {value:l,label:l};})
         },
-        { code: "Q2night", type: "radio", label: "Q3", text: "夜勤はありますか？",
+        { code: "Q2night", type: "radio", label: "Q3", text: "夜勤（あるいは睡眠リズムが不安定になること）はありますか？",
           options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}] },
         {
           code: "Q3", type: "checkbox", label: "Q4", text: "ご家族に片頭痛の方はいますか？いる場合は、どなたですか？（複数可）",
@@ -2442,6 +2442,46 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-vp-tick{position:absolute;left:0;font-size:.72rem;color:var(--muted);transform:translateY(-50%);cursor:pointer;padding:0 4px;}
 .gm-vp-tick.on{color:var(--text,#222);font-weight:800;font-size:.9rem;}
 .gm-vpanel:not(.gm-vs-touched) .gm-vs-thumb{animation:gm-vs-wiggle 1.4s ease-in-out infinite;}
+/* 続けたくなる工夫：ハンコ帳・あと◯問・応援・ごほうび（2026-10-12） */
+.gm-hud{position:fixed;top:9px;right:8px;z-index:60;display:flex;align-items:center;gap:6px;padding:4px 8px;border-radius:16px;background:rgba(255,255,255,.95);box-shadow:0 2px 8px rgba(0,0,0,.15);font-size:.75rem;pointer-events:none;}
+.footer-nav.gm-has-hud{flex-wrap:wrap;padding-top:6px;row-gap:6px;}
+.footer-nav.gm-has-hud .gm-hud{position:static;flex:0 0 100%;justify-content:space-between;box-shadow:none;padding:0 2px;background:none;}
+.footer-nav.gm-has-hud .btn{flex:1 1 0;}
+.gm-hud-stamps{display:flex;gap:2px;}
+.gm-hud-stamp{width:16px;height:16px;border-radius:50%;border:1.5px dashed #c9c2b4;display:inline-flex;align-items:center;justify-content:center;font-size:.72rem;line-height:1;}
+.gm-hud-stamp.gm-on{border:none;}
+.gm-hud-left{font-weight:800;color:var(--primary);white-space:nowrap;}
+.gm-stamp-pop{animation:gm-stamp-pop .55s cubic-bezier(.3,1.8,.5,1);}
+@keyframes gm-stamp-pop{0%{transform:scale(2.4) rotate(-20deg);opacity:.2}100%{transform:scale(1) rotate(0);opacity:1}}
+.gm-cheer{position:fixed;left:8px;bottom:110px;z-index:70;display:flex;align-items:flex-end;gap:6px;pointer-events:auto;opacity:0;transform:translateY(20px) scale(.8);transition:opacity .25s, transform .3s cubic-bezier(.3,1.6,.5,1);visibility:hidden;}
+.gm-cheer.gm-show{opacity:1;transform:none;visibility:visible;}
+.gm-cheer-chara{width:56px;height:62px;}
+.gm-cheer-chara svg{width:100%;height:100%;display:block;}
+.gm-cheer.gm-show .gm-cheer-chara svg{animation:gm-bob .8s ease-in-out infinite;}
+.gm-cheer-text{max-width:220px;background:#fff;border:2px solid var(--primary);border-radius:16px 16px 16px 4px;padding:8px 12px;font-size:.88rem;font-weight:800;color:var(--primary);box-shadow:0 4px 12px rgba(0,0,0,.15);margin-bottom:30px;}
+.gm-dance{position:fixed;left:0;top:40%;width:90px;height:100px;z-index:9998;pointer-events:none;}
+.gm-dance svg{width:100%;height:100%;}
+.gm-reward{text-align:center;background:linear-gradient(160deg,#fffaf0,#eef7f5);border:2px solid #f0ad4e;border-radius:18px;padding:16px 12px;margin:6px 0 14px;}
+.gm-rw-chara{width:70px;height:78px;margin:0 auto;}
+.gm-rw-chara svg{width:100%;height:100%;animation:gm-bob 1.2s ease-in-out infinite;}
+.gm-rw-title{font-size:1.35rem;font-weight:900;color:#e8734a;margin-top:4px;}
+.gm-rw-sub{font-size:.85rem;color:var(--muted);margin:2px 0 8px;}
+.gm-rw-stamps{display:flex;justify-content:center;flex-wrap:wrap;gap:6px;margin-bottom:10px;}
+.gm-rw-stamp{width:34px;height:34px;border-radius:50%;border:2px dashed #c9c2b4;display:inline-flex;align-items:center;justify-content:center;font-size:1.3rem;color:#c9c2b4;}
+.gm-rw-stamp.gm-on{border:2px solid #f0ad4e;background:#fff;}
+.gm-rw-cal-title{font-size:.85rem;font-weight:800;margin:6px 0 6px;}
+.gm-rw-cal{display:grid;grid-template-columns:repeat(10,1fr);gap:5px;max-width:280px;margin:0 auto;}
+.gm-rw-dot{display:inline-block;width:100%;aspect-ratio:1;border-radius:50%;background:#e0e0e0;}
+.gm-rw-legend .gm-rw-dot{width:10px;height:10px;aspect-ratio:auto;vertical-align:middle;margin-right:3px;}
+.gm-rw-dot.mig{background:#e57373;}
+.gm-rw-dot.oth{background:#ffb74d;}
+.gm-rw-dot.clr{background:#81c784;}
+.gm-rw-dot.unc{background:#cfd8dc;}
+.gm-rw-dot.non{background:#a5d6a7;}
+.gm-rw-legend{display:flex;flex-wrap:wrap;justify-content:center;gap:4px 10px;font-size:.75rem;color:var(--muted);margin-top:8px;}
+.gm-rw-med{font-size:.88rem;margin-top:8px;}
+.gm-rw-note{font-size:.75rem;color:var(--muted);margin-top:6px;}
+@media (prefers-reduced-motion: reduce){.gm-stamp-pop,.gm-cheer.gm-show .gm-cheer-chara svg,.gm-rw-chara svg{animation:none;}.gm-cheer{transition:none;}}
 /* 爆発パーツ */
 .gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
 .gm-dot{border-radius:50%;}
@@ -3484,6 +3524,176 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     ["痛み止めの使いすぎに注意",
      "痛み止めを月に10〜15日以上使う状態が続くと、かえって頭痛が増える<b>「薬剤の使用過多による頭痛」</b>になることがあります。痛み止めの日数が多い方こそ、予防薬で発作そのものを減らすことが大切です。"]
   ]);
+
+  /* ---------------- 続けたくなる工夫（2026-10-12）：あと◯問・セクションのハンコ・ときどき特別演出・ずつうくんの応援・振動・最後のごほうび ----------------
+   * どの演出も「答えの内容」では変わらない（良い答えに引っぱらないため）。OK を押した位置と、セクションを終えたかどうかだけで決まる。 */
+  (function setupMotivation() {
+    var qc = document.getElementById("qContainer");
+    if (!qc) return;
+    function topBlocks() {
+      return Array.prototype.slice.call(qc.querySelectorAll(".qblock")).filter(function (x) {
+        return !x.parentElement.closest(".qblock") && !x.classList.contains("hidden") && x.offsetParent !== null &&
+          !!x.querySelector(".gm-ok");   // OK のない自由記入（相談したいこと など）は数えない
+      });
+    }
+    var sections = Array.prototype.slice.call(qc.querySelectorAll(".qsection")).filter(function (s) { return !!s.querySelector(".gm-ok"); });
+    var stamped = sections.map(function () { return false; });
+    var STAMPS = ["🌸", "⭐", "🍀", "🎈", "🌈", "🍩", "🐬", "🌻", "🍓", "🎵"];
+
+    // 画面右上：ハンコ帳と「あと◯問」
+    var hud = mk("div", "gm-hud");
+    var stampRow = mk("div", "gm-hud-stamps");
+    var left = mk("div", "gm-hud-left");
+    sections.forEach(function () { stampRow.appendChild(mk("span", "gm-hud-stamp")); });
+    hud.appendChild(stampRow);
+    hud.appendChild(left);
+    var foot = document.getElementById("footerNav");   // 画面下の「回答内容を確認する」の上に1行で出す（上の見出しと重ならないように）
+    if (foot) { foot.classList.add("gm-has-hud"); foot.insertBefore(hud, foot.firstChild); } else document.body.appendChild(hud);
+    var total = topBlocks().length;
+    left.textContent = "ぜんぶで " + total + " 問";
+
+    var cheered = {};
+    var bubbleTimer = null;
+    var bubble = mk("div", "gm-cheer");
+    bubble.innerHTML = '<div class="gm-cheer-chara">' + CHARA_SVG + '</div><div class="gm-cheer-text"></div>';
+    document.body.appendChild(bubble);
+    function cheer(text) {
+      bubble.querySelector(".gm-cheer-text").textContent = text;
+      bubble.classList.remove("gm-show");
+      void bubble.offsetWidth;
+      bubble.classList.add("gm-show");
+      clearTimeout(bubbleTimer);
+      bubbleTimer = setTimeout(function () { bubble.classList.remove("gm-show"); }, 3200);
+    }
+    bubble.addEventListener("click", function () { bubble.classList.remove("gm-show"); });
+
+    function buzz(pattern) { if (navigator.vibrate) { try { navigator.vibrate(pattern); } catch (e) {} } }
+
+    // ときどき出る特別演出：ずつうくんが踊りながら横切る
+    function dance() {
+      if (REDUCE || !CAN_ANIMATE) return;
+      var d = mk("div", "gm-dance");
+      d.innerHTML = CHARA_SVG;
+      document.body.appendChild(d);
+      var w = window.innerWidth;
+      d.animate(
+        [{ transform: "translate(-90px,0) rotate(0)" }, { transform: "translate(" + (w * 0.25) + "px,-60px) rotate(-20deg)" },
+         { transform: "translate(" + (w * 0.5 - 45) + "px,0) rotate(20deg) scale(1.3)" }, { transform: "translate(" + (w * 0.75) + "px,-60px) rotate(-20deg)" },
+         { transform: "translate(" + (w + 20) + "px,0) rotate(0)" }],
+        { duration: 1900, easing: "ease-in-out" }
+      ).onfinish = function () { d.remove(); };
+      [300, 800, 1300].forEach(function (t, i) {
+        setTimeout(function () { burst(w * (0.25 + i * 0.25), window.innerHeight * 0.45, 3); }, t);
+      });
+      cheer(["ナイス！その調子！", "すごい！ノッてきたね！", "ハンコ、どんどんたまるよ！"][Math.floor(Math.random() * 3)]);
+    }
+
+    function giveStamp(i) {
+      if (stamped[i]) return;
+      stamped[i] = true;
+      var el = stampRow.children[i];
+      el.textContent = STAMPS[i % STAMPS.length];
+      el.classList.add("gm-on");
+      replayClass(el, "gm-stamp-pop");
+      buzz([30, 40, 30, 40, 80]);
+      if (Math.random() < 0.34) setTimeout(dance, 1000);   // 3回に1回くらい（答えの内容とは無関係）
+    }
+
+    function afterOk(btn) {
+      var b = btn.closest(".qblock");
+      while (b && b.parentElement.closest(".qblock")) b = b.parentElement.closest(".qblock");
+      if (!b) return;
+      var all = topBlocks();
+      total = all.length;
+      var idx = all.indexOf(b);
+      if (idx < 0) return;
+      var remaining = all.length - idx - 1;
+      left.textContent = remaining > 0 ? "あと " + remaining + " 問" : "ぜんぶ回答！";
+      replayClass(left, "gm-stamp-pop");
+      // このセクションの最後の設問まで来たらハンコ
+      var sec = b.closest(".qsection");
+      var si = sections.indexOf(sec);
+      if (si >= 0) {
+        var inSec = all.filter(function (x) { return x.closest(".qsection") === sec; });
+        if (inSec[inSec.length - 1] === b) giveStamp(si);
+      }
+      // ずつうくんの応援（それぞれ1回だけ）
+      var msg = null;
+      if (remaining === 0 && !cheered.end) { cheered.end = 1; msg = "ぜんぶ答えたよ！下の「回答内容を確認する」を押してね"; }
+      else if (remaining === 3 && !cheered.three) { cheered.three = 1; msg = "あと3問！もう少し！"; }
+      else if (remaining <= Math.floor(total / 2) && !cheered.half) { cheered.half = 1; msg = "半分すぎたよ！この調子！"; }
+      if (msg) setTimeout(function () { cheer(msg); }, 1200);
+    }
+
+    // OK ボタンが弾けたあとに afterOk を呼ぶ（OK の処理そのものは変えない）
+    var baseExplode = explode;
+    explode = function (btn, done) {
+      baseExplode(btn, function () {
+        done();
+        try { afterOk(btn); } catch (e) {}
+      });
+    };
+
+    // 最後のごほうび画面：答えた数・ハンコ・この1ヶ月のカレンダー（評価の言葉は出さない）
+    function num(sel) {
+      var i = qc.querySelector(sel);
+      if (!i || i.value === "" || i.value == null) return null;
+      var n = Number(i.value);
+      return isFinite(n) ? n : null;
+    }
+    function rewardHtml() {
+      var nStamp = stamped.filter(Boolean).length;
+      var stampsHtml = sections.map(function (s, i) {
+        return '<span class="gm-rw-stamp' + (stamped[i] ? " gm-on" : "") + '">' + (stamped[i] ? STAMPS[i % STAMPS.length] : "・") + "</span>";
+      }).join("");
+      var ha = num('input[data-dt="Q2b_headache"]'); if (ha === null) ha = num('input[data-dt="ha"]');
+      var mig = num('input[data-dt="Q2b_mig"]'); if (mig === null) mig = num('input[data-dt="mig"]');
+      var clr = num('input[data-dt="Q2b_clear"]'); if (clr === null) clr = num('input[data-dt="clear"]');
+      var med = num('input[data-code="Q6_total"]'); if (med === null) med = num('input[data-code="Q19_total"]'); if (med === null) med = num('input[data-dt="Q2b_med"]');
+      var cal = "";
+      if (ha !== null) {
+        var m = mig === null ? 0 : Math.min(mig, ha), other = ha - m, c = clr === null ? null : Math.min(clr, 30 - ha);
+        var dots = "";
+        for (var i = 0; i < 30; i++) {
+          var cls = i < m ? "mig" : i < ha ? "oth" : c === null ? "non" : i < ha + c ? "clr" : "unc";
+          dots += '<span class="gm-rw-dot ' + cls + '"></span>';
+        }
+        cal = '<div class="gm-rw-cal-title">あなたのこの1ヶ月（30日）</div><div class="gm-rw-cal">' + dots + "</div>" +
+          '<div class="gm-rw-legend">' +
+          (m ? '<span><i class="gm-rw-dot mig"></i>片頭痛 ' + m + "日</span>" : "") +
+          (other ? '<span><i class="gm-rw-dot oth"></i>その他の頭痛 ' + other + "日</span>" : "") +
+          (c !== null ? '<span><i class="gm-rw-dot clr"></i>スッキリ ' + c + '日</span><span><i class="gm-rw-dot unc"></i>スッキリしない ' + (30 - ha - c) + "日</span>"
+                      : '<span><i class="gm-rw-dot non"></i>頭痛なし ' + (30 - ha) + "日</span>") +
+          "</div>" +
+          (med !== null ? '<div class="gm-rw-med">💊 痛み止めを使った日：<b>' + med + "日</b></div>" : "") +
+          '<div class="gm-rw-note">診察のときに、先生と一緒に見てみましょう</div>';
+      }
+      return '<div class="gm-reward">' +
+        '<div class="gm-rw-chara">' + CHARA_SVG + "</div>" +
+        '<div class="gm-rw-title">🎉 おつかれさまでした！</div>' +
+        '<div class="gm-rw-sub">全 ' + total + " 問のアンケート、ハンコを " + nStamp + " / " + sections.length + " 個あつめました</div>" +
+        '<div class="gm-rw-stamps">' + stampsHtml + "</div>" + cal + "</div>";
+    }
+    var rs = document.getElementById("resultScreen");
+    var shownOnce = false;
+    if (rs && window.MutationObserver) {
+      new MutationObserver(function () {
+        hud.classList.toggle("gm-hide", rs.classList.contains("active"));
+        if (!rs.classList.contains("active") || rs.querySelector(".gm-reward")) return;
+        var wrap = document.createElement("div");
+        wrap.innerHTML = rewardHtml();
+        rs.insertBefore(wrap.firstChild, rs.firstChild);
+        if (!shownOnce) {
+          shownOnce = true;
+          buzz([40, 50, 40, 50, 120]);
+          if (!REDUCE && CAN_ANIMATE) {
+            var w = window.innerWidth;
+            [0, 250, 500].forEach(function (t, i) { setTimeout(function () { burst(w * (0.2 + i * 0.3), 160, 3); }, t); });
+          }
+        }
+      }).observe(rs, { childList: true, attributes: true, attributeFilter: ["class"] });
+    }
+  })();
 })();
 </script>
 
