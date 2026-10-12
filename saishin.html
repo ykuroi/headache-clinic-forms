@@ -2843,6 +2843,53 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-okbar .gm-okbar-msg{font-size:.82rem;color:var(--muted);flex:1;}
 .gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
 .gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
+/* 縦スライダー（右側、上＝良い・下＝悪い） 2026-10-12 */
+.gm-dc-name{font-size:.92rem;font-weight:700;line-height:1.35;margin-bottom:6px;}
+.gm-dc-name small{display:block;font-weight:400;color:var(--muted);font-size:.72rem;}
+.gm-dc-cols{display:flex;gap:8px;align-items:stretch;}
+.gm-dc-left{flex:1 1 auto;min-width:0;}
+.gm-drugcard .dt-row{padding:6px 6px;gap:6px;}
+.gm-drugcard .dt-row .dt-label{flex-basis:100%;font-size:.8rem;}
+.gm-drugcard.gm-used .dt-row input{width:48px;flex:0 0 48px;padding-left:0;padding-right:0;}
+.gm-drugcard.gm-used .gm-step-btn{flex-basis:36px;width:36px;height:36px;}
+.gm-drugflow .dt-row input{-moz-appearance:textfield;appearance:textfield;}
+.gm-drugflow .dt-row input::-webkit-inner-spin-button,.gm-drugflow .dt-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+.gm-in-flow.gm-dc-eff{flex:0 0 116px;margin:0 !important;padding:0 !important;border:none !important;}
+.gm-dc-eff > .qtext,.gm-dc-eff .slider-hint,.gm-dc-eff .qnote{display:none;}
+.gm-vpanel{display:flex;gap:10px;align-items:stretch;margin:8px 0 4px;}
+.gm-vp-left{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#f8faf9;border:1px solid var(--border);padding:10px;text-align:center;}
+.gm-vp-face{font-size:3.2rem;line-height:1.15;}
+.gm-vp-word{font-size:.9rem;font-weight:800;padding:3px 10px;border-radius:14px;color:var(--muted);}
+.gm-vp-sub{font-size:.75rem;color:var(--muted);}
+.gm-vp-right{flex:0 0 150px;display:flex;flex-direction:column;align-items:center;padding:8px 4px;border-radius:12px;background:#fff;border:1px dashed var(--primary);}
+.gm-vp-end{font-size:.68rem;line-height:1.2;color:var(--muted);text-align:center;}
+.gm-vp-body{display:flex;gap:6px;height:230px;margin:14px 0;}
+.gm-vp-small .gm-vp-body{height:170px;}
+.gm-vp-small .gm-vp-face{font-size:2.4rem;}
+.gm-vs-track{position:relative;width:30px;height:100%;touch-action:none;cursor:pointer;flex:0 0 30px;}
+.gm-vs-track::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:6px;border-radius:3px;background:linear-gradient(#27ae60,#f1c40f,#e74c3c);opacity:.35;}
+.gm-vs-dot{position:absolute;left:11px;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#fff;border:1px solid #b0bec5;}
+.gm-vs-thumb{position:absolute;left:1px;width:28px;height:28px;margin-top:-14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:top .12s;}
+.gm-vpanel:not(.gm-vs-touched) .gm-vs-thumb{animation:gm-vs-wiggle 1.4s ease-in-out infinite;}
+@keyframes gm-vs-wiggle{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.gm-vp-badtop .gm-vs-track::before{background:linear-gradient(#e74c3c,#f1c40f,#27ae60);}
+.gm-vp-ticks{position:relative;width:24px;height:100%;}
+.gm-vp-ticks.gm-vp-words{width:86px;}
+.gm-vp-tick{position:absolute;left:0;font-size:.72rem;line-height:1.15;color:var(--muted);transform:translateY(-50%);cursor:pointer;padding:0 2px;}
+.gm-vp-tick.on{color:var(--text,#222);font-weight:800;}
+.gm-vp-ticks:not(.gm-vp-words) .gm-vp-tick.on{font-size:.9rem;}
+.gm-vs-title{font-size:.78rem;font-weight:700;color:var(--primary);}
+.gm-dc-face{display:none;flex-direction:column;align-items:center;gap:4px;margin-top:10px;padding:8px 4px;border-radius:10px;background:#fff;border:1px solid var(--border);text-align:center;}
+.gm-drugcard.gm-used .gm-dc-face{display:flex;}
+.gm-dc-face .gm-vp-face{font-size:2.6rem;}
+.gm-vp-compact{margin:0;height:100%;}
+.gm-vp-compact .gm-vp-right{flex:1 1 auto;padding:6px 2px;}
+.gm-vp-compact .gm-vp-face{font-size:1.9rem;}
+.gm-vp-compact .gm-vp-body{height:150px;margin:14px 0 12px;}
+.gm-vp-compact .gm-vp-ticks.gm-vp-words{width:62px;}
+.gm-vp-compact .gm-vp-tick{font-size:.64rem;}
+.gm-vp-compact .gm-vp-word{font-size:.7rem;padding:2px 6px;}
+@media (prefers-reduced-motion: reduce){.gm-vs-thumb{transition:none;animation:none !important;}}
 /* 爆発パーツ */
 .gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
 .gm-dot{border-radius:50%;}
@@ -3653,7 +3700,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     q6.insertBefore(wrap, q6.querySelector(".err-msg"));
     var box = mk("div", "dt-step");
     box.appendChild(mk("div", "dt-step-title", "この1ヶ月（30日）に使った日数を、薬ごとに入力してください"));
-    box.appendChild(mk("div", "gm-flow-hint", "使っていない薬は 0 のままで大丈夫です。1日以上の薬は、すぐ下で効き目を教えてください"));
+    box.appendChild(mk("div", "gm-flow-hint", "使っていない薬は 0 のままで大丈夫です。1日以上の薬は、右側に出るスライダーで効き目を教えてください"));
     var noneBtn = mk("button", "gm-adj-btn", "痛み止めは1回も使っていない → すべて 0 にする"); noneBtn.type = "button";
     box.appendChild(noneBtn);
     wrap.appendChild(box);
@@ -3689,11 +3736,18 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     var rows = DRUGS.map(function (d) {
       var card = mk("div", "gm-drugcard");
       box.appendChild(card);
-      var inp = stepper(card, "💊 " + d.name, d.sub ? "（" + d.sub + "）" : "");
+      var head = mk("div", "gm-dc-name");
+      head.innerHTML = "💊 " + d.name + (d.sub ? "<small>（" + d.sub + "）</small>" : "");
+      card.appendChild(head);
+      var cols = mk("div", "gm-dc-cols");   // 左：日数、右：効き目の縦スライダー（1日以上で出る）
+      card.appendChild(cols);
+      var left = mk("div", "gm-dc-left");
+      cols.appendChild(left);
+      var inp = stepper(left, "使った日数", "");
       var err = mk("div", "dt-err");
-      card.appendChild(err);
+      left.appendChild(err);
       var effQ = d.eff ? document.querySelector('#qContainer .qblock[data-code="' + d.eff + '"]') : null;
-      if (effQ) { effQ.classList.add("gm-in-flow"); card.appendChild(effQ); }
+      if (effQ) { effQ.classList.add("gm-in-flow", "gm-dc-eff"); cols.appendChild(effQ); }
       return { d: d, card: card, inp: inp, err: err, effQ: effQ };
     });
 
@@ -3759,7 +3813,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       box.classList.toggle("gm-done", done);
       btn.classList.toggle("gm-gone", done);
       msg.textContent = done ? "✓ OK！" : !any ? "日数を入れてください（＋−でも入力できます）"
-        : !effOk ? "効き目のボタンを動かしてください" : total === null ? "合計の日数を入れてください" : "よければ OK";
+        : !effOk ? "右の効き目スライダーを動かしてください" : total === null ? "合計の日数を入れてください" : "よければ OK";
       setReady(btn, ok && !done);
     }
     function later() { setTimeout(refresh, 0); }
@@ -3840,32 +3894,102 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     [0.85, "😊", "#eef7e6", "#4a8a1c"], [1.01, "😆", "#e8f5e9", "#1e8449"]
   ];
   function moodFace(g) { for (var i = 0; i < MOODS.length; i++) if (g < MOODS[i][0]) return MOODS[i]; return MOODS[MOODS.length - 1]; }
-  // 顔のカード（Q7 と同じ見た目）。describe(value) → [良さ0〜1, 表示する言葉, ひとこと]
+  // 縦スライダー（2026-10-12）：画面右側に上下に動かすスライダー、上＝良い・下＝悪い。左には大きな顔と言葉。
+  // 元の横スライダー（.slider-input）は隠して残し、値と「触った」印をそのまま流し込む。記録・QR・CSV は従来どおり。
+  // describe(value) → [良さ0〜1, 表示する言葉, ひとこと]。薬の効き目（Q6 のカード内）は右側だけのコンパクト版。
   function faceCard(inp, describe, small) {
     var sc = inp.closest(".slider-container");
     if (!sc || sc.classList.contains("gm-has-face")) return;
-    sc.classList.add("gm-has-face");
-    var box = mk("div", "gm-face" + (small ? " gm-face-sm" : ""));
-    var emo = mk("span", "gm-face-emoji", "🤔");
-    var lab = mk("span", "gm-face-label", "スライドしてね");
-    var sub = mk("span", "gm-face-sub", "");
-    box.appendChild(emo); box.appendChild(lab); box.appendChild(sub);
-    sc.parentNode.insertBefore(box, sc.nextSibling);
-    var last = null;
-    function update() {
-      if (inp.getAttribute("data-touched") !== "1") return;
-      var d = describe(Number(inp.value)), m = moodFace(d[0]);
+    sc.classList.add("gm-has-face", "gm-hide");
+    var old = sc.nextElementSibling;
+    if (old && old.classList.contains("gm-face")) old.classList.add("gm-hide");   // 以前の顔カード（Q7 痛み止めの量）
+    var block = inp.closest(".qblock");
+    var compact = !!inp.closest(".gm-dc-eff");
+    Array.prototype.forEach.call(block.querySelectorAll(".slider-hint"), function (h) {
+      h.textContent = "右のつまみを上下に動かして答えてください";
+    });
+    var max = Number(inp.max) || 10;
+    var topVal = inp.classList.contains("gm-flip") ? 0 : max;   // いちばん上に来る値（＝良い側）
+    if (inp.getAttribute("data-vtop") === "max") topVal = max;  // 痛みの強さは温度計のように上＝強い（Q3・Q4）
+    function pos(v) { return (topVal === 0 ? v / max : (max - v) / max) * 100; }
+    function word(v) { return String(describe(v)[1]).replace(/^\d+\s*/, ""); }
+
+    var panel = mk("div", "gm-vpanel" + (compact ? " gm-vp-compact" : "") + (small ? " gm-vp-small" : "") + (topVal === max && inp.classList.contains("gm-flip") ? " gm-vp-badtop" : ""));
+    sc.parentNode.insertBefore(panel, sc);
+    var leftBox = mk("div", "gm-vp-left");
+    var emo = mk("div", "gm-vp-face", "🤔");
+    var lab = mk("div", "gm-vp-word", "上下に動かしてね");
+    var sub = mk("div", "gm-vp-sub", "");
+    leftBox.appendChild(emo); leftBox.appendChild(lab); leftBox.appendChild(sub);
+    var right = mk("div", "gm-vp-right");
+    if (compact) {   // Q6 の薬カード：顔と言葉は左の列（右のスライダーを操作する指で隠れないように）
+      right.appendChild(mk("div", "gm-vs-title", "効き目は？"));
+      var cardLeft = inp.closest(".gm-drugcard").querySelector(".gm-dc-left");
+      leftBox.className = "gm-dc-face";
+      cardLeft.appendChild(leftBox);
+    } else {
+      panel.appendChild(leftBox);
+    }
+    panel.appendChild(right);
+    var numeric = max >= 10;
+    if (numeric) right.appendChild(mk("div", "gm-vp-end", word(topVal)));
+    var body = mk("div", "gm-vp-body");
+    var track = mk("div", "gm-vs-track");
+    var thumb = mk("div", "gm-vs-thumb");
+    var ticks = mk("div", "gm-vp-ticks" + (numeric ? "" : " gm-vp-words"));
+    for (var v = 0; v <= max; v++) {
+      var dot = mk("div", "gm-vs-dot");
+      dot.style.top = pos(v) + "%";
+      track.appendChild(dot);
+      var tk = mk("div", "gm-vp-tick", numeric ? String(v) : word(v));
+      tk.style.top = pos(v) + "%";
+      tk.setAttribute("data-v", v);
+      (function (val) { tk.addEventListener("click", function () { set(val); }); })(v);
+      ticks.appendChild(tk);
+    }
+    track.appendChild(thumb);
+    body.appendChild(track);
+    body.appendChild(ticks);
+    right.appendChild(body);
+    if (numeric) right.appendChild(mk("div", "gm-vp-end", word(max - topVal)));
+
+    var cur = null, last = null;
+    function draw() {
+      panel.classList.toggle("gm-vs-touched", cur !== null);
+      thumb.style.top = (cur === null ? 50 : pos(cur)) + "%";
+      Array.prototype.forEach.call(ticks.children, function (t) { t.classList.toggle("on", Number(t.getAttribute("data-v")) === cur); });
+      if (cur === null) { emo.textContent = "🤔"; lab.textContent = "上下に動かしてね"; lab.style.background = ""; lab.style.color = ""; sub.textContent = ""; thumb.style.background = "#b0bec5"; return; }
+      var d = describe(cur), m = moodFace(d[0]);
       emo.textContent = m[1];
       lab.textContent = d[1];
       lab.style.background = m[2];
       lab.style.color = m[3];
       sub.textContent = d[2] || "";
-      if (last !== inp.value) replayClass(emo, "gm-face-pop");
-      last = inp.value;
+      thumb.style.background = m[3];
+      if (last !== cur) replayClass(emo, "gm-face-pop");
+      last = cur;
     }
-    ["input", "change", "pointerup"].forEach(function (ev) {
-      inp.addEventListener(ev, function () { setTimeout(update, 0); });
+    function set(v) {
+      if (v === cur) return;
+      cur = v;
+      inp.value = String(v);
+      inp.dispatchEvent(new Event("input", { bubbles: true }));   // 元のスライダーに値と「触った」印が入る
+      draw();
+    }
+    function fromY(y) {
+      var r = track.getBoundingClientRect();
+      var t = Math.max(0, Math.min(1, (y - r.top) / r.height));
+      var k = Math.round(t * max);
+      set(topVal === 0 ? k : max - k);
+    }
+    track.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+      fromY(ev.clientY);
     });
+    track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+    if (inp.getAttribute("data-touched") === "1") cur = Number(inp.value);
+    draw();
   }
   function setEnds(inp, left, right) {   // 両端の小さな言葉（左＝悪い、右＝良い）
     var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
@@ -3887,6 +4011,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     var inp = sliderOf(c);
     if (!inp) return;
     inp.classList.add("gm-flip");
+    inp.setAttribute("data-vtop", "max");
     setEnds(inp, "😖 これ以上ない<br>激しい痛み", "全く痛くない 🙂");
     faceCard(inp, function (v) { return [1 - v / 10, v + "　" + painWord(v)]; });
   });
@@ -3900,18 +4025,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     var good = goodFirst ? opts[0] : opts[n], bad = goodFirst ? opts[n] : opts[0];
     if (goodFirst) inp.classList.add("gm-flip");
     setEnds(inp, "😖 " + plain(bad.label), plain(good.label) + " 😄");
-    if (code === "Q10") {   // Q7（痛み止めの量）は前からある顔のカードを使う
-      var sc = inp.closest(".slider-container");
-      if (sc) sc.classList.add("gm-has-face");
-      return;
-    }
     faceCard(inp, function (v) {
       return [goodFirst ? 1 - v / n : v / n, plain(opts[v].label), subs ? subs[v] : ""];
     });
   }
   namedSlider("Q5", true);
   ["Q7", "Q8", "Q9", "Q9las", "Q9rx"].forEach(function (c) { namedSlider(c, true); });
-  namedSlider("Q10", true);
+  namedSlider("Q10", true, ["半分以下に！すばらしいです", "いい調子です", "", "先生に相談してみましょう"]);
   namedSlider("Q14", false);
   namedSlider("Q15", false);
   namedSlider("PGIC", false);
