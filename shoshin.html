@@ -1641,10 +1641,10 @@ var SCHEMA_SHOKI = {
           code: "Q2job", type: "radio", label: "Q2", text: "現在の就労・就学状況を教えてください", wide: true,
           options: ["常勤・正規雇用","非常勤・パート","自営業・フリーランス","専業主婦（主夫）","学生","退職・無職","その他"].map(function(l){return {value:l,label:l};})
         },
-        { code: "Q2night", type: "radio", label: "", text: "夜勤はありますか？",
+        { code: "Q2night", type: "radio", label: "Q3", text: "夜勤はありますか？",
           options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}] },
         {
-          code: "Q3", type: "checkbox", label: "Q3", text: "ご家族に片頭痛の方はいますか？いる場合は、どなたですか？（複数可）",
+          code: "Q3", type: "checkbox", label: "Q4", text: "ご家族に片頭痛の方はいますか？いる場合は、どなたですか？（複数可）",
           options: [{value:"父",label:"父"},{value:"母",label:"母"},{value:"兄弟",label:"兄弟"},{value:"子ども",label:"子ども"}]
         }
       ]
@@ -1653,11 +1653,11 @@ var SCHEMA_SHOKI = {
       title: "🧠 B　頭痛の特徴とパターン",
       questions: [
         {
-          code: "Q4", type: "numbergroup", label: "Q4", text: "頭痛はいつ頃から始まりましたか？",
+          code: "Q4", type: "numbergroup", label: "Q5", text: "頭痛はいつ頃から始まりましたか？",
           fields: [{ code: "Q4_age", label: "発症年齢", unit: "歳ごろから" }]
         },
         {
-          code: "Q5", type: "radio", label: "Q5", text: "この3ヶ月間、頭痛がある日は月に15日以上（＝2日に1日以上）ありましたか？", wide: true,
+          code: "Q5", type: "radio", label: "Q6", text: "この3ヶ月間、頭痛がある日は月に15日以上（＝2日に1日以上）ありましたか？", wide: true,
           // 画面では「いいえ／はい」→「はい」の方のみ時期を選ぶ2段構え（ゲーム風演出ブロックの setupQ5）。記録される値は従来の4択のまま
           options: [
             {value:"今も月15日未満（該当しない）",label:"いいえ（月15日未満）"},
@@ -1667,15 +1667,15 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q6", type: "radio", label: "Q6", text: "最近3ヶ月間で、片頭痛（ガンガン・ズキズキと拍動し、動くとツラくなる頭痛）が起きる日は月に何日くらいですか？",
+          code: "Q6", type: "radio", label: "Q7", text: "最近3ヶ月間で、片頭痛（ガンガン・ズキズキと拍動し、動くとツラくなる頭痛）が起きる日は月に何日くらいですか？",
           options: ["0〜4日","5〜9日","10〜14日","15〜20日","21〜28日","ほぼ毎日"].map(function(l){return {value:l,label:l};})
         },
         {
           code: "Q6days", type: "numbergroup", text: "できれば具体的な日数を教えてください",
-          fields: [{ code: "Q6_days", label: "片頭痛日数", unit: "日/月" }]
+          fields: [{ code: "Q6_days", label: "片頭痛日数", unit: "日/月 程度" }]
         },
         {
-          code: "Q2b", type: "numbergroup", tree: true, label: "Q7",
+          code: "Q2b", type: "numbergroup", tree: true, label: "Q8",
           text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください",
           fields: [
             { code: "Q2b_headache", label: "頭痛があった日数", unit: "日" },
@@ -1686,7 +1686,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q7type", type: "radio", label: "Q8", text: "頭痛のタイプは？", other: true, wide: true,
+          code: "Q7type", type: "radio", label: "Q9", text: "頭痛のタイプは？", other: true, wide: true,
           options: [
             {value:"Aズキズキ・ガンガン（拍動性）",label:"Aズキズキ・ガンガン（拍動性）"},
             {value:"B締め付けられる・圧迫感",label:"B締め付けられる・圧迫感"},
@@ -1695,7 +1695,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q7dur", type: "radio", label: "Q9", text: "頭痛の継続時間は？", other: true, wide: true,
+          code: "Q7dur", type: "radio", label: "Q10", text: "頭痛の継続時間は？", other: true, wide: true,
           options: [
             {value:"１時間以内で収まる",label:"１時間以内で収まる"},
             {value:"数時間続く",label:"数時間続く"},
@@ -1705,17 +1705,17 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q8", type: "slider", label: "Q10", text: "頭痛が一番ひどいときの強さは？",
+          code: "Q8", type: "slider", label: "Q11", text: "頭痛が一番ひどいときの強さは？",
           hint: "ボタンを左右にスライドさせて回答してください",
           leftFace: "🙂", rightFace: "😖",
           leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
         },
         {
-          code: "Q9", type: "radio", label: "Q11", text: "頭痛のとき、体を動かすと頭痛が悪化しますか？",
+          code: "Q9", type: "radio", label: "Q12", text: "頭痛のとき、体を動かすと頭痛が悪化しますか？",
           options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（たまに）",label:"はい（たまに）"},{value:"いいえ",label:"いいえ"}]
         },
         {
-          code: "Q10", type: "checkbox", label: "Q12", text: "頭痛のときに一緒に起こる症状は？（複数選択可）", wide: true,
+          code: "Q10", type: "checkbox", label: "Q13", text: "頭痛のときに一緒に起こる症状は？（複数選択可）", wide: true,
           options: [
             {value:"吐き気",label:"吐き気"},{value:"嘔吐",label:"嘔吐"},
             {value:"光が眩しい（光過敏）",label:"光が眩しい（光過敏）"},{value:"音がうるさい（音過敏）",label:"音がうるさい（音過敏）"},
@@ -1724,7 +1724,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q11", type: "radio", label: "Q13", text: "頭痛の前に「前兆」はありますか？（光が見える・手足がしびれるなど）",
+          code: "Q11", type: "radio", label: "Q14", text: "頭痛の前に「前兆」はありますか？（光が見える・手足がしびれるなど）",
           options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（時々）",label:"はい（時々）"},{value:"いいえ",label:"いいえ"}]
         },
         {
@@ -1738,7 +1738,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q12", type: "checkbox", label: "Q14", text: "頭痛発作の前日〜数時間前に体の変化を感じることはありますか？（複数可）", wide: true,
+          code: "Q12", type: "checkbox", label: "Q15", text: "頭痛発作の前日〜数時間前に体の変化を感じることはありますか？（複数可）", wide: true,
           options: [
             {value:"あくびが出る",label:"あくびが出る"},{value:"甘いものが食べたくなる",label:"甘いものが食べたくなる"},
             {value:"疲れやすくなる",label:"疲れやすくなる"},{value:"気分が落ち込む",label:"気分が落ち込む"},
@@ -1746,7 +1746,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q16trigger", type: "checkbox", label: "Q15", text: "頭痛のきっかけとして思い当たるものはありますか？", other: true, wide: true,
+          code: "Q16trigger", type: "checkbox", label: "Q16", text: "頭痛のきっかけとして思い当たるものはありますか？", other: true, wide: true,
           options: [
             {value:"寝不足/寝すぎ",label:"寝不足/寝すぎ"},{value:"ストレス",label:"ストレス"},{value:"悪天候",label:"悪天候"},
             {value:"飲酒",label:"飲酒"},{value:"空腹",label:"空腹"},{value:"目の疲れ・光の刺激",label:"目の疲れ・光の刺激"},
@@ -1754,19 +1754,19 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q13", type: "radio", label: "Q16", text: "頭痛のない時期にも、頭皮や皮膚が敏感になることがありますか？（ブラッシングや触れると痛いなど）",
+          code: "Q13", type: "radio", label: "Q17", text: "頭痛のない時期にも、頭皮や皮膚が敏感になることがありますか？（ブラッシングや触れると痛いなど）",
           options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
         },
         {
-          code: "Q14", type: "radio", label: "Q17", text: "頭痛のとき、目が充血する・涙が出る・鼻が詰まるなどの顔面の症状が、右左どちらか半分にだけ出てくることはありましたか？",
+          code: "Q14", type: "radio", label: "Q18", text: "頭痛のとき、目が充血する・涙が出る・鼻が詰まるなどの顔面の症状が、右左どちらか半分にだけ出てくることはありましたか？",
           options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}]
         },
         {
-          code: "Q15", type: "radio", label: "Q18", text: "月経（生理）と頭痛の関係は？（女性の方のみ）", wide: true,
+          code: "Q15", type: "radio", label: "Q19", text: "月経（生理）と頭痛の関係は？（女性の方のみ）", wide: true,
           options: ["生理の前後にだけ頭痛が起きる","生理の前後に特に起きやすいが、それ以外の時期にも起きる","生理とは関係ない・わからない","閉経している","該当しない（男性・生理がない など）"].map(function(l){return {value:l,label:l};})
         },
         {
-          code: "Q16horm", type: "radio", label: "Q19", text: "ホルモン療法・低用量ピルを使用していますか？（女性の方のみ）", wide: true,
+          code: "Q16horm", type: "radio", label: "Q20", text: "ホルモン療法・低用量ピルを使用していますか？（女性の方のみ）", wide: true,
           options: [{value:"はい（低用量ピル）",label:"はい（低用量ピル）"},{value:"はい（更年期ホルモン療法）",label:"はい（更年期ホルモン療法）"},{value:"いいえ",label:"いいえ"}]
         }
       ]
@@ -1775,7 +1775,7 @@ var SCHEMA_SHOKI = {
       title: "💊 C　痛み止め（急性期薬）の使用状況",
       questions: [
         {
-          code: "Q17", type: "checkbox", label: "Q20", text: "頭痛の痛み止めとして使ったことがある薬はありますか？（複数可）", wide: true,
+          code: "Q17", type: "checkbox", label: "Q21", text: "頭痛の痛み止めとして使ったことがある薬はありますか？（複数可）", wide: true,
           options: [
             {value:"市販の頭痛薬（EVEなど）",label:"市販の頭痛薬（EVEなど）"},
             {value:"ロキソプロフェン（ロキソニン）",label:"ロキソプロフェン（ロキソニン）"},
@@ -1790,12 +1790,20 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q19", type: "numbergroup", label: "Q21", text: "現在、月に何日くらい痛み止めを飲んでいますか？",
+          code: "Q19", type: "numbergroup", label: "Q22", text: "現在、月に何日くらい痛み止めを飲んでいますか？",
           fields: [
             { code: "Q19_total", label: "合計", unit: "日/月" },
             { code: "Q19_naru", label: "（内訳）ナルティーク", unit: "日" },
             { code: "Q19_trip", label: "（内訳）トリプタン", unit: "日" },
-            { code: "Q19_otc", label: "（内訳）市販の薬", unit: "日" }
+            { code: "Q19_rayvow", label: "（内訳）レイボー", unit: "日" },
+            { code: "Q19_rx", label: "（内訳）病院でもらったその他の薬", unit: "日" },
+            { code: "Q19_otc", label: "（内訳）市販の薬", unit: "日" },
+            // 効き目（画面では各薬の右に出る縦スライダー）：3=とてもよく効く 2=よく効く 1=それほど効かない 0=全然効かない（再診の EFF_* と同じ点数）
+            { code: "Q19eff_naru", label: "（効き目）ナルティーク 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_trip", label: "（効き目）トリプタン 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_rayvow", label: "（効き目）レイボー 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_rx", label: "（効き目）病院でもらったその他の薬 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_otc", label: "（効き目）市販の薬 3とてもよく効く〜0全然効かない", unit: "" }
           ]
         }
       ]
@@ -1804,7 +1812,7 @@ var SCHEMA_SHOKI = {
       title: "📋 D　これまでに試みた頭痛の予防薬",
       questions: [
         {
-          code: "Q20", type: "radio", label: "Q22", text: "これまでに試みた頭痛の予防薬はありますか？",
+          code: "Q20", type: "radio", label: "Q23", text: "これまでに試みた頭痛の予防薬はありますか？",
           options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}]
         },
         {
@@ -1817,7 +1825,7 @@ var SCHEMA_SHOKI = {
       title: "🏥 E　現在の健康状態・生活習慣",
       questions: [
         {
-          code: "Q22", type: "checkbox", label: "Q23", text: "現在、治療中または診断されている病気があれば選んでください（複数可）", wide: true,
+          code: "Q22", type: "checkbox", label: "Q24", text: "現在、治療中または診断されている病気があれば選んでください（複数可）", wide: true,
           options: [
             {value:"高血圧",label:"高血圧"},{value:"糖尿病",label:"糖尿病"},{value:"高脂血症（脂質異常症）",label:"高脂血症（脂質異常症）"},
             {value:"心臓病(狭心症/心筋梗塞等)",label:"心臓病(狭心症/心筋梗塞等)"},{value:"脳卒中・脳梗塞",label:"脳卒中・脳梗塞"},
@@ -1832,7 +1840,7 @@ var SCHEMA_SHOKI = {
       title: "🧭 精神科の症状（頭痛とメンタルは強い結びつきがあります）",
       questions: [
         {
-          code: "Q23", type: "checkbox", label: "Q24", text: "気分の障害について、診断されたことはありますか？（複数可）", wide: true,
+          code: "Q23", type: "checkbox", label: "Q25", text: "気分の障害について、診断されたことはありますか？（複数可）", wide: true,
           options: [
             {value:"うつ病",label:"うつ病"},{value:"双極性障害（躁うつ病）",label:"双極性障害（躁うつ病）"},{value:"適応障害",label:"適応障害"},
             {value:"現在治療中",label:"現在治療中"},{value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},
@@ -1840,7 +1848,7 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q24", type: "checkbox", label: "Q25", text: "不安に関する障害について、診断されたことはありますか？（複数可）", wide: true,
+          code: "Q24", type: "checkbox", label: "Q26", text: "不安に関する障害について、診断されたことはありますか？（複数可）", wide: true,
           options: [
             {value:"パニック障害",label:"パニック障害"},{value:"全般性不安障害",label:"全般性不安障害"},{value:"強迫性障害",label:"強迫性障害"},
             {value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},{value:"現在治療中",label:"現在治療中"},
@@ -1848,30 +1856,30 @@ var SCHEMA_SHOKI = {
           ]
         },
         {
-          code: "Q25", type: "checkbox", label: "Q26", text: "その他の精神疾患の診断を受けたことはありますか？（複数可）", wide: true,
+          code: "Q25", type: "checkbox", label: "Q27", text: "その他の精神疾患の診断を受けたことはありますか？（複数可）", wide: true,
           options: [
             {value:"統合失調症",label:"統合失調症"},{value:"ADHD等の発達障害",label:"ADHD等の発達障害"},{value:"摂食障害",label:"摂食障害"},
             {value:"解離性障害",label:"解離性障害"},{value:"その他",label:"その他"},{value:"なし",label:"なし",exclusive:true}
           ]
         },
         {
-          code: "Q27", type: "radio", label: "Q27", text: "めまい・乗り物酔いをしやすいなど、「自律神経失調」の症状はありますか？",
+          code: "Q27", type: "radio", label: "Q28", text: "めまい・乗り物酔いをしやすいなど、「自律神経失調」の症状はありますか？",
           options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
         },
         {
-          code: "Q28", type: "radio", label: "Q28", text: "睡眠の状態を教えてください", wide: true,
+          code: "Q28", type: "radio", label: "Q29", text: "睡眠の状態を教えてください", wide: true,
           options: ["眠れないことが多い（不眠）","昼間も眠い（過眠）","特に問題ない","呼吸が止まると言われた（睡眠時無呼吸）"].map(function(l){return {value:l,label:l};})
         },
         {
-          code: "Q29", type: "radio", label: "Q29", text: "疲れやすさ・全身のだるさはありますか？",
+          code: "Q29", type: "radio", label: "Q30", text: "疲れやすさ・全身のだるさはありますか？",
           options: [{value:"強い倦怠感が続いている",label:"強い倦怠感が続いている"},{value:"時々ある",label:"時々ある"},{value:"特になし",label:"特になし"}]
         },
         {
-          code: "Q30smoke", type: "radio", label: "Q30", text: "＜たばこ＞について教えてください",
+          code: "Q30smoke", type: "radio", label: "Q31", text: "＜たばこ＞について教えてください",
           options: [{value:"現在喫煙中",label:"現在喫煙中"},{value:"過去に吸っていたが禁煙中",label:"過去に吸っていたが禁煙中"},{value:"吸ったことがない",label:"吸ったことがない"}]
         },
         {
-          code: "Q30alcohol", type: "radio", label: "Q31", text: "＜お酒＞について教えてください", wide: true,
+          code: "Q30alcohol", type: "radio", label: "Q32", text: "＜お酒＞について教えてください", wide: true,
           options: ["お酒を毎日飲む","週に数回飲む","ほとんど飲まない","全く飲まない"].map(function(l){return {value:l,label:l};})
         },
         {
@@ -1879,11 +1887,11 @@ var SCHEMA_SHOKI = {
           options: [{value:"はい",label:"はい"},{value:"いいえ・わからない",label:"いいえ・わからない"}]
         },
         {
-          code: "Q31", type: "radio", label: "Q32", text: "現在、妊娠中・授乳中、または近い将来に妊娠をご希望ですか？", wide: true,
+          code: "Q31", type: "radio", label: "Q33", text: "現在、妊娠中・授乳中、または近い将来に妊娠をご希望ですか？", wide: true,
           options: ["現在妊娠中","現在授乳中","近い将来妊娠希望あり","現時点では予定なし","該当しない（男性等）"].map(function(l){return {value:l,label:l};})
         },
         {
-          code: "Q32", type: "checkbox", label: "Q33", text: "現在、産婦人科で治療中ですか？生理の症状はツラいですか？(当てはまる方のみ)", wide: true,
+          code: "Q32", type: "checkbox", label: "Q34", text: "現在、産婦人科で治療中ですか？生理の症状はツラいですか？(当てはまる方のみ)", wide: true,
           options: [
             {value:"産婦人科で治療中",label:"産婦人科で治療中"},
             {value:"以前産婦人科で治療を受けていた",label:"以前産婦人科で治療を受けていた"},
@@ -1897,7 +1905,7 @@ var SCHEMA_SHOKI = {
       title: "📊 F　頭痛による生活・仕事への影響",
       questions: [
         {
-          code: "Q33", type: "radio", label: "Q34", text: "頭痛は仕事・学業に影響していますか？（就労者・学生のみ）", wide: true,
+          code: "Q33", type: "radio", label: "Q35", text: "頭痛は仕事・学業に影響していますか？（就労者・学生のみ）", wide: true,
           options: [
             "頭痛のために休職・休学中","頭痛のため仕事の量・質を大幅に落としている","多少影響があるが働けている","ほとんど影響なし"
           ].map(function(l){return {value:l,label:l};})
@@ -2374,6 +2382,48 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-okbar.gm-cleared{border-color:#27ae60;background:#f3fbf5;}
 .gm-okbar.gm-cleared .gm-okbar-msg{color:#1e8449;font-weight:700;}
 .gm-okbar .gm-okbar-msg.gm-okbar-err{color:#c0392b;font-weight:700;}
+/* Q22（code Q19）痛み止め：薬ごとのカード（再診 Q6 と同じ） */
+.gm-step-btn{flex:0 0 40px;height:40px;border-radius:50%;border:2px solid var(--primary);background:#fff;color:var(--primary);font-size:1.3rem;font-weight:800;line-height:1;padding:0;cursor:pointer;-webkit-tap-highlight-color:transparent;}
+.gm-step-btn:active{background:var(--primary);color:#fff;}
+.gm-drugflow .dt-row input{width:64px;flex:0 0 64px;text-align:center;}
+.gm-drugflow .dt-row .dt-label{flex-basis:100%;}
+.gm-drugflow > .gm-okbar{position:static;}
+.gm-flow-hint{font-size:.78rem;color:var(--muted);margin:4px 2px 0;}
+.gm-drugcard{border:1px solid var(--border);border-radius:12px;padding:10px 12px;margin:10px 0;background:#fff;}
+.gm-drugcard.gm-used{border-color:var(--primary);background:#f6fbfa;}
+.gm-drugtotal{margin:12px 0 4px;padding:10px 12px;border-radius:12px;background:#eef6f5;}
+.gm-drugtotal-line{font-size:1rem;}
+.gm-drugtotal-line b{font-size:1.4rem;color:var(--primary);margin:0 2px;}
+.gm-drugtotal-line small{font-size:.75rem;color:var(--muted);margin-left:6px;}
+.gm-adj-btn{margin-top:6px;background:none;border:none;padding:4px 0;color:var(--primary);font-size:.8rem;text-decoration:underline;cursor:pointer;}
+.gm-dc-name{font-size:.92rem;font-weight:700;line-height:1.35;margin-bottom:6px;}
+.gm-dc-name small{display:block;font-weight:400;color:var(--muted);font-size:.72rem;}
+.gm-dc-cols{display:flex;gap:8px;align-items:stretch;}
+.gm-dc-left{flex:1 1 auto;min-width:0;}
+.gm-drugcard .dt-row{padding:6px 6px;gap:6px;}
+.gm-drugcard .dt-row .dt-label{flex-basis:100%;font-size:.8rem;}
+.gm-drugcard.gm-used .dt-row input{width:48px;flex:0 0 48px;padding-left:0;padding-right:0;}
+.gm-drugflow .dt-row input{-moz-appearance:textfield;appearance:textfield;}
+.gm-drugflow .dt-row input::-webkit-inner-spin-button,.gm-drugflow .dt-row input::-webkit-outer-spin-button{-webkit-appearance:none;margin:0;}
+.gm-drugcard.gm-used .gm-step-btn{flex-basis:36px;width:36px;height:36px;}
+.gm-vs{display:none;flex:0 0 112px;flex-direction:column;align-items:center;padding:6px 4px;border-radius:10px;background:#fff;border:1px dashed var(--primary);}
+.gm-drugcard.gm-used .gm-vs{display:flex;}
+.gm-vs-title{font-size:.78rem;font-weight:700;color:var(--primary);}
+.gm-vs-face{font-size:1.9rem;line-height:1.2;}
+.gm-vs-body{display:flex;gap:6px;height:150px;margin:16px 0 14px;}
+.gm-vs-track{position:relative;width:30px;height:100%;touch-action:none;cursor:pointer;}
+.gm-vs-track::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:6px;border-radius:3px;background:linear-gradient(#27ae60,#f1c40f,#e74c3c);opacity:.35;}
+.gm-vs-fill{position:absolute;left:12px;width:6px;bottom:0;border-radius:3px;opacity:.0;}
+.gm-vs-dot{position:absolute;left:11px;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#fff;border:1px solid #b0bec5;}
+.gm-vs-thumb{position:absolute;left:1px;width:28px;height:28px;margin-top:-14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:top .12s;}
+.gm-vs:not(.gm-vs-touched) .gm-vs-thumb{animation:gm-vs-wiggle 1.4s ease-in-out infinite;}
+@keyframes gm-vs-wiggle{0%,100%{transform:translateY(0);}50%{transform:translateY(-8px);}}
+.gm-vs-labels{position:relative;width:64px;height:100%;}
+.gm-vs-lab{position:absolute;left:0;width:64px;font-size:.66rem;line-height:1.15;color:var(--muted);cursor:pointer;transform:translateY(-50%);}
+.gm-vs-lab.on{color:var(--text,#222);font-weight:800;}
+.gm-vs-hint{font-size:.66rem;color:var(--muted);}
+.gm-vs-touched .gm-vs-hint{visibility:hidden;}
+@media (prefers-reduced-motion: reduce){.gm-vs-thumb{transition:none;animation:none !important;}}
 /* 爆発パーツ */
 .gm-p{position:fixed;left:0;top:0;pointer-events:none;z-index:9999;will-change:transform,opacity;}
 .gm-dot{border-radius:50%;}
@@ -2689,7 +2739,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
             setTimeout(function () { try { inputs[next].focus({ preventScroll: true }); } catch (e) { inputs[next].focus(); } }, 350);
           } else if (allDone() && !cleared) {
             cleared = true;
-            banner("🎉 Q7 クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
+            banner("🎉 Q8 クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
           }
         });
       });
@@ -2781,14 +2831,16 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 
   var dtBlock = document.querySelector('#qContainer .qblock[data-code="Q2b"]');
   if (dtBlock) setupDayTree(dtBlock);
-  var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1 };          // 自由記入はOKなし
+  var NO_OK = { SOUDAN: 1, Q20med: 1, Q32note: 1, Q2b: 1, Q19: 1 };   // Q19 は痛み止めカード（setupDrugFlow）の中に OK          // 自由記入はOKなし
   var EMPTY_OK = { Q3: 1, Q16trigger: 1, Q32: 1 };                    // 何も選ばずOK＝あてはまるものなし
   /* Q5 で「いいえ（月15日未満）」なのに、Q6 の片頭痛日数が月15日以上ならエラー（頭痛日数 ≧ 片頭痛日数のはず） */
   function q5Under15() {
     var b = document.querySelector('#qContainer .qblock[data-code="Q5"] .opt-btn.selected');
     return !!b && b.getAttribute("data-value") === "今も月15日未満（該当しない）";
   }
-  var Q6_MSG = "Q5で「月15日未満」と答えています。Q5かこちらを見直してください";
+  var Q6_MSG = "Q6で「月15日未満」と答えています。Q6かこちらを見直してください";
+  /* Q7 で選んだ範囲と、具体的な日数が食い違ったらエラー（「ほぼ毎日」は25日以上とみなす） */
+  var Q6_RANGE = { "0〜4日": [0, 4], "5〜9日": [5, 9], "10〜14日": [10, 14], "15〜20日": [15, 20], "21〜28日": [21, 28], "ほぼ毎日": [25, 31] };
   var CONFLICT = {
     Q6: function (q) {
       var b = q.querySelector(".opt-btn.selected");
@@ -2797,9 +2849,22 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     },
     Q6days: function (q) {
       var i = q.querySelector("input[type=number]");
-      return q5Under15() && i && i.value.trim() !== "" && Number(i.value) >= 15 ? Q6_MSG : "";
+      if (!i || i.value.trim() === "") return "";
+      var n = Number(i.value);
+      if (!isFinite(n) || n < 0 || n > 31 || Math.floor(n) !== n) return "0〜31の整数で入力してください";
+      var b = document.querySelector('#qContainer .qblock[data-code="Q6"] .opt-btn.selected');
+      var v = b && b.getAttribute("data-value"), r = v && Q6_RANGE[v];
+      if (r && (n < r[0] || n > r[1])) return "Q7で「" + v + "」と答えています。" + (v === "ほぼ毎日" ? "25日以上" : v) + "の範囲で入れるか、Q7を見直してください";
+      return q5Under15() && n >= 15 ? Q6_MSG : "";
     }
   };
+  var q6Block = document.querySelector('#qContainer .qblock[data-code="Q6"]');
+  if (q6Block) q6Block.addEventListener("click", function () {   // Q7 を答え直したら日数の判定もやり直す
+    setTimeout(function () {
+      var b = document.querySelector('#qContainer .qblock[data-code="Q6days"]');
+      if (b) b.dispatchEvent(new Event("input", { bubbles: true }));
+    }, 0);
+  });
   var q5Block = document.querySelector('#qContainer .qblock[data-code="Q5"]');
   if (q5Block) q5Block.addEventListener("click", function () {   // Q5 を答え直したら Q6 の判定もやり直す
     setTimeout(function () {
@@ -2819,6 +2884,245 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       });
     });
   }
+
+  /* ---------------- Q21（code Q19）痛み止め：薬ごとに日数 → 合計は自動（再診 Q6 と同じ形） ----------------
+   * 元の日数欄（Q19_total など）に値を流し込むだけ。 */
+  (function setupDrugFlow() {
+    var q19 = document.querySelector('#qContainer .qblock[data-code="Q19"]');
+    if (!q19) return;
+    var DRUGS = [
+      { key: "Q19_naru", eff: "Q19eff_naru", name: "ナルティーク" },
+      { key: "Q19_trip", eff: "Q19eff_trip", name: "トリプタン", sub: "イミグラン・ゾーミッグ・レルパックス・マクサルト・アマージ" },
+      { key: "Q19_rayvow", eff: "Q19eff_rayvow", name: "レイボー" },
+      { key: "Q19_rx", eff: "Q19eff_rx", name: "病院でもらったその他の痛み止め", sub: "カロナール・ロキソニン・ボルタレンなど" },
+      { key: "Q19_otc", eff: "Q19eff_otc", name: "市販の痛み止め" }
+    ];
+    function setHidden(code, v) {
+      var inp = q19.querySelector('input[data-code="' + code + '"]');
+      if (!inp) return;
+      var s = v === null ? "" : String(v);
+      if (inp.value === s) return;
+      inp.value = s;
+      inp.dispatchEvent(new Event("input", { bubbles: true }));
+    }
+    // 元の入力欄・注記は隠す
+    Array.prototype.forEach.call(q19.querySelectorAll(".num-row, .field-note, .qnote"), function (n) { n.classList.add("gm-hide"); });
+
+    var box = mk("div", "dt-step gm-drugflow");
+    q19.insertBefore(box, q19.querySelector(".err-msg"));
+    box.appendChild(mk("div", "dt-step-title", "最近1ヶ月（30日）に使った日数を、薬ごとに入力してください"));
+    box.appendChild(mk("div", "gm-flow-hint", "使っていない薬は 0 のままで大丈夫です。1日以上の薬は、右側に出るスライダーで効き目を教えてください"));
+    var noneBtn = mk("button", "gm-adj-btn", "痛み止めは1回も使っていない → すべて 0 にする"); noneBtn.type = "button";
+    box.appendChild(noneBtn);
+
+    function stepper(parent, label, sub) {
+      var row = mk("div", "dt-row c-teal");
+      var lb = mk("div", "dt-label");
+      lb.innerHTML = label + (sub ? "<small>" + sub + "</small>" : "");
+      row.appendChild(lb);
+      var minus = mk("button", "gm-step-btn", "−"); minus.type = "button";
+      var inp = mk("input", "field-input"); inp.type = "number"; inp.inputMode = "numeric"; inp.min = "0"; inp.max = "30"; inp.placeholder = "0";
+      var plus = mk("button", "gm-step-btn", "＋"); plus.type = "button";
+      row.appendChild(minus); row.appendChild(inp); row.appendChild(plus);
+      row.appendChild(mk("span", "unit", "日"));
+      parent.appendChild(row);
+      function bump(d) {
+        var v = inp.value === "" ? 0 : Number(inp.value);
+        v = Math.max(0, Math.min(30, (isFinite(v) ? v : 0) + d));
+        inp.value = String(v);
+        inp.dispatchEvent(new Event("input", { bubbles: true }));
+      }
+      minus.addEventListener("click", function () { bump(-1); });
+      plus.addEventListener("click", function () { bump(1); });
+      return inp;
+    }
+    function readDays(inp) {
+      if (inp.value === "") return null;
+      var n = Number(inp.value);
+      return isFinite(n) && Math.floor(n) === n && n >= 0 && n <= 30 ? n : NaN;
+    }
+    /* 効き目の縦スライダー（上＝よく効く、下＝効かない）。親指で操作しやすいよう各薬の右側に出す */
+    var EFF_STOPS = [
+      { v: 3, label: "とてもよく効く", face: "😆", color: "#27ae60" },
+      { v: 2, label: "よく効く", face: "😊", color: "#7cb342" },
+      { v: 1, label: "それほど効かない", face: "😣", color: "#f39c12" },
+      { v: 0, label: "全然効かない", face: "😖", color: "#e74c3c" }
+    ];
+    function vslider(parent, onChange) {
+      var wrap = mk("div", "gm-vs");
+      wrap.appendChild(mk("div", "gm-vs-title", "効き目は？"));
+      var face = mk("div", "gm-vs-face", "🤔");
+      wrap.appendChild(face);
+      var body = mk("div", "gm-vs-body");
+      var track = mk("div", "gm-vs-track");
+      var fill = mk("div", "gm-vs-fill");
+      var thumb = mk("div", "gm-vs-thumb");
+      track.appendChild(fill);
+      var labels = mk("div", "gm-vs-labels");
+      EFF_STOPS.forEach(function (st, i) {
+        var dot = mk("div", "gm-vs-dot");
+        dot.style.top = (i / (EFF_STOPS.length - 1) * 100) + "%";
+        track.appendChild(dot);
+        var lb = mk("div", "gm-vs-lab", st.label);
+        lb.style.top = dot.style.top;
+        lb.addEventListener("click", function () { set(i); });
+        labels.appendChild(lb);
+      });
+      track.appendChild(thumb);
+      body.appendChild(track);
+      body.appendChild(labels);
+      wrap.appendChild(body);
+      wrap.appendChild(mk("div", "gm-vs-hint", "上下に動かしてね"));
+      parent.appendChild(wrap);
+      var idx = null;
+      function draw() {
+        wrap.classList.toggle("gm-vs-touched", idx !== null);
+        var pos = idx === null ? 50 : idx / (EFF_STOPS.length - 1) * 100;
+        thumb.style.top = pos + "%";
+        fill.style.top = pos + "%";
+        var st = idx === null ? null : EFF_STOPS[idx];
+        face.textContent = st ? st.face : "🤔";
+        thumb.style.background = st ? st.color : "#b0bec5";
+        fill.style.background = st ? st.color : "transparent";
+        Array.prototype.forEach.call(labels.children, function (l, i) { l.classList.toggle("on", i === idx); });
+      }
+      function set(i) {
+        if (i === idx) return;
+        idx = i;
+        draw();
+        replayClass(face, "gm-pop");
+        onChange(EFF_STOPS[i].v);
+      }
+      function fromY(y) {
+        var r = track.getBoundingClientRect();
+        var t = Math.max(0, Math.min(1, (y - r.top) / r.height));
+        set(Math.round(t * (EFF_STOPS.length - 1)));
+      }
+      track.addEventListener("pointerdown", function (ev) {
+        ev.preventDefault();
+        if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+        fromY(ev.clientY);
+      });
+      track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+      draw();
+      return {
+        el: wrap,
+        value: function () { return idx === null ? null : EFF_STOPS[idx].v; },
+        clear: function () { idx = null; draw(); }
+      };
+    }
+    var rows = DRUGS.map(function (d) {
+      var card = mk("div", "gm-drugcard");
+      box.appendChild(card);
+      var head = mk("div", "gm-dc-name");
+      head.innerHTML = "💊 " + d.name + (d.sub ? "<small>（" + d.sub + "）</small>" : "");
+      card.appendChild(head);
+      var cols = mk("div", "gm-dc-cols");
+      card.appendChild(cols);
+      var left = mk("div", "gm-dc-left");
+      cols.appendChild(left);
+      var inp = stepper(left, "使った日数", "");
+      var err = mk("div", "dt-err");
+      left.appendChild(err);
+      var row = { d: d, card: card, inp: inp, err: err };
+      row.vs = vslider(cols, function (v) { setHidden(d.eff, v); later(); });
+      return row;
+    });
+
+    // 合計（自動）。2種類以上使った人は、同じ日に重なった分を直せる
+    var tBox = mk("div", "gm-drugtotal");
+    box.appendChild(tBox);
+    var tLine = mk("div", "gm-drugtotal-line");
+    tBox.appendChild(tLine);
+    var adjBtn = mk("button", "gm-adj-btn", "同じ日に2種類以上使った日があった → 合計を直す"); adjBtn.type = "button";
+    tBox.appendChild(adjBtn);
+    var adjWrap = mk("div", "gm-hide");
+    tBox.appendChild(adjWrap);
+    var tInp = stepper(adjWrap, "痛み止めを使った日数（合計）", "同じ日に2種類使った日は「1日」と数えます");
+    var tHint = mk("div", "gm-flow-hint");
+    adjWrap.appendChild(tHint);
+    var tErr = mk("div", "dt-err");
+    adjWrap.appendChild(tErr);
+
+    var bar = mk("div", "gm-okbar");
+    var msg = mk("span", "gm-okbar-msg");
+    var btn = makeOkButton();
+    bar.appendChild(msg); bar.appendChild(btn);
+    box.appendChild(bar);
+
+    var adjusting = false, cleared = false, done = false;
+    function vals() { return rows.map(function (r) { return readDays(r.inp); }); }
+    function refresh() {
+      var v = vals();
+      var bad = false, any = false, mx = 0, sum = 0, used = 0;
+      rows.forEach(function (r, i) {
+        var isBad = v[i] !== null && isNaN(v[i]);
+        r.err.textContent = isBad ? "0〜30の整数で入力してください" : "";
+        r.err.classList.toggle("show", isBad);
+        if (isBad) bad = true;
+        if (v[i] !== null && !isNaN(v[i])) { any = true; mx = Math.max(mx, v[i]); sum += v[i]; if (v[i] > 0) used++; }
+        var wasUsed = r.card.classList.contains("gm-used");
+        r.card.classList.toggle("gm-used", v[i] > 0);
+        if (v[i] > 0 && !wasUsed && !REDUCE) replayClass(r.vs.el, "gm-enter");
+      });
+      // 元の欄へ（どれか入力があれば、空欄の薬は 0 日として記録）。使っていない薬の効き目は空欄
+      rows.forEach(function (r, i) {
+        setHidden(r.d.key, !any || isNaN(v[i]) ? null : (v[i] === null ? 0 : v[i]));
+        setHidden(r.d.eff, v[i] > 0 ? r.vs.value() : null);
+      });
+      var effOk = rows.every(function (r, i) { return !(v[i] > 0) || r.vs.value() !== null; });
+      sum = Math.min(30, sum);
+      adjBtn.classList.toggle("gm-hide", used < 2 || adjusting);
+      if (used < 2) adjusting = false;
+      adjWrap.classList.toggle("gm-hide", !adjusting);
+      var total = any ? sum : null, tBad = false;
+      if (adjusting) {
+        var vt = readDays(tInp);
+        tHint.textContent = "（いちばん多い薬の日数 " + mx + "日 〜 全部の合計 " + sum + "日 の間になります）";
+        tBad = vt !== null && (isNaN(vt) || vt < mx || vt > sum);
+        tErr.textContent = tBad ? mx + "〜" + sum + "日の間で入力してください" : "";
+        tErr.classList.toggle("show", tBad);
+        total = vt === null || tBad ? null : vt;
+      }
+      tLine.innerHTML = "合計：<b>" + (total === null ? "–" : total) + "</b> 日" + (adjusting ? "" : "<small>（自動で計算されます）</small>");
+      setHidden("Q19_total", total);
+      var ok = any && !bad && !tBad && total !== null && effOk;
+      if (!ok) { done = false; cleared = false; }
+      bar.classList.toggle("gm-cleared", done);
+      btn.classList.toggle("gm-gone", done);
+      msg.textContent = done ? "✓ OK！" : !any ? "日数を入れてください（＋−でも入力できます）"
+        : !effOk ? "右の効き目スライダーを動かしてください" : total === null ? "合計の日数を入れてください" : "よければ OK を押してください";
+      setReady(btn, ok && !done);
+    }
+    function later() { setTimeout(refresh, 0); }
+    rows.forEach(function (r) { r.inp.addEventListener("input", later); });
+    tInp.addEventListener("input", later);
+    noneBtn.addEventListener("click", function () {
+      adjusting = false;
+      rows.forEach(function (r) { r.inp.value = "0"; });
+      refresh();
+    });
+    adjBtn.addEventListener("click", function () {
+      adjusting = true;
+      var s = 0;
+      vals().forEach(function (x) { if (x) s += x; });
+      tInp.value = String(Math.min(30, s));
+      refresh();
+      tInp.focus();
+    });
+    btn.addEventListener("click", function (ev) {
+      ev.stopPropagation();
+      if (btn.disabled) return;
+      rows.forEach(function (r) { if (r.inp.value === "") r.inp.value = "0"; });
+      done = true;
+      refresh();
+      explode(btn, function () {
+        if (!cleared) { cleared = true; banner("🎉 Q22 クリア！", function () { scrollToEl(nextVisibleQuestion(q19)); }); }
+        else scrollToEl(nextVisibleQuestion(q19));
+      });
+    });
+    refresh();
+  })();
 
   /* ---------------- 質問票（HIT-6 など）を1問ずつ：選んで OK → 次の問題 ----------------
    * 元の表（ラジオボタン）は隠して残し、カードで選んだ内容をそのまま表のラジオに反映する。
