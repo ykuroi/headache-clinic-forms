@@ -1,0 +1,15 @@
+{
+  "id": "./shoshin.html",
+  "name": "頭痛外来 初診アンケート",
+  "short_name": "初診",
+  "start_url": "./shoshin.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#2563eb",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon_shoshin_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon_shoshin_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
