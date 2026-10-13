@@ -562,6 +562,15 @@ textarea.readout{
 .privacy-notice p:last-child{margin-bottom:0;}
 
 </style>
+<link rel="manifest" href="saishin.webmanifest">
+<meta name="theme-color" content="#0d9488">
+<link rel="apple-touch-icon" href="icon_saishin_180.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="再診">
+<script>/* オフライン対応（sw.js）。file:// で開いたときは何もしない */
+if ("serviceWorker" in navigator && (location.protocol === "https:" || location.hostname === "localhost")) { window.addEventListener("load", function () { navigator.serviceWorker.register("sw.js").catch(function () {}); }); }
+</script>
 </head>
 <body>
 <header class="app-header">
