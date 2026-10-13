@@ -516,6 +516,11 @@ table.matrix td.qcell .row-code{
   font-size:0.85rem;color:var(--muted);margin-top:8px;font-weight:700;
 }
 .qr-dots{display:flex;justify-content:center;gap:5px;margin-top:8px;}
+.qr-timer{width:300px;max-width:100%;height:5px;margin:8px auto 0;background:var(--border);border-radius:3px;overflow:hidden;}
+.qr-timer i{display:block;height:100%;width:0;background:var(--primary);}
+.qr-timer i.run{animation:qrTimer var(--qr-ms,2500ms) linear forwards;}
+@keyframes qrTimer{from{width:0}to{width:100%}}
+.qr-progress.big{font-size:1.25rem;font-weight:800;color:var(--primary-dark);}
 .qr-dots span{width:7px;height:7px;border-radius:50%;background:var(--border);}
 .qr-dots span.on{background:var(--primary);}
 .tabbar{display:flex;gap:8px;margin:14px 0;}
@@ -2542,7 +2547,7 @@ var SCHEMA_SAISHIN = {
       '<p style="font-size:0.85rem;color:var(--muted);margin-top:0;">記入日: ' + escapeHtml(answers.FORM_DATE) + '</p>' +
       warnHtml +
       '<div class="score-grid">' + scoreCardsHtml + "</div>" +
-      '<div class="notice">この画面を受付・診察までお持ちください。下のタブから、医療スタッフへの共有方法をお選びいただけます。</div>' +
+      '<div class="notice">この画面を閉じずに、診察室でお見せください。</div>' +
       '<div class="tabbar">' +
       '<button class="tab-btn active" data-tab="qr">📱 QRコード</button>' +
       '<button class="tab-btn" data-tab="text">📝 送信内容</button>' +
@@ -2550,7 +2555,8 @@ var SCHEMA_SAISHIN = {
       '<div class="output-panel active" data-panel="qr">' +
       '<div class="qr-wrap">' +
       '<div id="qrcanvas-holder"></div>' +
-      '<div class="qr-progress" id="qrProgressText"></div>' +
+      '<div class="qr-progress big" id="qrProgressText"></div>' +
+      '<div class="qr-timer" id="qrTimer"><i></i></div>' +
       '<div class="qr-dots" id="qrDots"></div>' +
       '<div class="small-btn-row" id="qrNavRow">' +
       '<button class="small-btn" id="qrPrev">◀ 前へ</button>' +
@@ -2595,21 +2601,25 @@ var SCHEMA_SAISHIN = {
     dotsWrap.style.display = isSingleFrame ? "none" : "flex";
     qrNotice.textContent = isSingleFrame
       ? "医療スタッフの画面でこのQRコードを読み取っていただきます。"
-      : "医療スタッフの画面でこのQRコードを順番に読み取っていただきます（自動で切り替わります）。複数枚ありますので、画面が切り替わるまで少しお待ちください。";
+      : "QRコードが " + chunkResult.frames.length + " 枚あります。画面が自動で順に切り替わるので、そのまま読み取り機にかざしたままお待ちください。";
+    document.getElementById("qrTimer").style.display = isSingleFrame ? "none" : "block";
     dotsWrap.innerHTML = "";
     for (var i = 0; i < chunkResult.frames.length; i++) {
       dotsWrap.appendChild(document.createElement("span"));
     }
+    var playing = true;
+    var QR_SWITCH_MS = 2500;   // 院内リーダーが1枚分を打ち終える時間を見込んで、2.5秒ごとに切り替え
     qrPlayer = FE.QRPlayer(holder, chunkResult.frames, {
-      intervalMs: 1000,
+      intervalMs: QR_SWITCH_MS,
       onDraw: function (idx, total) {
-        progressText.textContent = "パート " + (idx + 1) + " / " + total;
+        progressText.textContent = (idx + 1) + " / " + total + " 枚目";
+        var bar = document.querySelector("#qrTimer i");
+        if (bar) { bar.classList.remove("run"); void bar.offsetWidth; bar.style.setProperty("--qr-ms", QR_SWITCH_MS + "ms"); if (playing) bar.classList.add("run"); }
         Array.prototype.forEach.call(dotsWrap.children, function (d, di) {
           d.classList.toggle("on", di === idx);
         });
       }
     });
-    var playing = true;
     document.getElementById("qrPrev").addEventListener("click", function () {
       qrPlayer.stop();
       playing = false;
@@ -2627,6 +2637,7 @@ var SCHEMA_SAISHIN = {
         qrPlayer.stop();
         playing = false;
         e.target.textContent = "再生";
+        var bar = document.querySelector("#qrTimer i"); if (bar) bar.classList.remove("run");
       } else {
         qrPlayer.start();
         playing = true;
