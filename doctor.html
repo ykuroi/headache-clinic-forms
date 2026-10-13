@@ -244,19 +244,31 @@ main {
 .review-section-head {
   background: linear-gradient(135deg, var(--primary), var(--primary-dark));
   color: #fff;
-  padding: 10px 14px;
+  padding: 8px 14px;
   font-weight: bold;
-  font-size: 0.9rem;
+  font-size: 0.88rem;
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
-.review-section-body { padding: 4px 14px; }
+.review-section-head::-webkit-details-marker { display: none; }
+.review-section-head::before { content: "▶"; font-size: 0.7rem; transition: transform .15s; }
+details[open] > .review-section-head::before { transform: rotate(90deg); }
+.review-section-head .sec-note { margin-left: auto; font-weight: normal; font-size: 0.75rem; opacity: .85; }
+.review-section-body { padding: 2px 14px; }
 .review-row {
   display: grid;
-  grid-template-columns: minmax(220px, 1.3fr) minmax(180px, 1fr);
-  gap: 12px;
+  grid-template-columns: minmax(0, 1fr) 240px;
+  gap: 4px 14px;
   align-items: center;
-  padding: 10px 0;
+  padding: 6px 0;
   border-bottom: 1px solid var(--border);
 }
+.review-row.wide { grid-template-columns: 1fr; }
+.review-row.sub .review-row-q { padding-left: 18px; color: var(--muted); }
+.review-row.se-hidden { display: none !important; }
 .review-row:last-child { border-bottom: none; }
 @media (max-width: 640px) {
   .review-row { grid-template-columns: 1fr; }
@@ -268,7 +280,7 @@ main {
   border-radius: 6px;
   border-bottom: 1px solid #f6cfc9;
 }
-.review-row-q { font-size: 0.85rem; }
+.review-row-q { font-size: 0.82rem; line-height: 1.45; }
 .review-row-label {
   display: inline-block;
   background: var(--primary);
@@ -306,16 +318,22 @@ main {
 select.review-input { width: 100%; }
 input[type=number].review-input { width: 90px; }
 .review-unit { font-size: 0.78rem; color: var(--muted); }
+.review-row.wide .review-row-input { display: grid; grid-template-columns: repeat(auto-fill, minmax(170px, 1fr)); gap: 4px 6px; }
 .review-check {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 4px 8px;
+  border-radius: 6px;
+  padding: 3px 8px;
   font-size: 0.78rem;
+  line-height: 1.35;
   background: #fff;
+  cursor: pointer;
 }
+.review-check input.review-input { width: auto; flex: 0 0 auto; margin: 0; padding: 0; }
+.review-check.on { background: #e7f3f1; border-color: var(--primary); font-weight: 700; }
+.review-row.wide textarea.review-input { grid-column: 1 / -1; }
 textarea.review-input { min-height: 50px; resize: vertical; }
 .review-toolbar {
   position: sticky;
@@ -1659,8 +1677,9 @@ function buildReviewRows(schema, answers) {
         rows.push({ section: sec.title, label: q.label || "", text: q.text, type: q.type === "textarea" ? "textarea" : "text",
           code: q.code, value: answers[q.code] || "", missing: !answers[q.code] });
       } else if (q.type === "numbergroup") {
-        q.fields.forEach(function (f) {
-          rows.push({ section: sec.title, label: q.label || "", text: (q.text ? q.text + " － " : "") + (f.label || f.code),
+        q.fields.forEach(function (f, fi) {
+          var fl = String(f.label || f.code).replace(/^（内訳）\s*/, "");
+          rows.push({ section: sec.title, label: fi ? "" : (q.label || ""), sub: fi > 0, text: fi ? "└ " + fl : (q.text ? q.text + " － " : "") + fl,
             type: "number", code: f.code, value: answers[f.code], unit: f.unit || "",
             missing: (answers[f.code] === null || answers[f.code] === undefined) });
         });
@@ -1688,7 +1707,7 @@ function buildReviewRows(schema, answers) {
           var gname = q.code + "_" + r.code;
           rows.push({ section: sec.title, label: r.area, text: r.symptom, type: "yesno", code: gname,
             value: answers[gname], missing: !answers[gname] });
-          rows.push({ section: sec.title, label: "", text: "（詳細）", type: "text", code: gname + "_detail",
+          rows.push({ section: sec.title, label: "", sub: true, seParent: gname, text: "└ 詳細", type: "text", code: gname + "_detail",
             value: answers[gname + "_detail"] || "", missing: false });
         });
         rows.push({ section: sec.title, label: "", text: "その他の副作用", type: "textarea", code: q.code + "_other",
@@ -1709,7 +1728,7 @@ function renderReviewInput(r) {
   if (r.type === "multiselect") {
     return r.options.map(function (o) {
       var checked = (r.value || []).indexOf(o) !== -1 ? " checked" : "";
-      return '<label class="review-check"><input type="checkbox" class="review-input" value="' + escapeHtml(o) + '"' + checked + ">" + escapeHtml(o) + "</label>";
+      return '<label class="review-check' + (checked ? " on" : "") + '"><input type="checkbox" class="review-input" value="' + escapeHtml(o) + '"' + checked + ">" + escapeHtml(o) + "</label>";
     }).join("");
   }
   if (r.type === "text") return '<input type="text" class="review-input" value="' + escapeHtml(r.value || "") + '">';
@@ -1761,15 +1780,23 @@ function renderReviewScreen(schema, answers) {
     "</div>";
 
   order.forEach(function (sectionTitle) {
-    html += '<div class="review-section"><div class="review-section-head">' + escapeHtml(sectionTitle) + '</div><div class="review-section-body">';
-    bySection[sectionTitle].forEach(function (r) {
-      html += '<div class="review-row' + (r.missing ? " missing" : "") + '" data-code="' + escapeHtml(r.code) + '">';
+    var secRows = bySection[sectionTitle];
+    var secMissing = secRows.filter(function (r) { return r.missing; }).length;
+    // 質問票（HIT-6・GAD-7 など1問ずつの尺度）は、未入力がなければ閉じておく（点数は上のカードとカルテ文に出る）
+    var isScale = secRows.every(function (r) { return r.type === "matrixrow"; });
+    var open = !isScale || secMissing > 0;
+    var note = isScale ? (secRows.length + "問" + (secMissing ? "・未入力 " + secMissing : "") + (open ? "" : "（クリックで開く）")) : (secMissing ? "未入力 " + secMissing : "");
+    html += '<details class="review-section"' + (open ? " open" : "") + '><summary class="review-section-head"><span>' + escapeHtml(sectionTitle) + '</span><span class="sec-note">' + escapeHtml(note) + '</span></summary><div class="review-section-body">';
+    secRows.forEach(function (r) {
+      var wide = r.type === "multiselect" || r.type === "textarea";
+      var seHide = r.seParent && answers[r.seParent] !== "あり" && !r.value;
+      html += '<div class="review-row' + (r.missing ? " missing" : "") + (wide ? " wide" : "") + (r.sub ? " sub" : "") + (seHide ? " se-hidden" : "") + '" data-code="' + escapeHtml(r.code) + '"' + (r.seParent ? ' data-se-parent="' + escapeHtml(r.seParent) + '"' : "") + '>';
       html += '<div class="review-row-q">' + (r.label ? '<span class="review-row-label">' + escapeHtml(r.label) + "</span>" : "") +
         escapeHtml(r.text) + (r.missing ? ' <span class="missing-badge">未入力</span>' : "") + "</div>";
       html += '<div class="review-row-input">' + renderReviewInput(r) + "</div>";
       html += "</div>";
     });
-    html += "</div></div>";
+    html += "</div></details>";
   });
 
   document.getElementById("reviewList").innerHTML = html;
@@ -1808,6 +1835,7 @@ function attachReviewListeners() {
     if (rowMeta.type === "multiselect") {
       inputs.forEach(function (cb) {
         cb.addEventListener("change", function () {
+          if (cb.parentNode) cb.parentNode.classList.toggle("on", cb.checked);
           var checked = Array.prototype.slice.call(inputs).filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
           window.editedAnswers[code] = checked;
           if (checked.length) markAnswered(); else markMissing();
@@ -1828,6 +1856,10 @@ function attachReviewListeners() {
           newVal = v;
         }
         window.editedAnswers[code] = newVal;
+        if (rowMeta.type === "yesno") {
+          var det = document.querySelector('#reviewList .review-row[data-se-parent="' + code + '"]');
+          if (det) det.classList.toggle("se-hidden", newVal !== "あり" && !det.querySelector(".review-input").value);
+        }
         var isEmpty = (newVal === null || newVal === undefined || newVal === "");
         if (!isEmpty) markAnswered(); else markMissing();
         updateLiveScores();
@@ -1862,6 +1894,7 @@ function setReviewFilter(mode) {
   document.querySelectorAll("#reviewList .review-section").forEach(function (sec) {
     var visibleRows = sec.querySelectorAll(".review-row:not([style*='display: none'])").length;
     sec.style.display = (mode === "missing" && visibleRows === 0) ? "none" : "";
+    if (mode === "missing" && visibleRows > 0) sec.open = true;
   });
 }
 
