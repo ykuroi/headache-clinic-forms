@@ -2534,23 +2534,32 @@ function scanLines(text) {
 // カルテ記載用テキストをクリップボードにコピーする（電子カルテには Ctrl+V で貼る）
 (function () {
   var timer = null;
-  function complete(text) {
-    var lines = scanLines(text), seen = {}, total = 0;
-    lines.forEach(function (l) {
-      var m = /^HZQ[12]:([^:]+):(\d+)\/(\d+):/.exec(l);
-      if (m) { seen[m[2]] = 1; total = Number(m[3]); }
-    });
-    return total > 0 && Object.keys(seen).length >= total;
+  var loadedKey = "";
+  // 欄の中の HZQ 行を、最後に読んだ QR の組（sid）だけに絞って数える。
+  // 患者さんの画面は複数枚を自動で切り替えて繰り返すので、同じ枚を何度読んでもよい。
+  function latestSet(text) {
+    var lines = scanLines(text), sid = "", total = 0, seen = {}, mine = [];
+    lines.forEach(function (l) { var m = /^HZQ[12]:([^:]+):(\d+)\/(\d+):/.exec(l); if (m) { sid = m[1]; total = Number(m[3]); } });
+    lines.forEach(function (l) { var m = /^HZQ[12]:([^:]+):(\d+)\/(\d+):/.exec(l); if (m && m[1] === sid) { seen[m[2]] = 1; mine.push(l); } });
+    return { sid: sid, total: total, got: Object.keys(seen).length, lines: mine };
   }
   function tryAuto() {
     var box = document.getElementById("qrTextInput");
     var msg = document.getElementById("autoScanMsg");
-    if (!box || !complete(box.value)) return;
+    if (!box) return;
+    var set = latestSet(box.value);
+    if (!set.total) return;
+    if (set.got < set.total) {
+      msg.textContent = "📷 QRコード " + set.total + " 枚のうち " + set.got + " 枚を読みました。患者さんの画面が切り替わるので、そのまま残りを読ませてください";
+      return;
+    }
+    if (set.sid === loadedKey) return;   // 同じ患者さんの QR をもう一度読んだだけ（修正中の内容を消さない）
     try {
-      var payload = FE.reassembleFrames(scanLines(box.value));
+      var payload = FE.reassembleFrames(set.lines);
       loadPayloadIntoReview(payload);
       copyKarteText();
-      msg.textContent = "✅ 読み込みました。カルテ用の文をコピーしたので、電子カルテで Ctrl+V で貼り付けてください";
+      loadedKey = set.sid;
+      msg.textContent = "✅ 読み込みました" + (set.total > 1 ? "（" + set.total + "枚）" : "") + "。カルテ用の文をコピーしたので、電子カルテで Ctrl+V で貼り付けてください";
     } catch (e) {
       msg.textContent = "⚠️ 読み込めませんでした（" + e.message + "）。もう一度読ませてください";
     }
