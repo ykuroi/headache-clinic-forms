@@ -1,0 +1,15 @@
+{
+  "id": "./saishin.html",
+  "name": "頭痛外来 再診アンケート",
+  "short_name": "再診",
+  "start_url": "./saishin.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#0d9488",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon_saishin_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon_saishin_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
