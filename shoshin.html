@@ -1433,7 +1433,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
 
   // HZQ2形式：列名を送らず値だけを並べた短い本文（初診は SHOKI_CODEC.encode の結果）をそのまま載せる。
   // 1枚に収まらない長さのときだけ分割する（800文字/枚）。再診 saishin.html と同じ枠。
-  var COMPACT_CHUNK = 800;
+  var COMPACT_CHUNK = 400; // 院内リーダー MD701S が読めるのは QR バージョン15程度まで（2026-10-13）。400文字ならバージョン13〜14
   FE.chunkCompact = function (body) {
     var hash = simpleHash(body);
     var sid = Math.random().toString(36).slice(2, 6);
