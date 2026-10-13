@@ -1680,8 +1680,8 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
   };
 
   // HZQ2形式（再診）：列名を送らず値だけを並べた短い本文（SAISHIN_CODEC.encode の結果）をそのまま載せる。
-  // 1枚に収まらない長さのときだけ分割する（日本語は1文字3バイトのため、800文字/枚に抑える）。
-  var COMPACT_CHUNK = 800;
+  // 1枚に収まらない長さのときだけ分割する（院内リーダーの読み取り限界に合わせて400文字/枚）。
+  var COMPACT_CHUNK = 400; // 院内リーダー MD701S が読めるのは QR バージョン15程度まで（2026-10-13）。400文字ならバージョン13〜14
   FE.chunkCompact = function (body) {
     var hash = simpleHash(body);
     var sid = Math.random().toString(36).slice(2, 6);
