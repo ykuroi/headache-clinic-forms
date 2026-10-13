@@ -1,0 +1,2727 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>頭痛外来 医師用受信＆確認画面</title>
+<style>
+:root {
+  --primary: #2f6f6b;
+  --primary-dark: #204d4a;
+  --accent: #e8734a;
+  --bg: #f6f4ef;
+  --card: #ffffff;
+  --text: #2a2a2a;
+  --muted: #767676;
+  --border: #e2ddd2;
+  --danger: #c0392b;
+  --radius: 14px;
+  --shadow: 0 2px 10px rgba(0,0,0,0.06);
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
+body {
+  font-family: "Hiragino Sans", "Yu Gothic", -apple-system, BlinkMacSystemFont, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+header {
+  background: var(--primary);
+  color: #fff;
+  padding: 20px;
+  text-align: center;
+}
+header h1 { margin: 0; font-size: 1.3rem; }
+header p { margin: 8px 0 0; font-size: 0.85rem; opacity: 0.9; }
+main {
+  max-width: 1300px;
+  margin: 0 auto;
+  padding: 20px;
+  display: grid;
+  grid-template-columns: 380px 1fr;
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 1024px) {
+  main { grid-template-columns: 1fr; }
+}
+.panel {
+  background: var(--card);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+.panel h2 {
+  margin-top: 0;
+  font-size: 1.1rem;
+  color: var(--primary);
+  border-bottom: 2px solid var(--primary);
+  padding-bottom: 10px;
+}
+.qr-input-area {
+  border: 2px dashed var(--border);
+  border-radius: 10px;
+  padding: 20px;
+  text-align: center;
+}
+.qr-input-area button {
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 1rem;
+}
+.qr-input-area button:hover {
+  background: var(--primary-dark);
+}
+.patient-info {
+  background: #f0f8f5;
+  border-left: 4px solid var(--primary);
+  padding: 15px;
+  border-radius: 6px;
+  margin: 15px 0;
+}
+.patient-info .label {
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.patient-info .value {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: var(--primary);
+}
+.score-display {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin: 15px 0;
+}
+.score-box {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 12px;
+  border-radius: 10px;
+  text-align: center;
+}
+.score-box .label { font-size: 0.75rem; opacity: 0.9; }
+.score-box .value { font-size: 1.6rem; font-weight: bold; margin-top: 4px; }
+.chart-container {
+  position: relative;
+  height: 300px;
+  margin: 20px 0;
+}
+.chart-legend {
+  display: flex;
+  justify-content: space-around;
+  font-size: 0.8rem;
+  margin-top: 10px;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.legend-color {
+  width: 12px;
+  height: 12px;
+  border-radius: 2px;
+}
+.patients-list {
+  max-height: 320px;
+  overflow-y: auto;
+}
+.patient-card {
+  background: #fafaf8;
+  border-left: 4px solid var(--accent);
+  padding: 12px;
+  margin-bottom: 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.patient-card:hover {
+  background: #f0f0ed;
+  transform: translateX(4px);
+}
+.patient-card .id { font-weight: bold; color: var(--primary); }
+.patient-card .date { font-size: 0.8rem; color: var(--muted); }
+.patient-card .scores { font-size: 0.8rem; margin-top: 4px; }
+.btn-row {
+  display: flex;
+  gap: 10px;
+  margin-top: 15px;
+}
+.btn-row button, .btn-row a.btn-link {
+  flex: 1;
+  padding: 12px;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: bold;
+  font-size: 0.95rem;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+}
+.btn-primary {
+  background: var(--primary);
+  color: #fff;
+}
+.btn-primary:hover {
+  background: var(--primary-dark);
+}
+.btn-secondary {
+  background: #e0e0e0;
+  color: var(--text);
+}
+.btn-secondary:hover {
+  background: #d0d0d0;
+}
+.btn-accent {
+  background: var(--accent);
+  color: #fff;
+}
+.btn-accent:hover {
+  background: #d65a2f;
+}
+.btn-row button:disabled {
+  background: #ccc;
+  color: #888;
+  cursor: not-allowed;
+}
+.btn-row button:disabled:hover {
+  background: #ccc;
+}
+.warning {
+  background: #fdecea;
+  border: 2px solid var(--danger);
+  color: var(--danger);
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  font-weight: bold;
+}
+.success {
+  background: #e8f5e9;
+  border: 2px solid #27ae60;
+  color: #27ae60;
+  padding: 15px;
+  border-radius: 8px;
+  margin: 15px 0;
+  font-weight: bold;
+}
+
+/* ===== 回答一覧・修正画面 ===== */
+.review-summary {
+  background: #e8f5e9;
+  border: 2px solid #27ae60;
+  color: #1e7e34;
+  padding: 12px 14px;
+  border-radius: 8px;
+  font-weight: bold;
+  font-size: 0.9rem;
+  margin-bottom: 16px;
+}
+.review-summary.has-missing {
+  background: #fff4e5;
+  border-color: var(--accent);
+  color: #a8551f;
+}
+.review-section {
+  background: #fff;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  margin-bottom: 14px;
+  overflow: hidden;
+}
+.review-section-head {
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  padding: 10px 14px;
+  font-weight: bold;
+  font-size: 0.9rem;
+}
+.review-section-body { padding: 4px 14px; }
+.review-row {
+  display: grid;
+  grid-template-columns: minmax(220px, 1.3fr) minmax(180px, 1fr);
+  gap: 12px;
+  align-items: center;
+  padding: 10px 0;
+  border-bottom: 1px solid var(--border);
+}
+.review-row:last-child { border-bottom: none; }
+@media (max-width: 640px) {
+  .review-row { grid-template-columns: 1fr; }
+}
+.review-row.missing {
+  background: #fdecea;
+  margin: 0 -14px;
+  padding: 10px 14px;
+  border-radius: 6px;
+  border-bottom: 1px solid #f6cfc9;
+}
+.review-row-q { font-size: 0.85rem; }
+.review-row-label {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  font-size: 0.7rem;
+  padding: 1px 7px;
+  border-radius: 10px;
+  margin-right: 6px;
+  font-weight: 700;
+}
+.review-row.missing .review-row-label { background: var(--danger); }
+.missing-badge {
+  display: inline-block;
+  color: #fff;
+  background: var(--danger);
+  font-size: 0.68rem;
+  padding: 1px 6px;
+  border-radius: 8px;
+  margin-left: 6px;
+  font-weight: 700;
+  vertical-align: middle;
+}
+.review-row-input { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.review-input {
+  border: 2px solid var(--border);
+  border-radius: 8px;
+  padding: 6px 8px;
+  font-size: 0.85rem;
+  font-family: inherit;
+  background: #fff;
+  color: var(--text);
+  width: 100%;
+}
+.review-row.missing .review-input { border-color: var(--danger); }
+select.review-input { width: 100%; }
+input[type=number].review-input { width: 90px; }
+.review-unit { font-size: 0.78rem; color: var(--muted); }
+.review-check {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 4px 8px;
+  font-size: 0.78rem;
+  background: #fff;
+}
+textarea.review-input { min-height: 50px; resize: vertical; }
+.review-toolbar {
+  position: sticky;
+  top: 0;
+  background: var(--bg);
+  padding: 8px 0 12px;
+  z-index: 5;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.review-toolbar button {
+  border: 2px solid var(--primary);
+  background: #fff;
+  color: var(--primary);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-weight: 700;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+.review-toolbar button.active { background: var(--primary); color: #fff; }
+.hidden { display: none !important; }
+.empty-hint {
+  text-align: center;
+  color: var(--muted);
+  padding: 60px 20px;
+  font-size: 0.95rem;
+}
+</style>
+</head>
+<body>
+<header>
+  <h1>🏥 頭痛外来 医師用受信＆確認画面</h1>
+  <p>患者スマホからのQRコード読み取り → 回答一覧の確認・入力漏れの修正 → 保存</p>
+</header>
+
+<main>
+  <!-- 左パネル：QRコード受信＋患者データ管理 -->
+  <div>
+    <div class="panel">
+      <h2>📱 QRコード受信</h2>
+      <div class="qr-input-area">
+        <p style="font-size:0.85rem;">患者スマホに表示された「HZQ2:...」のQRデータを貼り付けてください（複数枚のときは1行に1枚分。以前の初診QR「HZQ1:...」も読めます）</p>
+        <textarea id="qrTextInput" placeholder="HZQ2:... または HZQ1:... から始まるQRデータを貼り付け" style="width:100%; height:80px; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:0.8rem; font-family:monospace;"></textarea>
+        <div class="btn-row">
+          <button class="btn-primary" onclick="parseQRText();">📥 読み込んで確認する</button>
+        </div>
+        <p id="autoScanMsg" style="font-size:0.85rem; font-weight:700; color:#1f6f78; min-height:1.2em; margin:6px 0 0;">QRリーダーで読むときは、この欄をクリックしてから読ませてください（自動で読み込み、カルテ用の文をコピーします）</p>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
+      <h2>📊 患者データ管理</h2>
+
+      <div style="background:#f0f8f5; border:2px dashed var(--primary); border-radius:8px; padding:12px; margin-bottom:15px;">
+        <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin-bottom:6px;">📁 受診データCSVを開く</div>
+        <div style="font-size:0.78rem; color:var(--muted); margin-bottom:8px;">
+          「2027_migraine_visit.csv」を選択すると、受診データをここに取り込みます。<br>
+          Chrome・Edgeでは、この後「CSVに追記」を押すと同じファイルへ直接追記されます（他のブラウザでは読み込みのみ）。
+        </div>
+        <button class="btn-secondary" id="btnOpenKaisekiCsv" onclick="openKaisekiCsvFile();" style="width:100%; margin-bottom:8px;">📂 CSVファイルを開く</button>
+        <input type="file" id="excelFileInput" accept=".csv" style="width:100%; font-size:0.82rem;">
+        <div id="excelImportStatus" style="font-size:0.8rem; margin-top:8px; color:var(--muted);"></div>
+      </div>
+
+      <div style="background:#fff4ec; border:2px dashed var(--accent); border-radius:8px; padding:12px; margin-bottom:15px;">
+        <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">📋 追記履歴（このセッション分）</div>
+        <div style="font-size:0.78rem; color:var(--muted); margin-bottom:8px;">
+          右側で「CSVに追記」を押すたびに、下の欄に追加された内容が表示されます。CSVファイルを開いていない場合は、ここからコピー・ダウンロードして手動で貼り付けてください。
+        </div>
+        <textarea id="kaisekiCsvQueue" readonly style="width:100%; height:90px; font-family:monospace; font-size:0.75rem; padding:6px; border:1px solid var(--border); border-radius:6px;" placeholder="ここに追記されたデータが表示されます"></textarea>
+        <div class="btn-row" style="margin-top:8px;">
+          <button class="btn-secondary" onclick="copyKaisekiCsvQueue();">📋 コピー</button>
+          <button class="btn-secondary" onclick="downloadKaisekiCsvQueue();">⬇ ダウンロード</button>
+          <button class="btn-secondary" onclick="clearKaisekiCsvQueue();">🗑 履歴をクリア</button>
+        </div>
+        <div id="kaisekiCsvStatus" style="font-size:0.8rem; margin-top:8px; color:var(--muted);"></div>
+      </div>
+
+      <div style="margin-bottom:15px;">
+        <label style="font-size:0.85rem;">患者検索：</label>
+        <input type="text" id="patientSearch" placeholder="カルテ番号を入力..." style="width:100%; padding:8px; border:1px solid var(--border); border-radius:6px;">
+      </div>
+      <div class="patients-list" id="patientsList"></div>
+
+      <div id="graphSection" style="display:none; margin-top:16px;">
+        <h3 style="margin-top:0; color:var(--primary); font-size:1rem;">📈 推移グラフ</h3>
+        <div class="chart-container">
+          <canvas id="trendChart"></canvas>
+        </div>
+        <div class="chart-legend" id="chartLegend"></div>
+        <div class="btn-row">
+          <a class="btn-link btn-accent" href="doctor_v2_PDF.html" target="_blank">📄 成績表PDF生成画面を開く</a>
+        </div>
+      </div>
+
+      <div class="btn-row">
+        <button class="btn-secondary" onclick="exportToCSV();">📥 CSVでダウンロード（全患者分）</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 右パネル：回答一覧・確認・修正 -->
+  <div class="panel">
+    <h2>📝 回答内容の確認・修正</h2>
+    <div id="reviewEmpty" class="empty-hint">左のQRコード欄にデータを貼り付けると、回答内容がここに一覧表示されます。</div>
+
+    <div id="reviewWrap" class="hidden">
+      <div class="patient-info">
+        <div class="label">種別／記入日</div>
+        <div class="value" id="displayMeta"></div>
+      </div>
+
+      <div class="patient-info karte-input-box" style="margin-top:10px; border:2px solid var(--accent);">
+        <div class="label">🔑 カルテ番号（医師端末で入力・照合）</div>
+        <input type="text" id="karteInput" inputmode="numeric" autocomplete="off" placeholder="例）011397"
+          style="width:100%; padding:12px; font-size:1.1rem; font-weight:700; border:1px solid var(--border); border-radius:8px; margin-top:6px;"
+          oninput="onKarteInputChange();">
+        <div id="karteMatchInfo" style="font-size:0.82rem; margin-top:8px; line-height:1.5;"></div>
+      </div>
+
+      <div class="score-display" id="scoreGrid">
+        <div class="score-box"><div class="label">HIT-6</div><div class="value" id="scoreHIT6">-</div></div>
+        <div class="score-box"><div class="label">GAD-7</div><div class="value" id="scoreGAD7">-</div></div>
+        <div class="score-box"><div class="label">PHQ-9</div><div class="value" id="scorePHQ9">-</div></div>
+        <div class="score-box"><div class="label">MIBS-4</div><div class="value" id="scoreMIBS4">-</div></div>
+        <div class="score-box"><div class="label">MHD</div><div class="value" id="scoreMHD">-</div></div>
+        <div class="score-box"><div class="label">AMD</div><div class="value" id="scoreAMD">-</div></div>
+      </div>
+
+      <div id="phq9Warning" class="warning" style="display:none;">
+        ⚠️ PHQ-9項目9（希死念慮）に回答あり。要確認。
+      </div>
+
+      <div class="patient-info" id="karteTextBox" style="margin-top:10px;">
+        <div class="label">📝 カルテ記載用（そのままコピーして電子カルテへ貼り付け）</div>
+        <textarea id="karteText" readonly style="width:100%; height:260px; margin-top:6px; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:0.82rem; line-height:1.5;"></textarea>
+        <button class="btn-secondary" style="margin-top:6px;" onclick="copyKarteText();">📋 カルテ記載をコピー</button>
+        <span id="karteCopied" style="font-size:0.8rem; color:var(--primary); margin-left:8px;"></span>
+      </div>
+
+      <div class="review-toolbar">
+        <button id="filterAll" class="active" onclick="setReviewFilter('all');">すべて表示</button>
+        <button id="filterMissing" onclick="setReviewFilter('missing');">未入力のみ表示</button>
+      </div>
+
+      <div id="reviewList"></div>
+
+      <div class="btn-row">
+        <button class="btn-primary" onclick="savePatientData();">💾 このデータを保存</button>
+        <button class="btn-secondary" onclick="resetReview();">🔄 リセット</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn-accent" id="btnWriteToExcel" onclick="addVisitToKaisekiCsvQueue();" style="width:100%;">📋 CSVに追記</button>
+      </div>
+      <div id="excelWriteResult" style="font-size:0.82rem; margin-top:8px; line-height:1.5;"></div>
+    </div>
+  </div>
+</main>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>
+/* =========================================================================
+ * 再診データ 共通コード表（HZQ2形式のQR・解析用CSV）
+ * saishin.html と doctor.html に同じ内容を置くこと。片方だけ変えると読み取れなくなる。
+ * 列名・値コードの一覧は header_draft.md（再診データ ヘッダー案）に対応。
+ * ========================================================================= */
+var SAISHIN_CODEC = (function () {
+  var EFF = { "◎ とてもよく効く": 3, "◯ よく効く": 2, "△ それほど効かない": 1, "✗ 全然効かない": 0 };
+  function effMap(noneValue) {
+    var m = {};
+    Object.keys(EFF).forEach(function (k) { m[k] = EFF[k]; });
+    m[noneValue] = 9;
+    return m;
+  }
+  var CHANGE5 = { "-2 明らかに悪化した": -2, "-1 少し悪化した": -1, "±0 変わらない": 0, "+1 少し改善した": 1, "+2 明らかに改善した": 2 };
+  // 誘因（Q2）の値。番号は1始まりの並び順。末尾に追加はできるが、並べ替え・削除はしないこと。
+  var TRIGGERS = [
+    "睡眠不足", "寝すぎ・寝だめ", "食事抜き・空腹", "疲れ・過労", "運動", "水分不足", "画面作業", "肩こり・姿勢",
+    "ストレス", "ストレス解放", "緊張・不安",
+    "月経前後", "排卵期", "妊娠・産後・更年期", "ホルモン剤",
+    "アルコール", "特定の食品", "加工食品", "カフェイン過剰", "カフェイン中断",
+    "天気", "気温・湿度", "光", "音", "におい", "人混み・乗り物", "入浴",
+    "鎮痛薬の飲みすぎ", "血管拡張薬",
+    "思い当たらない"
+  ];
+  var CONT_WHY = ["効果が感じられない", "副作用がつらい", "注射が面倒・痛い", "費用が高い", "頭痛が十分改善したので卒業したい", "その他"];
+  // 副作用チェック：[回答キーの行コード, 列名の接尾辞, CSVの詳細欄で使う名前]
+  var SE_ROWS = [
+    ["inj", "INJ", "注射部位"], ["benpi", "CONST", "便秘"], ["datsumou", "ALOP", "脱毛"], ["hisshin", "RASH", "発疹"],
+    ["kao", "SWELL", "顔・のどの腫れ"], ["ketsuatsu", "CV", "血圧・心臓"], ["teashi", "COLD", "手足の冷え"],
+    ["zenshin", "FATG", "だるさ"], ["kimochi", "MOOD", "気持ち"], ["hakike", "NAUS", "吐き気"],
+    ["kinniku", "MYAL", "筋肉・関節"], ["taijuu", "WT", "体重・食欲"], ["gekkei", "MENS", "月経"],
+    ["kuchi", "ORAL", "口内"], ["zutsuu", "HA", "注射後の頭痛"]
+  ];
+
+  // QRで送る項目の並び順（この順に値だけを "|" でつなぐ）。csv:false はQRのみ。
+  var FIELDS = [];
+  function add(col, key, t, opt, csv) { FIELDS.push({ col: col, key: key, t: t, opt: opt, csv: csv !== false }); }
+  add("DATE", "FORM_DATE", "date");
+  add("CC", "SOUDAN", "text");
+  add("MMD", "Q1_days", "num");
+  add("MHD", "Q2_headache", "num");
+  add("UD", "Q2_unclear", "num");
+  add("CCD", "Q2_clear", "num");
+  add("TRG", "TRIGGER", "multi", TRIGGERS);
+  add("TRG_O", "TRIGGER_other", "text");
+  add("maxNRS", "Q3", "num");
+  add("meanNRS", "Q4", "num");
+  add("ASSOC", "Q5", "map", { "◎ とてもよくなった": 2, "◯ 少しよくなった": 1, "△ 変わらない": 0, "✗ 少し悪くなった": -1, "✗✗ 明らかに悪くなった": -2, "N もともとなかった": 9 });
+  add("AMD", "Q6_total", "num");
+  add("AMD_RIM", "Q6_naru", "num");   // ナルティーク（リメゲパント）
+  add("AMD_TRP", "Q6_trip", "num");
+  add("AMD_LAS", "Q6_rayvow", "num"); // レイボー（ラスミジタン）
+  add("AMD_RX", "Q6_rx", "num");      // 病院でもらったその他の薬（カロナール・ロキソニンなど）
+  add("AMD_OTC", "Q6_otc", "num");    // 市販薬
+  add("EFF_RIM", "Q7", "map", effMap("N ナルティークを使っていない"));
+  add("EFF_TRP", "Q8", "map", effMap("N トリプタンを使っていない"));
+  add("EFF_OTC", "Q9", "map", effMap("N 市販の痛み止めを使っていない"));
+  add("AMD_CHG", "Q10", "map", { "◎ 明らかに減った（半分以下）": -2, "◯ 少し減った": -1, "△ 変わらない": 0, "✗ 増えた": 1 });
+  // 評価尺度は各項目の選択肢番号（0始まり）を送り、合計は受け取った側で計算する
+  [["HIT6", 6], ["GAD7", 7], ["PHQ9", 9], ["MIBS4", 4]].forEach(function (sc) {
+    for (var i = 1; i <= sc[1]; i++) add(sc[0] + "_" + i, sc[0] + "_" + i, "num", null, false);
+  });
+  add("PGIC", "PGIC", "str");
+  add("SAT_EFF", "SATIS_kikime", "num");
+  add("SAT_USE", "SATIS_tsukaiyasusa", "num");
+  add("SAT_AE", "SATIS_fukusayou", "num");
+  add("SAT_ALL", "SATIS_sougou", "num");
+  SE_ROWS.forEach(function (r) { add("AE_" + r[1], "SE_" + r[0], "map", { "あり": 1, "なし": 0 }); });
+  SE_ROWS.forEach(function (r) { add("AE_" + r[1] + "_D", "SE_" + r[0] + "_detail", "text", null, false); });
+  add("AE_O", "SE_other", "text", null, false);
+  add("SLEEP", "Q14", "map", CHANGE5);
+  add("FATIG", "Q15", "map", CHANGE5);
+  add("CONT", "Q11", "map", { "ぜひ続けたい": 4, "どちらかといえば続けたい": 3, "迷っている": 2, "あまり続けたくない": 1, "中止したい": 0 });
+  add("CONT_WHY", "Q12", "multi", CONT_WHY);
+  add("CONT_O", "Q12_other", "text");
+  add("CMT", "Q13", "text");
+  // 2026-10-11 追加：QRの並びは末尾に足す（以前のQRもそのまま読めるように）
+  add("EFF_LAS", "Q9las", "map", effMap("N レイボーを使っていない"));
+  add("EFF_RX", "Q9rx", "map", effMap("N 病院でもらったその他の痛み止めを使っていない"));
+
+  // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
+  var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
+    "AMD", "AMD_RIM", "AMD_TRP", "AMD_LAS", "AMD_RX", "AMD_OTC", "EFF_RIM", "EFF_TRP", "EFF_LAS", "EFF_RX", "EFF_OTC", "AMD_CHG",
+    "HIT6", "MIBS4", "GAD7", "PHQ9", "PHQ9_9", "PGIC", "SAT_EFF", "SAT_USE", "SAT_AE", "SAT_ALL"]
+    .concat(SE_ROWS.map(function (r) { return "AE_" + r[1]; }))
+    .concat(["AE_D", "SLEEP", "FATIG", "CONT", "CONT_WHY", "CONT_O", "CMT"]);
+  var CSV_HEADER = ["ID", "VISIT"].concat(CSV_COLS).concat(["OLD_MOOD", "OLD_ANX", "OLD_FATG"]);
+  // 旧ヘッダー名 → 新ヘッダー名（旧形式のCSVを読むとき用）
+  var OLD_NAMES = {
+    "カルテ番号": "ID", "来院回数": "VISIT", "受診日": "DATE", "GAD-7": "GAD7", "PHQ-9": "PHQ9",
+    "効き目 満足度": "SAT_EFF", "使いやすさ 満足度": "SAT_USE", "副作用 満足度": "SAT_AE", "総合満足度": "SAT_ALL",
+    "気分の落ち込み 副作用": "OLD_MOOD", "不安感 副作用": "OLD_ANX", "疲れやすさ 副作用": "OLD_FATG"
+  };
+
+  function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
+  // 自由記載：半角英数字だけならそのまま、日本語などを含むときは「~」＋Base64（UTF-8）にして、QR本文を半角英数字だけにする
+  // （日本語をそのまま載せると QR が作れない・読み取り側で文字化けすることがあるため）。「~」で始まらない旧形式もそのまま読める。
+  function escText(s) {
+    s = String(s);
+    // 英数字・空白・「.」「,」だけならそのまま。それ以外は "!"+Base64。
+    // （QRリーダーと PC のキーボード配列が違うと記号が化け、「~」は日本語入力の切り替えキーになってしまうため、記号を避ける）
+    if (/^[A-Za-z0-9 .,]*$/.test(s)) return s;
+    return "!" + btoa(unescape(encodeURIComponent(s)));
+  }
+  function unescText(s) {
+    if (s.charAt(0) === "~" || s.charAt(0) === "!") { try { return decodeURIComponent(escape(atob(s.slice(1)))); } catch (e) { return s; } }   // 「~」は旧形式
+    return s.replace(/⏎/g, "\n");   // 旧形式（日本語をそのまま載せていた頃）
+  }
+
+  function encodeValue(f, v) {
+    if (empty(v)) return "";
+    switch (f.t) {
+      case "date": return String(v).replace(/-/g, "");
+      case "text": return escText(v);
+      case "num": case "str": return String(v);
+      case "map": return f.opt[v] !== undefined ? String(f.opt[v]) : "";
+      case "multi":
+        return (Array.isArray(v) ? v : [v]).map(function (x) { return f.opt.indexOf(x) + 1; })
+          .filter(function (n) { return n > 0; }).join(";");
+    }
+    return "";
+  }
+  function decodeValue(f, s) {
+    if (s === undefined || s === "") return f.t === "multi" ? [] : (f.t === "text" ? "" : null);
+    switch (f.t) {
+      case "date": return s.length === 8 ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6) : s;
+      case "text": return unescText(s);
+      case "num": return Number(s);
+      case "str": return s;
+      case "map":
+        var keys = Object.keys(f.opt);
+        for (var i = 0; i < keys.length; i++) if (String(f.opt[keys[i]]) === s) return keys[i];
+        return null;
+      case "multi":
+        return s.split(";").map(function (n) { return f.opt[Number(n) - 1]; }).filter(function (x) { return x !== undefined; });
+    }
+    return null;
+  }
+
+  // 回答 → QR本文（"S|値|値|..."、末尾の空欄は省略）
+  function encode(answers) {
+    var vals = FIELDS.map(function (f) { return encodeValue(f, answers[f.key]); });
+    while (vals.length && vals[vals.length - 1] === "") vals.pop();
+    return "S|" + vals.join("|");
+  }
+  // QR本文 → 回答（saishin.html と同じキー）
+  function decode(body) {
+    var parts = body.split("|");
+    if (parts[0] !== "S") throw new Error("再診データではありません");
+    var a = {};
+    FIELDS.forEach(function (f, i) { a[f.key] = decodeValue(f, parts[i + 1]); });
+    a.Q1 = mmdCategory(a.Q1_days);
+    return a;
+  }
+  // 片頭痛日数から従来の区分（Q1）を導出
+  function mmdCategory(n) {
+    if (n === null || n === undefined) return null;
+    if (n === 0) return "0日（頭痛なし）";
+    if (n <= 4) return "1〜4日";
+    if (n <= 9) return "5〜9日";
+    if (n <= 14) return "10〜14日";
+    if (n <= 20) return "15〜20日";
+    if (n <= 28) return "21〜28日";
+    return "ほぼ毎日";
+  }
+
+  // 回答＋スコア → 解析用CSVの1行分（列名: 値）
+  function toCsvObject(answers, scores) {
+    var o = {};
+    FIELDS.forEach(function (f) {
+      if (!f.csv) return;
+      var v = encodeValue(f, answers[f.key]);
+      if (f.t === "date") v = answers[f.key] || "";
+      if (f.t === "text") v = empty(answers[f.key]) ? "" : String(answers[f.key]);
+      o[f.col] = v;
+    });
+    scores = scores || {};
+    function n(v) { return v === null || v === undefined ? "" : v; }
+    o.HIT6 = n(scores.hit6);
+    o.MIBS4 = n(scores.mibs4);
+    o.GAD7 = n(scores.gad7);
+    o.PHQ9 = n(scores.phq9);
+    o.PHQ9_9 = n(scores.phq9_item9_score);
+    var det = [];
+    SE_ROWS.forEach(function (r) {
+      var d = answers["SE_" + r[0] + "_detail"];
+      if (!empty(d)) det.push(r[2] + ":" + d);
+    });
+    if (!empty(answers.SE_other)) det.push("その他:" + answers.SE_other);
+    o.AE_D = det.join(" / ");
+    return o;
+  }
+
+  return {
+    FIELDS: FIELDS, CSV_COLS: CSV_COLS, CSV_HEADER: CSV_HEADER, OLD_NAMES: OLD_NAMES,
+    TRIGGERS: TRIGGERS, encode: encode, decode: decode, toCsvObject: toCsvObject, mmdCategory: mmdCategory
+  };
+})();
+</script>
+<script>
+/* =========================================================================
+   共通スキーマ定義（初診・再診アンケートと同一のもの）
+   ========================================================================= */
+var SCHEMA_SHOKI = {
+  kind: "shoki",
+  title: "頭痛外来　初診アンケート",
+  sections: [
+    {
+      title: "💬 今日、特に相談したいこと",
+      questions: [
+        { code: "SOUDAN", type: "textarea", text: "今日、特に相談したいことを教えてください。（気になっていること・最近の頭痛の変化・困っていることなど、何でも書いてください）", placeholder: "自由にご記入ください" }
+      ]
+    },
+    {
+      title: "👤 A　基本情報",
+      questions: [
+        {
+          code: "Q1", type: "numbergroup", label: "Q1", text: "身長・体重をおおよそで教えてください",
+          fields: [
+            { code: "Q1_height", label: "身長", unit: "cm" },
+            { code: "Q1_weight", label: "体重", unit: "kg" }
+          ]
+        },
+        {
+          code: "Q2job", type: "radio", label: "Q2", text: "現在の就労・就学状況を教えてください", wide: true,
+          options: ["常勤・正規雇用","非常勤・パート","自営業・フリーランス","専業主婦（主夫）","学生","退職・無職","その他"].map(function(l){return {value:l,label:l};})
+        },
+        { code: "Q2night", type: "radio", label: "Q3", text: "夜勤（あるいは睡眠リズムが不安定になること）はありますか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}] },
+        {
+          code: "Q3", type: "checkbox", label: "Q4", text: "ご家族に片頭痛の方はいますか？いる場合は、どなたですか？（複数可）",
+          options: [{value:"父",label:"父"},{value:"母",label:"母"},{value:"兄弟",label:"兄弟"},{value:"子ども",label:"子ども"}]
+        }
+      ]
+    },
+    {
+      title: "🧠 B　頭痛の特徴とパターン",
+      questions: [
+        {
+          code: "Q4", type: "numbergroup", label: "Q5", text: "頭痛はいつ頃から始まりましたか？",
+          fields: [{ code: "Q4_age", label: "発症年齢", unit: "歳ごろから" }]
+        },
+        {
+          code: "Q5", type: "radio", label: "Q6", text: "この3ヶ月間、頭痛がある日は月に15日以上（＝2日に1日以上）ありましたか？", wide: true,
+          // 画面では「いいえ／はい」→「はい」の方のみ時期を選ぶ2段構え（ゲーム風演出ブロックの setupQ5）。記録される値は従来の4択のまま
+          options: [
+            {value:"今も月15日未満（該当しない）",label:"いいえ（月15日未満）"},
+            {value:"1年以内に該当するようになった",label:"1年以内から"},
+            {value:"2〜5年前から該当している",label:"2〜5年前から"},
+            {value:"6年以上前から該当している",label:"6年以上前から"}
+          ]
+        },
+        {
+          code: "Q6", type: "radio", label: "Q7", text: "最近3ヶ月間で、片頭痛（ガンガン・ズキズキと拍動し、動くとツラくなる頭痛）が起きる日は月に何日くらいですか？",
+          options: ["0〜4日","5〜9日","10〜14日","15〜20日","21〜28日","ほぼ毎日"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q6days", type: "numbergroup", text: "できれば具体的な日数を教えてください",
+          fields: [{ code: "Q6_days", label: "片頭痛日数", unit: "日/月 程度" }]
+        },
+        {
+          code: "Q2b", type: "numbergroup", tree: true, label: "Q8",
+          text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください",
+          fields: [
+            { code: "Q2b_headache", label: "頭痛があった日数", unit: "日" },
+            { code: "Q2b_mig", label: "うち片頭痛の日数", unit: "日" },
+            { code: "Q2b_clear", label: "スッキリしていた日数", unit: "日" },
+            { code: "Q2b_unclear", label: "スッキリしなかった日数", unit: "日" },
+            { code: "Q2b_med", label: "痛み止め使用日数", unit: "日" }
+          ]
+        },
+        {
+          code: "Q7type", type: "radio", label: "Q9", text: "頭痛のタイプは？", other: true, wide: true,
+          options: [
+            {value:"Aズキズキ・ガンガン（拍動性）",label:"Aズキズキ・ガンガン（拍動性）"},
+            {value:"B締め付けられる・圧迫感",label:"B締め付けられる・圧迫感"},
+            {value:"AB両方ある",label:"AB両方ある"},
+            {value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q7dur", type: "radio", label: "Q10", text: "頭痛の継続時間は？", other: true, wide: true,
+          options: [
+            {value:"１時間以内で収まる",label:"１時間以内で収まる"},
+            {value:"数時間続く",label:"数時間続く"},
+            {value:"翌日以降も休まず続く",label:"翌日以降も休まず続く"},
+            {value:"短時間（数秒〜数分）だが繰り返す",label:"一回あたりの頭痛は短時間（数秒〜数分）だが繰り返す"},
+            {value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q8", type: "slider", label: "Q11", text: "頭痛が一番ひどいときの強さは？",
+          hint: "ボタンを左右にスライドさせて回答してください",
+          leftFace: "🙂", rightFace: "😖",
+          leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
+        },
+        {
+          code: "Q9", type: "radio", label: "Q12", text: "頭痛のとき、体を動かすと頭痛が悪化しますか？",
+          options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（たまに）",label:"はい（たまに）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q10", type: "checkbox", label: "Q13", text: "頭痛のときに一緒に起こる症状は？（複数選択可）", wide: true,
+          options: [
+            {value:"吐き気",label:"吐き気"},{value:"嘔吐",label:"嘔吐"},
+            {value:"光が眩しい（光過敏）",label:"光が眩しい（光過敏）"},{value:"音がうるさい（音過敏）",label:"音がうるさい（音過敏）"},
+            {value:"においが気になる（嗅覚過敏）",label:"においが気になる（嗅覚過敏）"},{value:"肩こり・首こり",label:"肩こり・首こり"},
+            {value:"めまい",label:"めまい"},{value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q11", type: "radio", label: "Q14", text: "頭痛の前に「前兆」はありますか？（光が見える・手足がしびれるなど）",
+          options: [{value:"はい（毎回）",label:"はい（毎回）"},{value:"はい（時々）",label:"はい（時々）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q11sub", type: "checkbox", text: "↓「はい」の方：どんな症状ですか？（複数可）",
+          showIf: { code: "Q11", in: ["はい（毎回）","はい（時々）"] },
+          options: [
+            {value:"視覚症状（光・ギザギザ・視野が欠ける）",label:"視覚症状（光・ギザギザ・視野が欠ける）"},
+            {value:"感覚症状（しびれ・ピリピリ）",label:"感覚症状（しびれ・ピリピリ）"},
+            {value:"運動症状（力が入らない）",label:"運動症状（力が入らない）"},
+            {value:"言語症状（言葉が出にくい）",label:"言語症状（言葉が出にくい）"}
+          ]
+        },
+        {
+          code: "Q12", type: "checkbox", label: "Q15", text: "頭痛発作の前日〜数時間前に体の変化を感じることはありますか？（複数可）", wide: true,
+          options: [
+            {value:"あくびが出る",label:"あくびが出る"},{value:"甘いものが食べたくなる",label:"甘いものが食べたくなる"},
+            {value:"疲れやすくなる",label:"疲れやすくなる"},{value:"気分が落ち込む",label:"気分が落ち込む"},
+            {value:"首が凝る",label:"首が凝る"},{value:"なし・わからない",label:"なし・わからない",exclusive:true}
+          ]
+        },
+        {
+          code: "Q16trigger", type: "checkbox", label: "Q16", text: "頭痛のきっかけとして思い当たるものはありますか？", other: true, wide: true,
+          options: [
+            {value:"寝不足/寝すぎ",label:"寝不足/寝すぎ"},{value:"ストレス",label:"ストレス"},{value:"悪天候",label:"悪天候"},
+            {value:"飲酒",label:"飲酒"},{value:"空腹",label:"空腹"},{value:"目の疲れ・光の刺激",label:"目の疲れ・光の刺激"},
+            {value:"うるさい音",label:"うるさい音"},{value:"その他",label:"その他"}
+          ]
+        },
+        {
+          code: "Q13", type: "radio", label: "Q17", text: "頭痛のない時期にも、頭皮や皮膚が敏感になることがありますか？（ブラッシングや触れると痛いなど）",
+          options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q14", type: "radio", label: "Q18", text: "頭痛のとき、目が充血する・涙が出る・鼻が詰まるなどの顔面の症状が、右左どちらか半分にだけ出てくることはありましたか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q15", type: "radio", label: "Q19", text: "月経（生理）と頭痛の関係は？（女性の方のみ）", wide: true,
+          options: ["生理の前後にだけ頭痛が起きる","生理の前後に特に起きやすいが、それ以外の時期にも起きる","生理とは関係ない・わからない","閉経している","該当しない（男性・生理がない など）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q16horm", type: "radio", label: "Q20", text: "ホルモン療法・低用量ピルを使用していますか？（女性の方のみ）", wide: true,
+          options: [{value:"はい（低用量ピル）",label:"はい（低用量ピル）"},{value:"はい（更年期ホルモン療法）",label:"はい（更年期ホルモン療法）"},{value:"いいえ",label:"いいえ"}]
+        }
+      ]
+    },
+    {
+      title: "💊 C　痛み止め（急性期薬）の使用状況",
+      questions: [
+        {
+          code: "Q17", type: "checkbox", label: "Q21", text: "頭痛の痛み止めとして使ったことがある薬はありますか？（複数可）", wide: true,
+          options: [
+            {value:"市販の頭痛薬（EVEなど）",label:"市販の頭痛薬（EVEなど）"},
+            {value:"ロキソプロフェン（ロキソニン）",label:"ロキソプロフェン（ロキソニン）"},
+            {value:"アセトアミノフェン（カロナール）",label:"アセトアミノフェン（カロナール）"},
+            {value:"イブプロフェン",label:"イブプロフェン"},
+            {value:"スマトリプタン（イミグラン）",label:"スマトリプタン（イミグラン）"},
+            {value:"リザトリプタン（マクサルト）",label:"リザトリプタン（マクサルト）"},
+            {value:"ゾルミトリプタン（ゾーミッグ）",label:"ゾルミトリプタン（ゾーミッグ）"},
+            {value:"エレトリプタン（レルパックス）",label:"エレトリプタン（レルパックス）"},
+            {value:"エルゴタミン（クリアミン等）",label:"エルゴタミン（クリアミン等）"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q19", type: "numbergroup", label: "Q22", text: "現在、月に何日くらい痛み止めを飲んでいますか？",
+          fields: [
+            { code: "Q19_total", label: "合計", unit: "日/月" },
+            { code: "Q19_naru", label: "（内訳）ナルティーク", unit: "日" },
+            { code: "Q19_trip", label: "（内訳）トリプタン", unit: "日" },
+            { code: "Q19_rayvow", label: "（内訳）レイボー", unit: "日" },
+            { code: "Q19_rx", label: "（内訳）病院でもらったその他の薬", unit: "日" },
+            { code: "Q19_otc", label: "（内訳）市販の薬", unit: "日" },
+            // 効き目（画面では各薬の右に出る縦スライダー）：3=とてもよく効く 2=よく効く 1=それほど効かない 0=全然効かない（再診の EFF_* と同じ点数）
+            { code: "Q19eff_naru", label: "（効き目）ナルティーク 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_trip", label: "（効き目）トリプタン 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_rayvow", label: "（効き目）レイボー 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_rx", label: "（効き目）病院でもらったその他の薬 3とてもよく効く〜0全然効かない", unit: "" },
+            { code: "Q19eff_otc", label: "（効き目）市販の薬 3とてもよく効く〜0全然効かない", unit: "" }
+          ]
+        }
+      ]
+    },
+    {
+      title: "📋 D　これまでに試みた頭痛の予防薬",
+      questions: [
+        {
+          code: "Q20", type: "radio", label: "Q23", text: "これまでに試みた頭痛の予防薬はありますか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q20med", type: "text", text: "あれば、薬の名前を教えてください",
+          showIf: { code: "Q20", in: ["はい"] }
+        }
+      ]
+    },
+    {
+      title: "🏥 E　現在の健康状態・生活習慣",
+      questions: [
+        {
+          code: "Q22", type: "checkbox", label: "Q24", text: "現在、治療中または診断されている病気があれば選んでください（複数可）", wide: true,
+          options: [
+            {value:"高血圧",label:"高血圧"},{value:"糖尿病",label:"糖尿病"},{value:"高脂血症（脂質異常症）",label:"高脂血症（脂質異常症）"},
+            {value:"心臓病(狭心症/心筋梗塞等)",label:"心臓病(狭心症/心筋梗塞等)"},{value:"脳卒中・脳梗塞",label:"脳卒中・脳梗塞"},
+            {value:"睡眠時無呼吸症候群",label:"睡眠時無呼吸症候群"},{value:"慢性肺疾患（喘息等）",label:"慢性肺疾患（喘息等）"},
+            {value:"肝臓・腎臓の病気",label:"肝臓・腎臓の病気"},{value:"関節リウマチ等の免疫疾患",label:"関節リウマチ等の免疫疾患"},
+            {value:"悪性腫瘍（がん）",label:"悪性腫瘍（がん）"},{value:"特になし",label:"特になし",exclusive:true}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🧭 精神科の症状（頭痛とメンタルは強い結びつきがあります）",
+      questions: [
+        {
+          code: "Q23", type: "checkbox", label: "Q25", text: "気分の障害について、診断されたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"うつ病",label:"うつ病"},{value:"双極性障害（躁うつ病）",label:"双極性障害（躁うつ病）"},{value:"適応障害",label:"適応障害"},
+            {value:"現在治療中",label:"現在治療中"},{value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q24", type: "checkbox", label: "Q26", text: "不安に関する障害について、診断されたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"パニック障害",label:"パニック障害"},{value:"全般性不安障害",label:"全般性不安障害"},{value:"強迫性障害",label:"強迫性障害"},
+            {value:"以前治療していたが現在は回復",label:"以前治療していたが現在は回復"},{value:"現在治療中",label:"現在治療中"},
+            {value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q25", type: "checkbox", label: "Q27", text: "その他の精神疾患の診断を受けたことはありますか？（複数可）", wide: true,
+          options: [
+            {value:"統合失調症",label:"統合失調症"},{value:"ADHD等の発達障害",label:"ADHD等の発達障害"},{value:"摂食障害",label:"摂食障害"},
+            {value:"解離性障害",label:"解離性障害"},{value:"その他",label:"その他"},{value:"なし",label:"なし",exclusive:true}
+          ]
+        },
+        {
+          code: "Q27", type: "radio", label: "Q28", text: "めまい・乗り物酔いをしやすいなど、「自律神経失調」の症状はありますか？",
+          options: [{value:"はい（よくある）",label:"はい（よくある）"},{value:"はい（たまにある）",label:"はい（たまにある）"},{value:"いいえ",label:"いいえ"}]
+        },
+        {
+          code: "Q28", type: "radio", label: "Q29", text: "睡眠の状態を教えてください", wide: true,
+          options: ["眠れないことが多い（不眠）","昼間も眠い（過眠）","特に問題ない","呼吸が止まると言われた（睡眠時無呼吸）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q29", type: "radio", label: "Q30", text: "疲れやすさ・全身のだるさはありますか？",
+          options: [{value:"強い倦怠感が続いている",label:"強い倦怠感が続いている"},{value:"時々ある",label:"時々ある"},{value:"特になし",label:"特になし"}]
+        },
+        {
+          code: "Q30smoke", type: "radio", label: "Q31", text: "＜たばこ＞について教えてください",
+          options: [{value:"現在喫煙中",label:"現在喫煙中"},{value:"過去に吸っていたが禁煙中",label:"過去に吸っていたが禁煙中"},{value:"吸ったことがない",label:"吸ったことがない"}]
+        },
+        {
+          code: "Q30alcohol", type: "radio", label: "Q32", text: "＜お酒＞について教えてください", wide: true,
+          options: ["お酒を毎日飲む","週に数回飲む","ほとんど飲まない","全く飲まない"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q30hango", type: "radio", text: "飲酒後に頭痛が起きやすいですか？",
+          options: [{value:"はい",label:"はい"},{value:"いいえ・わからない",label:"いいえ・わからない"}]
+        },
+        {
+          code: "Q31", type: "radio", label: "Q33", text: "現在、妊娠中・授乳中、または近い将来に妊娠をご希望ですか？", wide: true,
+          options: ["現在妊娠中","現在授乳中","近い将来妊娠希望あり","現時点では予定なし","該当しない（男性等）"].map(function(l){return {value:l,label:l};})
+        },
+        {
+          code: "Q32", type: "checkbox", label: "Q34", text: "現在、産婦人科で治療中ですか？生理の症状はツラいですか？(当てはまる方のみ)", wide: true,
+          options: [
+            {value:"産婦人科で治療中",label:"産婦人科で治療中"},
+            {value:"以前産婦人科で治療を受けていた",label:"以前産婦人科で治療を受けていた"},
+            {value:"生理の症状はツラい",label:"生理の症状はツラい"}
+          ]
+        },
+        { code: "Q32note", type: "text", text: "補足があればお願いします" }
+      ]
+    },
+    {
+      title: "📊 F　頭痛による生活・仕事への影響",
+      questions: [
+        {
+          code: "Q33", type: "radio", label: "Q35", text: "頭痛は仕事・学業に影響していますか？（就労者・学生のみ）", wide: true,
+          options: [
+            "頭痛のために休職・休学中","頭痛のため仕事の量・質を大幅に落としている","多少影響があるが働けている","ほとんど影響なし"
+          ].map(function(l){return {value:l,label:l};})
+        }
+      ]
+    },
+    {
+      title: "■ HIT-6　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "HIT6", type: "matrix",
+          title: "HIT-6",
+          columns: [
+            {label:"まったくない\n(6点)",points:6},{label:"ほとんどない\n(8点)",points:8},
+            {label:"時々ある\n(10点)",points:10},{label:"よくある\n(11点)",points:11},{label:"いつもある\n(13点)",points:13}
+          ],
+          rows: [
+            {code:"H1",text:"頭痛がひどいとき、耐えがたい痛みだった割合はどれほどですか？"},
+            {code:"H2",text:"頭痛のせいで日常生活（家事・仕事・学校・社会活動など）が制限されることはどのくらいありますか？"},
+            {code:"H3",text:"頭痛があるとき、横になりたいと思うことはどのくらいありますか？"},
+            {code:"H4",text:"頭痛のために、疲れを感じたことはどのくらいありますか？"},
+            {code:"H5",text:"頭痛のために、イライラしたり怒りを感じたことはどのくらいありますか？"},
+            {code:"H6",text:"頭痛のために、集中力がなくなったことはどのくらいありますか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ GAD-7　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "GAD7", type: "matrix",
+          title: "GAD-7",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"不安、または落ち着かない感じがする"},
+            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
+            {code:"3",text:"いろいろなことを心配しすぎる"},
+            {code:"4",text:"リラックスすることが難しい"},
+            {code:"5",text:"じっとしていられないほど落ち着かない"},
+            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
+            {code:"7",text:"何か恐ろしいことが起こるのではないかと怖くなる"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ PHQ-9　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "PHQ9", type: "matrix",
+          title: "PHQ-9",
+          note: "※項目9でご心配な回答があった場合は、診察時に必ずスタッフからお声がけします。",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"物事に対してほとんど興味がない、または楽しめない"},
+            {code:"2",text:"気分が落ち込む、憂うつになる、または絶望的な気持ちになる"},
+            {code:"3",text:"寝つきが悪い、途中で目がさめる、または逆に眠り過ぎる"},
+            {code:"4",text:"疲れた感じがする、または気力がない"},
+            {code:"5",text:"食欲が低下している、または食べ過ぎる"},
+            {code:"6",text:"自分はダメな人間だ、または自分自身や家族を失望させたと感じる"},
+            {code:"7",text:"新聞を読む、またはテレビを見ることなどに集中することが難しい"},
+            {code:"8",text:"他人が気づくくらい動作や話し方が遅くなる、あるいは反対に、いつもより落ち着かず、そわそわしたり動き回ったりする"},
+            {code:"9",text:"死んだ方がましだ、あるいは自分を何らかの方法で傷つけようと思ったことがある"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ MIBS-4（日本語版）　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "MIBS4", type: "matrix",
+          title: "MIBS-4",
+          columns: [
+            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
+            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
+            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"M1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"M2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"M3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"M4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+          ]
+        }
+      ]
+    }
+  ]
+};
+/* =========================================================================
+ * 初診データの短縮QR（2026-10-12）。shoshin.html と doctor.html に同じ内容を置くこと。
+ * 列名を送らず、SCHEMA_SHOKI の設問の並び順に「値だけ」を "|" でつなぐ（本文は "K" で始まり、HZQ2 の枠で送る）。
+ *   ラジオ＝選択肢の番号（36進1文字）、複数選択＝選んだ選択肢のビット（36進）、数値＝そのまま、
+ *   質問票（HIT-6 など）＝各問の選択番号を1文字ずつ（未回答は "_"）、自由記載＝半角英数字ならそのまま・日本語は "~"+Base64。
+ * 先頭の "K" のあとの4文字は設問構成の指紋。設問を変えると変わるので、doctor.html の SCHEMA_SHOKI も必ず同じものに更新する。
+ * ========================================================================= */
+function makeShokiCodec(schema) {
+  function hash(str) {
+    var h = 0;
+    for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+    return h.toString(36);
+  }
+  var FIELDS = [{ k: "FORM_DATE", t: "date" }];
+  schema.sections.forEach(function (sec) {
+    sec.questions.forEach(function (q) {
+      if (q.type === "radio" || q.type === "checkbox") {
+        FIELDS.push({ k: q.code, t: q.type === "radio" ? "idx" : "bits", o: q.options.map(function (o) { return o.value; }) });
+        if (q.other) FIELDS.push({ k: q.code + "_other", t: "text" });
+      } else if (q.type === "text" || q.type === "textarea") {
+        FIELDS.push({ k: q.code, t: "text" });
+      } else if (q.type === "numbergroup") {
+        q.fields.forEach(function (fd) { FIELDS.push({ k: fd.code, t: "num" }); });
+      } else if (q.type === "slider" || q.type === "scale11") {
+        FIELDS.push({ k: q.code, t: "num" });
+      } else if (q.type === "matrix") {
+        FIELDS.push({ k: q.code, t: "mx", rows: q.rows.map(function (r) { return q.code + "_" + r.code; }) });
+      }
+    });
+  });
+  var FP = ("0000" + hash(FIELDS.map(function (f) { return f.k + ":" + f.t + (f.o ? f.o.length : "") + (f.rows ? f.rows.length : ""); }).join(","))).slice(-4);
+
+  function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
+  function escText(s) {
+    s = String(s);
+    // 英数字・空白・「.」「,」だけならそのまま。それ以外は "!"+Base64。
+    // （QRリーダーと PC のキーボード配列が違うと記号が化け、「~」は日本語入力の切り替えキーになってしまうため、記号を避ける）
+    if (/^[A-Za-z0-9 .,]*$/.test(s)) return s;
+    return "!" + btoa(unescape(encodeURIComponent(s)));
+  }
+  function unescText(s) {
+    if (s.charAt(0) === "~" || s.charAt(0) === "!") { try { return decodeURIComponent(escape(atob(s.slice(1)))); } catch (e) { return s; } }   // 「~」は旧形式
+    return s;
+  }
+  function enc(f, a) {
+    var v = a[f.k];
+    switch (f.t) {
+      case "date": return empty(v) ? "" : String(v).replace(/-/g, "");
+      case "text": return empty(v) ? "" : escText(v);
+      case "num": return empty(v) ? "" : String(v);
+      case "idx":
+        if (empty(v)) return "";
+        var i = f.o.indexOf(v);
+        return i >= 0 && i < 36 ? i.toString(36) : "=" + escText(v);
+      case "bits":
+        if (empty(v)) return "";
+        var n = 0;
+        (Array.isArray(v) ? v : [v]).forEach(function (x) { var j = f.o.indexOf(x); if (j >= 0) n += Math.pow(2, j); });
+        return n ? n.toString(36) : "";
+      case "mx":
+        var s = f.rows.map(function (r) { var x = a[r]; return x === null || x === undefined ? "_" : String(x); }).join("").replace(/_+$/, "");
+        return s;
+    }
+    return "";
+  }
+  function dec(f, s, a) {
+    var none = s === undefined || s === "";
+    switch (f.t) {
+      case "date": a[f.k] = none ? "" : (s.length === 8 ? s.slice(0, 4) + "-" + s.slice(4, 6) + "-" + s.slice(6) : s); break;
+      case "text": a[f.k] = none ? "" : unescText(s); break;
+      case "num": a[f.k] = none ? null : Number(s); break;
+      case "idx": a[f.k] = none ? null : (s.charAt(0) === "=" ? unescText(s.slice(1)) : (f.o[parseInt(s, 36)] !== undefined ? f.o[parseInt(s, 36)] : null)); break;
+      case "bits":
+        var n = none ? 0 : parseInt(s, 36), out = [];
+        for (var j = 0; j < f.o.length; j++) if (Math.floor(n / Math.pow(2, j)) % 2 === 1) out.push(f.o[j]);
+        a[f.k] = out;
+        break;
+      case "mx":
+        f.rows.forEach(function (r, i) { var c = none ? "_" : (s.charAt(i) || "_"); a[r] = c === "_" ? null : Number(c); });
+        break;
+    }
+  }
+  return {
+    FP: FP,
+    FIELDS: FIELDS,
+    // 回答 → QR本文（"K指紋|値|値|..."、末尾の空欄は省略）
+    encode: function (answers) {
+      var vals = FIELDS.map(function (f) { return enc(f, answers); });
+      while (vals.length && vals[vals.length - 1] === "") vals.pop();
+      return "K" + FP + "|" + vals.join("|");
+    },
+    // QR本文 → 回答（shoshin.html と同じキー）。設問構成が違う版のQRなら fpMismatch を true にする
+    decode: function (body) {
+      var parts = body.split("|");
+      if (parts[0].charAt(0) !== "K") throw new Error("初診データではありません");
+      var a = {};
+      FIELDS.forEach(function (f, i) { dec(f, parts[i + 1], a); });
+      return { answers: a, fpMismatch: parts[0].slice(1) !== FP };
+    }
+  };
+}
+var SHOKI_CODEC = makeShokiCodec(SCHEMA_SHOKI);
+
+var SCHEMA_SAISHIN = {
+  kind: "saishin",
+  title: "頭痛外来　再診アンケート",
+  sections: [
+    {
+      title: "💬 今日、特に相談したいこと",
+      questions: [
+        { code: "SOUDAN", type: "textarea", text: "今日、特に相談したいことを教えてください。（気になっていること・最近の頭痛の変化・困っていることなど、何でも書いてください）", placeholder: "自由にご記入ください" }
+      ]
+    },
+    {
+      title: "📅 この1ヶ月の頭痛の状態",
+      questions: [
+        {
+          code: "DAYS", type: "daytree", label: "Q1",
+          text: "この1ヶ月（30日間）の頭痛の日数を、上から順に教えてください"
+        },
+        {
+          code: "TRIGGER", type: "checkbox", label: "Q2", text: "最近の頭痛発作を思い出して、きっかけになったと思うものをすべて選んでください（複数可）", other: true,
+          options: [
+            {group:"🛌 生活リズム"},
+            {value:"睡眠不足",label:"睡眠不足"},
+            {value:"寝すぎ・寝だめ",label:"寝すぎ・寝だめ"},
+            {value:"食事抜き・空腹",label:"食事を抜いた・空腹"},
+            {value:"水分不足",label:"水分不足"},
+            {value:"運動",label:"激しい運動・運動のあと"},
+            {value:"疲れ・過労",label:"疲れ・過労"},
+            {value:"肩こり・姿勢",label:"首・肩のこり、悪い姿勢"},
+            {group:"💭 気持ち・ストレス"},
+            {value:"ストレス",label:"ストレス（仕事・学業・人間関係など）"},
+            {value:"ストレス解放",label:"ストレスから解放されたとき（休日・試験後など）"},
+            {value:"緊張・不安",label:"緊張・不安"},
+            {group:"🌸 ホルモン（女性）"},
+            {value:"月経前後",label:"月経（生理）の前後"},
+            {value:"排卵期",label:"排卵のころ"},
+            {value:"妊娠・産後・更年期",label:"妊娠・産後・更年期"},
+            {value:"ホルモン剤",label:"ピルなどホルモン剤"},
+            {group:"🍷 飲食物"},
+            {value:"アルコール",label:"お酒（赤ワイン・ビールなど）"},
+            {value:"特定の食品",label:"チョコレート・チーズ・ナッツ・柑橘類"},
+            {value:"加工食品",label:"ハム・ソーセージ・うま味調味料など"},
+            {value:"カフェイン過剰",label:"コーヒー・お茶などのとりすぎ"},
+            {value:"カフェイン中断",label:"コーヒー・お茶などを急にやめた"},
+            {group:"🌦 環境"},
+            {value:"天気",label:"天気の変化（低気圧・台風・雨の前）"},
+            {value:"気温・湿度",label:"気温差・湿度の変化"},
+            {value:"光",label:"強い光（日光・蛍光灯・画面のまぶしさ）"},
+            {value:"音",label:"大きな音・騒音"},
+            {value:"におい",label:"強いにおい（香水・タバコ・柔軟剤など）"},
+            {value:"人混み・乗り物",label:"人混み・乗り物・旅行"},
+            {value:"入浴",label:"入浴・サウナ"},
+            // 「思い当たるものはない」は廃止：何も選ばずにOK＝なし（コード表の番号は欠番として残す）
+          ]
+        },
+        {
+          code: "Q3", type: "slider", label: "Q3", text: "この1ヶ月で、頭痛が一番ひどかったときの強さは？",
+          hint: "ボタンを左右にスライドさせて回答してください",
+          leftFace: "🙂", rightFace: "😖",
+          leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
+        },
+        {
+          code: "Q4", type: "slider", label: "Q4", text: "この1ヶ月で、頭痛の平均的な強さは？",
+          hint: "ボタンを左右にスライドさせて回答してください",
+          leftFace: "🙂", rightFace: "😖",
+          leftLabel: "全く痛くない", rightLabel: "これ以上ない激しい痛み"
+        },
+        {
+          code: "Q5", type: "slider_named", label: "Q5", text: "この1ヶ月は、はき気・光過敏・音過敏などの頭痛以外の症状は、どうでしたか？",
+          note: "※光過敏：まぶしいのが辛いと感じる<br>※音過敏：うるさいのが辛いと感じる",
+          options: [
+            {value:"◎ とてもよくなった",label:"◎ とてもよくなった"},
+            {value:"◯ 少しよくなった",label:"◯ 少しよくなった"},
+            {value:"△ 変わらない",label:"△ 変わらない"},
+            {value:"✗ 少し悪くなった",label:"✗ 少し悪くなった"},
+            {value:"✗✗ 明らかに悪くなった",label:"✗✗ 明らかに悪くなった"},
+            {value:"N もともとなかった",label:"N もともとなかった"}
+          ]
+        },
+        {
+          code: "Q6", type: "numbergroup", label: "Q6", text: "この1ヶ月に痛み止めを使った日数は？",
+          note: "※合計は「痛み止めを使った日」の数です。1日に2種類使った日は、内訳ではそれぞれに数えてください",
+          fields: [
+            { code: "Q6_total", label: "合計", unit: "日/月" },
+            { code: "Q6_naru", label: "（内訳）ナルティーク", unit: "日" },
+            { code: "Q6_trip", label: "（内訳）トリプタン", unit: "日" },
+            { code: "Q6_rayvow", label: "（内訳）レイボー", unit: "日" },
+            { code: "Q6_rx", label: "（内訳）病院でもらったその他の薬", unit: "日", note: "例：カロナール、ロキソニン、ボルタレンなど" },
+            { code: "Q6_otc", label: "（内訳）市販薬", unit: "日" }
+          ]
+        },
+        {
+          code: "Q7", type: "slider_named", label: "Q7", text: "ナルティークを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N ナルティークを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q8", type: "slider_named", label: "Q8", text: "トリプタンを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N トリプタンを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q9", type: "slider_named", label: "Q9", text: "市販の痛み止めを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N 市販の痛み止めを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q9las", type: "slider_named", label: "", text: "レイボーを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N レイボーを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q9rx", type: "slider_named", label: "", text: "病院でもらったその他の痛み止めを使ったときの効き目は、どうでしたか？",
+          options: [
+            {value:"◎ とてもよく効く",label:"◎ とてもよく効く"},
+            {value:"◯ よく効く",label:"◯ よく効く"},
+            {value:"△ それほど効かない",label:"△ それほど効かない"},
+            {value:"✗ 全然効かない",label:"✗ 全然効かない"},
+            {value:"N 病院でもらったその他の痛み止めを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
+          options: [
+            {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
+            {value:"◯ 少し減った",label:"◯ 少し減った"},
+            {value:"△ 変わらない",label:"△ 変わらない"},
+            {value:"✗ 増えた",label:"✗ 増えた"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ HIT-6　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "HIT6", type: "matrix", title: "HIT-6",
+          columns: [
+            {label:"まったくない\n(6点)",points:6},{label:"ほとんどない\n(8点)",points:8},
+            {label:"時々ある\n(10点)",points:10},{label:"よくある\n(11点)",points:11},{label:"いつもある\n(13点)",points:13}
+          ],
+          rows: [
+            {code:"1",text:"頭痛がひどいとき、耐えがたい痛みだった割合はどれほどですか？"},
+            {code:"2",text:"頭痛のせいで日常生活（家事・仕事・学校・社会活動など）が制限されることはどのくらいありますか？"},
+            {code:"3",text:"頭痛があるとき、横になりたいと思うことはどのくらいありますか？"},
+            {code:"4",text:"頭痛のために、疲れを感じたことはどのくらいありますか？"},
+            {code:"5",text:"頭痛のために、イライラしたり怒りを感じたことはどのくらいありますか？"},
+            {code:"6",text:"頭痛のために、集中力がなくなったことはどのくらいありますか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ GAD-7　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "GAD7", type: "matrix", title: "GAD-7",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"不安、または落ち着かない感じがする"},
+            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
+            {code:"3",text:"いろいろなことを心配しすぎる"},
+            {code:"4",text:"リラックスすることが難しい"},
+            {code:"5",text:"じっとしていられないほど落ち着かない"},
+            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
+            {code:"7",text:"何か恐ろしいことが起こるのではないかと恐れる"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ PHQ-9　--- 過去2週間についてお答えください",
+      questions: [
+        {
+          code: "PHQ9", type: "matrix", title: "PHQ-9",
+          note: "※項目9でご心配な回答があった場合は、診察時に必ずスタッフからお声がけします。",
+          columns: [
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"物事に対してほとんど興味がない、または楽しめない"},
+            {code:"2",text:"気分が落ち込む、憂うつになる、または絶望的な気持ちになる"},
+            {code:"3",text:"寝つきが悪い、途中で目がさめる、または逆に眠り過ぎる"},
+            {code:"4",text:"疲れた感じがする、または気力がない"},
+            {code:"5",text:"食欲が低下している、または食べ過ぎる"},
+            {code:"6",text:"自分はダメな人間だ、または自分自身や家族を失望させたと感じる"},
+            {code:"7",text:"新聞を読む、またはテレビを見ることなどに集中することが難しい"},
+            {code:"8",text:"他人が気づくくらい動作や話し方が遅くなる、あるいは反対に、いつもより落ち着かず、そわそわしたり動き回ったりする"},
+            {code:"9",text:"死んだ方がましだ、あるいは自分を何らかの方法で傷つけようと思ったことがある"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ MIBS-4　--- 過去4週間のことを振り返ってお答えください",
+      questions: [
+        {
+          code: "MIBS4", type: "matrix", title: "MIBS-4",
+          columns: [
+            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
+            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
+            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
+          ],
+          rows: [
+            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🌙 気分・睡眠の変化",
+      questions: [
+        {
+          code: "Q14", type: "slider_named", label: "Q8", text: "睡眠の質は、治療を始める前と比べてどうですか？",
+          options: [
+            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
+            {value:"-1 少し悪化した",label:"-1 少し悪化"},
+            {value:"±0 変わらない",label:"±0 変わらない"},
+            {value:"+1 少し改善した",label:"+1 少し改善"},
+            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
+          ]
+        },
+        {
+          code: "Q15", type: "slider_named", label: "Q9", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
+          options: [
+            {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
+            {value:"-1 少し悪化した",label:"-1 少し悪化"},
+            {value:"±0 変わらない",label:"±0 変わらない"},
+            {value:"+1 少し改善した",label:"+1 少し改善"},
+            {value:"+2 明らかに改善した",label:"+2 明らかに改善"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 全体的な変化・治療満足度",
+      questions: [
+        {
+          code: "PGIC", type: "slider_named", label: "Q10", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          options: [
+            {value:"-3",label:"-3 著明悪化"},
+            {value:"-2",label:"-2 中等悪化"},
+            {value:"-1",label:"-1 軽度悪化"},
+            {value:"0",label:"0 変化なし"},
+            {value:"1",label:"+1 軽度改善"},
+            {value:"2",label:"+2 中等改善"},
+            {value:"3",label:"+3 著明改善"}
+          ]
+        },
+        {
+          code: "SATIS", type: "nrsmatrix", label: "Q11", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          rows: [
+            {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
+            {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
+            {code:"fukusayou",label:"副作用",note:"副作用の少なさについて"},
+            {code:"sougou",label:"総合満足度",note:"治療全体を通じて"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🔍 副作用・気になる症状のチェック",
+      questions: [
+        {
+          code: "SE", type: "sideeffects", label: "Q12", text: "副作用・気になる症状について教えてください",
+          rows: [
+            {code:"inj",area:"💉 注射した場所（注射治療中の方のみ）",symptom:"発赤・腫れ・痛み・かゆみ・しこり"},
+            {code:"benpi",area:"🚽 お腹・排便",symptom:"便秘"},
+            {code:"datsumou",area:"💇 髪の毛",symptom:"抜け毛・脱毛の増加"},
+            {code:"hisshin",area:"🌡 皮膚・全身",symptom:"発疹・じんましん・かゆみ"},
+            {code:"kao",area:"⚠️ 顔・口・のど",symptom:"腫れ・呼吸しにくい"},
+            {code:"ketsuatsu",area:"❤️ 血圧・心臓",symptom:"血圧の悪化・動悸・胸の痛み・息切れ"},
+            {code:"teashi",area:"🤚 手足",symptom:"冷え・色が白くなる"},
+            {code:"zenshin",area:"😴 全身",symptom:"だるさ・疲れやすさの悪化"},
+            {code:"kimochi",area:"😔 気持ち",symptom:"落ち込み・不安・不眠の悪化"},
+            {code:"hakike",area:"🤢 吐き気",symptom:"吐き気・嘔吐"},
+            {code:"kinniku",area:"💪 筋肉・関節",symptom:"筋肉痛・関節痛"},
+            {code:"taijuu",area:"⚖️ 体重",symptom:"食欲が増した、あるいは体重が増えた"},
+            {code:"gekkei",area:"👩 月経（女性）",symptom:"月経不順が新しく起きた"},
+            {code:"kuchi",area:"🦷 口の中",symptom:"口内炎・腫れ・水ぶくれ"},
+            {code:"zutsuu",area:"🤕 頭痛",symptom:"注射後に頭痛が増えた・悪化した"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "💭 今後の治療について",
+      questions: [
+        {
+          code: "Q11", type: "radio", label: "Q13", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          options: [
+            {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
+            {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
+            {value:"中止したい",label:"中止したい（↓理由を教えてください）"}
+          ]
+        },
+        {
+          code: "Q12", type: "checkbox", text: "「迷っている」「中止したい」場合の理由（複数可）", other: true, wide: true,
+          showIf: { code: "Q11", in: ["迷っている","中止したい"] },
+          options: [
+            {value:"効果が感じられない",label:"効果が感じられない"},{value:"副作用がつらい",label:"副作用がつらい"},
+            {value:"注射が面倒・痛い",label:"注射が面倒・痛い"},{value:"費用が高い",label:"費用が高い"},
+            {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
+          ]
+        },
+        { code: "Q13", type: "textarea", label: "Q14", text: "治療について感じていること・ご要望を自由にご記入ください" }
+      ]
+    }
+  ]
+};
+// 患者用 saishin.html と同じスキーマを確認画面用に読み替える：
+// ・頭痛日数の入力表（daytree）は4つの数値欄として表示
+// ・誘因の分類見出し（{group}）は確認画面では使わない
+SCHEMA_SAISHIN.sections.forEach(function (sec) {
+  sec.questions.forEach(function (q) {
+    if (q.type === "daytree") {
+      q.type = "numbergroup";
+      q.fields = [
+        { code: "Q2_headache", label: "頭痛があった日数", unit: "日" },
+        { code: "Q1_days", label: "うち片頭痛の日数", unit: "日" },
+        { code: "Q2_clear", label: "頭痛もなくスッキリしていた日数", unit: "日" },
+        { code: "Q2_unclear", label: "頭痛はないがスッキリしなかった日数", unit: "日" }
+      ];
+    }
+    if (q.options) q.options = q.options.filter(function (o) { return !o.group; });
+  });
+});
+</script>
+
+<script>
+/* =========================================================================
+   QR分割ペイロード復元（初診・再診アンケートと同一プロトコル）
+   ========================================================================= */
+var B64_CHARS = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+function base64ToBytes(b64) {
+  var str = b64.replace(/[\r\n\s]/g, "");
+  if (str.length % 4 !== 0) str += "=".repeat(4 - (str.length % 4));
+  var padLen = str.slice(-2) === "==" ? 2 : str.slice(-1) === "=" ? 1 : 0;
+  var byteLen = (str.length / 4) * 3 - padLen;
+  var bytes = new Uint8Array(byteLen);
+  var p = 0;
+  for (var i = 0; i < str.length; i += 4) {
+    var c0 = str[i], c1 = str[i+1], c2 = str[i+2], c3 = str[i+3];
+    var e0 = B64_CHARS.indexOf(c0), e1 = B64_CHARS.indexOf(c1);
+    var e2 = c2 === "=" ? 0 : B64_CHARS.indexOf(c2);
+    var e3 = c3 === "=" ? 0 : B64_CHARS.indexOf(c3);
+    var n = ((e0 & 63) << 18) | ((e1 & 63) << 12) | ((e2 & 63) << 6) | (e3 & 63);
+    if (p < byteLen) bytes[p++] = (n >>> 16) & 255;
+    if (c2 !== "=" && p < byteLen) bytes[p++] = (n >>> 8) & 255;
+    if (c3 !== "=" && p < byteLen) bytes[p++] = n & 255;
+  }
+  return bytes;
+}
+function base64ToUtf8(b64) { return new TextDecoder().decode(base64ToBytes(b64)); }
+function simpleHash(str) {
+  var h = 0;
+  for (var i = 0; i < str.length; i++) h = (h * 31 + str.charCodeAt(i)) >>> 0;
+  return h.toString(36);
+}
+var FE = {
+  reassembleFrames: function (frameList) {
+    var ver = null;
+    var parsed = frameList.map(function (f) {
+      f = String(f).replace(/^\ufeff/, "").trim();
+      var m = /^(HZQ[12]):([^:]+):(\d+)\/(\d+):([^:]+):([\s\S]*)$/.exec(f);
+      if (!m) return null;
+      ver = ver || m[1];
+      return { sid: m[2], idx: Number(m[3]), total: Number(m[4]), hash: m[5], chunk: m[6] };
+    }).filter(Boolean);
+    if (!parsed.length) throw new Error("不正なQRデータです");
+    var sid = parsed[0].sid, total = parsed[0].total, hash = parsed[0].hash;
+    var byIdx = {};
+    parsed.forEach(function (p) { if (p.sid === sid) byIdx[p.idx] = p.chunk; });
+    var full = "";
+    for (var i = 1; i <= total; i++) {
+      if (!byIdx[i]) throw new Error("パート " + i + "/" + total + " が不足しています");
+      full += byIdx[i];
+    }
+    if (simpleHash(full) !== hash) {
+      // QR読み取りアプリによっては、文字列を URL とみなして「|」を「%7C」に変えたり、全角に変えたりすることがある。
+      // よくある変換を元に戻して照合し直す。
+      var cands = [];
+      try { cands.push(decodeURIComponent(full.replace(/%(?![0-9A-Fa-f]{2})/g, "%25"))); } catch (e) {}
+      cands.push(full.replace(/｜/g, "|"));
+      if (full.normalize) cands.push(full.normalize("NFKC"));
+      var fixed = null;
+      cands.forEach(function (c) { if (fixed === null && simpleHash(c) === hash) fixed = c; });
+      if (fixed !== null) {
+        full = fixed;
+      } else if (!confirm("データの整合性チェックに失敗しました（読み取りの途中で文字が変わった可能性があります）。\n\nこのまま読み込みますか？　読み込んだ内容を、必ず画面で確認してください。")) {
+        throw new Error("データの整合性チェックに失敗しました");
+      } else {
+        full = full.replace(/%7C/gi, "|").replace(/｜/g, "|");
+      }
+    }
+    if (ver === "HZQ2" && full.charAt(0) === "K") {
+      // 初診の短縮形式（2026-10-12〜）：SCHEMA_SHOKI の並びで値だけが並んだ本文
+      var r = SHOKI_CODEC.decode(full);
+      if (r.fpMismatch && !confirm("この初診QRは、設問の構成が違う版のアンケートで作られています（アンケートか医師画面のどちらかが古い可能性があります）。\n\nこのまま読み込みますか？　内容を必ず画面で確認してください。")) {
+        throw new Error("初診アンケートの版が違います");
+      }
+      return { v: 3, kind: "shoki", date: r.answers.FORM_DATE || "", a: r.answers };
+    }
+    if (ver === "HZQ2") {
+      // 再診の短縮形式：値だけが並んだ本文を共通コード表で回答に戻す
+      var a = SAISHIN_CODEC.decode(full);
+      return { v: 2, kind: "saishin", date: a.FORM_DATE || "", a: a };
+    }
+    return JSON.parse(base64ToUtf8(full));
+  }
+};
+
+/* =========================================================================
+   回答一覧・確認・修正画面
+   ========================================================================= */
+function escapeHtml(s) {
+  return String(s === null || s === undefined ? "" : s).replace(/[&<>"']/g, function (c) {
+    return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+  });
+}
+
+function isShown(q, answers) {
+  if (!q.showIf) return true;
+  var val = answers[q.showIf.code];
+  if (Array.isArray(val)) return q.showIf.in.some(function (v) { return val.indexOf(v) !== -1; });
+  return q.showIf.in.indexOf(val) !== -1;
+}
+
+function buildReviewRows(schema, answers) {
+  var rows = [];
+  schema.sections.forEach(function (sec) {
+    sec.questions.forEach(function (q) {
+      if (!isShown(q, answers)) return;
+      if (q.type === "radio") {
+        rows.push({ section: sec.title, label: q.label || "", text: q.text, type: "select", code: q.code,
+          value: answers[q.code], options: q.options.map(function (o) { return o.label; }), missing: !answers[q.code] });
+        if (q.other) rows.push({ section: sec.title, label: "", text: "（その他の内容）", type: "text", code: q.code + "_other", value: answers[q.code + "_other"] || "", missing: false });
+      } else if (q.type === "checkbox") {
+        var arr = answers[q.code] || [];
+        rows.push({ section: sec.title, label: q.label || "", text: q.text, type: "multiselect", code: q.code,
+          value: arr, options: q.options.map(function (o) { return o.label; }), missing: !arr.length });
+        if (q.other) rows.push({ section: sec.title, label: "", text: "（その他の内容）", type: "text", code: q.code + "_other", value: answers[q.code + "_other"] || "", missing: false });
+      } else if (q.type === "text" || q.type === "textarea") {
+        rows.push({ section: sec.title, label: q.label || "", text: q.text, type: q.type === "textarea" ? "textarea" : "text",
+          code: q.code, value: answers[q.code] || "", missing: !answers[q.code] });
+      } else if (q.type === "numbergroup") {
+        q.fields.forEach(function (f) {
+          rows.push({ section: sec.title, label: q.label || "", text: (q.text ? q.text + " － " : "") + (f.label || f.code),
+            type: "number", code: f.code, value: answers[f.code], unit: f.unit || "",
+            missing: (answers[f.code] === null || answers[f.code] === undefined) });
+        });
+      } else if (q.type === "scale11" || q.type === "slider") {
+        rows.push({ section: sec.title, label: q.label || "", text: q.text, type: "scale11", code: q.code,
+          value: answers[q.code], missing: (answers[q.code] === null || answers[q.code] === undefined) });
+      } else if (q.type === "slider_named") {
+        rows.push({ section: sec.title, label: q.label || "", text: q.text, type: "selectkv", code: q.code,
+          value: answers[q.code], options: q.options, missing: !answers[q.code] });
+      } else if (q.type === "matrix") {
+        q.rows.forEach(function (r) {
+          var gname = q.code + "_" + r.code;
+          rows.push({ section: sec.title, label: (q.title || q.code), text: r.text, type: "matrixrow", code: gname,
+            value: answers[gname], options: q.columns.map(function (c) { return c.label; }),
+            missing: (answers[gname] === null || answers[gname] === undefined) });
+        });
+      } else if (q.type === "nrsmatrix") {
+        q.rows.forEach(function (r) {
+          var gname = q.code + "_" + r.code;
+          rows.push({ section: sec.title, label: r.label, text: r.note || "", type: "scale10", code: gname,
+            value: answers[gname], missing: (answers[gname] === null || answers[gname] === undefined) });
+        });
+      } else if (q.type === "sideeffects") {
+        q.rows.forEach(function (r) {
+          var gname = q.code + "_" + r.code;
+          rows.push({ section: sec.title, label: r.area, text: r.symptom, type: "yesno", code: gname,
+            value: answers[gname], missing: !answers[gname] });
+          rows.push({ section: sec.title, label: "", text: "（詳細）", type: "text", code: gname + "_detail",
+            value: answers[gname + "_detail"] || "", missing: false });
+        });
+        rows.push({ section: sec.title, label: "", text: "その他の副作用", type: "textarea", code: q.code + "_other",
+          value: answers[q.code + "_other"] || "", missing: false });
+      }
+    });
+  });
+  return rows;
+}
+
+function renderReviewInput(r) {
+  if (r.type === "select") {
+    var opts = '<option value="">（未回答）</option>' + r.options.map(function (o) {
+      return '<option value="' + escapeHtml(o) + '"' + (r.value === o ? " selected" : "") + '>' + escapeHtml(o) + "</option>";
+    }).join("");
+    return '<select class="review-input">' + opts + "</select>";
+  }
+  if (r.type === "multiselect") {
+    return r.options.map(function (o) {
+      var checked = (r.value || []).indexOf(o) !== -1 ? " checked" : "";
+      return '<label class="review-check"><input type="checkbox" class="review-input" value="' + escapeHtml(o) + '"' + checked + ">" + escapeHtml(o) + "</label>";
+    }).join("");
+  }
+  if (r.type === "text") return '<input type="text" class="review-input" value="' + escapeHtml(r.value || "") + '">';
+  if (r.type === "textarea") return '<textarea class="review-input">' + escapeHtml(r.value || "") + "</textarea>";
+  if (r.type === "number") {
+    return '<input type="number" class="review-input" value="' + (r.value === null || r.value === undefined ? "" : r.value) + '"><span class="review-unit">' + escapeHtml(r.unit || "") + "</span>";
+  }
+  if (r.type === "scale11" || r.type === "scale10") {
+    var o11 = '<option value="">（未回答）</option>';
+    for (var i = 0; i <= 10; i++) o11 += '<option value="' + i + '"' + (r.value === i ? " selected" : "") + '>' + i + "</option>";
+    return '<select class="review-input">' + o11 + "</select>";
+  }
+  if (r.type === "selectkv") {
+    var okv = '<option value="">（未回答）</option>' + r.options.map(function (o) {
+      return '<option value="' + escapeHtml(o.value) + '"' + (r.value === o.value ? " selected" : "") + '>' + escapeHtml(o.label) + "</option>";
+    }).join("");
+    return '<select class="review-input">' + okv + "</select>";
+  }
+  if (r.type === "matrixrow") {
+    var om = '<option value="">（未回答）</option>' + r.options.map(function (o, idx) {
+      return '<option value="' + idx + '"' + (r.value === idx ? " selected" : "") + '>' + escapeHtml(o) + "</option>";
+    }).join("");
+    return '<select class="review-input">' + om + "</select>";
+  }
+  if (r.type === "yesno") {
+    var oy = ["あり", "なし"].map(function (o) {
+      return '<option value="' + o + '"' + (r.value === o ? " selected" : "") + '>' + o + "</option>";
+    }).join("");
+    return '<select class="review-input"><option value="">（未回答）</option>' + oy + "</select>";
+  }
+  return "";
+}
+
+function renderReviewScreen(schema, answers) {
+  var rows = buildReviewRows(schema, answers);
+  window.currentReviewRows = rows;
+  var missingCount = rows.filter(function (r) { return r.missing; }).length;
+
+  var bySection = {}, order = [];
+  rows.forEach(function (r) {
+    if (!bySection[r.section]) { bySection[r.section] = []; order.push(r.section); }
+    bySection[r.section].push(r);
+  });
+
+  var html = '<div class="review-summary' + (missingCount > 0 ? " has-missing" : "") + '" id="reviewSummaryBox">' +
+    (missingCount > 0
+      ? ("⚠️ 未入力の項目が " + missingCount + " 件あります。赤枠の項目に、この場でご本人または医療スタッフが回答を入力してから保存してください。")
+      : "✅ すべての項目に回答があります。") +
+    "</div>";
+
+  order.forEach(function (sectionTitle) {
+    html += '<div class="review-section"><div class="review-section-head">' + escapeHtml(sectionTitle) + '</div><div class="review-section-body">';
+    bySection[sectionTitle].forEach(function (r) {
+      html += '<div class="review-row' + (r.missing ? " missing" : "") + '" data-code="' + escapeHtml(r.code) + '">';
+      html += '<div class="review-row-q">' + (r.label ? '<span class="review-row-label">' + escapeHtml(r.label) + "</span>" : "") +
+        escapeHtml(r.text) + (r.missing ? ' <span class="missing-badge">未入力</span>' : "") + "</div>";
+      html += '<div class="review-row-input">' + renderReviewInput(r) + "</div>";
+      html += "</div>";
+    });
+    html += "</div></div>";
+  });
+
+  document.getElementById("reviewList").innerHTML = html;
+  attachReviewListeners();
+}
+
+function attachReviewListeners() {
+  var rows = window.currentReviewRows;
+  var rowEls = document.querySelectorAll("#reviewList .review-row");
+  rowEls.forEach(function (rowEl) {
+    var code = rowEl.getAttribute("data-code");
+    var rowMeta = rows.find(function (r) { return r.code === code; });
+    if (!rowMeta) return;
+    var inputs = rowEl.querySelectorAll(".review-input");
+
+    function markAnswered() {
+      rowEl.classList.remove("missing");
+      var badge = rowEl.querySelector(".missing-badge");
+      if (badge) badge.remove();
+      updateSummaryBox();
+    }
+    function markMissing() {
+      if (!rowEl.classList.contains("missing")) {
+        rowEl.classList.add("missing");
+        var q = rowEl.querySelector(".review-row-q");
+        if (q && !q.querySelector(".missing-badge")) {
+          var b = document.createElement("span");
+          b.className = "missing-badge";
+          b.textContent = "未入力";
+          q.appendChild(b);
+        }
+      }
+      updateSummaryBox();
+    }
+
+    if (rowMeta.type === "multiselect") {
+      inputs.forEach(function (cb) {
+        cb.addEventListener("change", function () {
+          var checked = Array.prototype.slice.call(inputs).filter(function (c) { return c.checked; }).map(function (c) { return c.value; });
+          window.editedAnswers[code] = checked;
+          if (checked.length) markAnswered(); else markMissing();
+          updateLiveScores();
+        });
+      });
+    } else {
+      var inp = inputs[0];
+      var evt = (rowMeta.type === "text" || rowMeta.type === "textarea" || rowMeta.type === "number") ? "input" : "change";
+      inp.addEventListener(evt, function () {
+        var v = inp.value;
+        var newVal;
+        if (rowMeta.type === "number") {
+          newVal = v === "" ? null : Number(v);
+        } else if (rowMeta.type === "scale11" || rowMeta.type === "scale10" || rowMeta.type === "matrixrow") {
+          newVal = v === "" ? null : Number(v);
+        } else {
+          newVal = v;
+        }
+        window.editedAnswers[code] = newVal;
+        var isEmpty = (newVal === null || newVal === undefined || newVal === "");
+        if (!isEmpty) markAnswered(); else markMissing();
+        updateLiveScores();
+      });
+    }
+  });
+}
+
+function updateSummaryBox() {
+  var box = document.getElementById("reviewSummaryBox");
+  if (!box) return;
+  var missingNow = document.querySelectorAll("#reviewList .review-row.missing").length;
+  if (missingNow > 0) {
+    box.classList.add("has-missing");
+    box.textContent = "⚠️ 未入力の項目が " + missingNow + " 件あります。赤枠の項目に、この場でご本人または医療スタッフが回答を入力してから保存してください。";
+  } else {
+    box.classList.remove("has-missing");
+    box.textContent = "✅ すべての項目に回答があります。";
+  }
+}
+
+function setReviewFilter(mode) {
+  document.getElementById("filterAll").classList.toggle("active", mode === "all");
+  document.getElementById("filterMissing").classList.toggle("active", mode === "missing");
+  document.querySelectorAll("#reviewList .review-row").forEach(function (rowEl) {
+    if (mode === "missing") {
+      rowEl.style.display = rowEl.classList.contains("missing") ? "" : "none";
+    } else {
+      rowEl.style.display = "";
+    }
+  });
+  document.querySelectorAll("#reviewList .review-section").forEach(function (sec) {
+    var visibleRows = sec.querySelectorAll(".review-row:not([style*='display: none'])").length;
+    sec.style.display = (mode === "missing" && visibleRows === 0) ? "none" : "";
+  });
+}
+
+/* ------- スコア再計算 ------- */
+function recomputeMatrixTotals(schema, answers) {
+  schema.sections.forEach(function (sec) {
+    sec.questions.forEach(function (q) {
+      if (q.type === "matrix") {
+        var total = 0, answeredCount = 0;
+        q.rows.forEach(function (r) {
+          var gname = q.code + "_" + r.code;
+          var idx = answers[gname];
+          if (idx !== null && idx !== undefined && idx !== "") {
+            idx = Number(idx);
+            total += q.columns[idx].points;
+            answeredCount++;
+          }
+        });
+        // 1問も答えていない質問票は「0点」ではなく未回答（null）にする
+        answers[q.code + "__total"] = answeredCount > 0 ? total : null;
+        answers[q.code + "__complete"] = (answeredCount === q.rows.length);
+      }
+    });
+  });
+}
+
+function computeScoresLocal(kind, answers) {
+  var s = {};
+  s.hit6 = answers["HIT6__total"];
+  s.gad7 = answers["GAD7__total"];
+  s.phq9 = answers["PHQ9__total"];
+  s.mibs4 = answers["MIBS4__total"];
+  var phq9item9 = answers["PHQ9_9"];
+  s.phq9_item9_flag = phq9item9 !== null && phq9item9 !== undefined && phq9item9 > 0;
+  s.phq9_item9_score = phq9item9;
+  if (kind === "shoki") {
+    // MHD＝この1ヶ月の頭痛日数（Q7 のツリー入力）。旧形式のQR（Q7 なし）は Q6 の片頭痛日数で代用
+    s.mhd = answers["Q2b_headache"] != null ? answers["Q2b_headache"] : (answers["Q6_days"] != null ? answers["Q6_days"] : null);
+    s.mmd = answers["Q2b_mig"] != null ? answers["Q2b_mig"] : (answers["Q6_days"] != null ? answers["Q6_days"] : null);
+    s.mhd_category = answers["Q6"] || null;
+    s.amd = answers["Q19_total"] != null ? answers["Q19_total"] : (answers["Q2b_med"] != null ? answers["Q2b_med"] : null);
+  } else {
+    // MHD＝頭痛日数（片頭痛以外も含む）。解析用CSVのMHD列と同じ意味にそろえる
+    s.mhd = answers["Q2_headache"] != null ? answers["Q2_headache"] : null;
+    s.mmd = answers["Q1_days"] != null ? answers["Q1_days"] : null;
+    s.mhd_category = answers["Q1"] || null;
+    s.amd = answers["Q6_total"] != null ? answers["Q6_total"] : null;
+    s.pgic = answers["PGIC"] != null ? Number(answers["PGIC"]) : null;
+  }
+  return s;
+}
+
+/* =========================================================================
+   カルテ記載用テキスト（2026-10-12）：読み込んだ回答を、答えのある項目だけ短い見出しで1行ずつ並べる。
+   医師が画面で修正した内容もそのまま反映される（updateLiveScores から呼ぶ）。
+   ========================================================================= */
+var KARTE_LABELS = {
+  SOUDAN: "相談したいこと", Q1: "身長・体重", Q2job: "就労・就学", Q2night: "夜勤・睡眠リズム不安定", Q3: "片頭痛の家族歴",
+  Q4: "発症", Q5: "3ヶ月で月15日以上の頭痛", Q6: "片頭痛の頻度（3ヶ月）", Q6days: "片頭痛日数",
+  Q7type: "頭痛のタイプ", Q7dur: "持続時間", Q8: "最大の強さ(NRS)", Q9: "体動で悪化", Q10: "随伴症状", Q11: "前兆",
+  Q12: "予兆", Q16trigger: "誘因", Q13: "アロディニア（非発作時）", Q14: "片側の顔面自律神経症状", Q15: "月経との関係",
+  Q16horm: "ホルモン療法・ピル", Q17: "鎮痛薬の使用歴", Q20: "予防薬歴", Q20med: "予防薬（記入）", Q22: "治療中・既往の病気",
+  Q23: "気分障害", Q24: "不安障害", Q25: "その他の精神疾患", Q27: "自律神経症状", Q28: "睡眠", Q29: "疲れやすさ",
+  Q30smoke: "喫煙", Q30alcohol: "飲酒", Q30hango: "飲酒量", Q31: "妊娠・授乳・妊娠希望", Q32: "婦人科", Q32note: "婦人科（記入）",
+  Q33: "仕事・学業への影響"
+};
+var KARTE_EFF = ["全然効かない", "それほど効かない", "よく効く", "とてもよく効く"];
+// 再診は設問コードが初診と重なる（Q3 など）ので、項目名を別に持つ
+var KARTE_LABELS_S = {
+  SOUDAN: "相談したいこと", TRIGGER: "誘因", Q3: "最大の強さ(NRS)", Q4: "平均の強さ(NRS)", Q5: "随伴症状の変化",
+  Q6: "痛み止めの日数", Q7: "効き目（ナルティーク）", Q8: "効き目（トリプタン）", Q9: "効き目（市販薬）",
+  Q9las: "効き目（レイボー）", Q9rx: "効き目（その他の処方薬）", Q10: "痛み止めの量（治療前比）",
+  Q14: "睡眠の質（治療前比）", Q15: "倦怠感（治療前比）", PGIC: "PGIC（前回比）", SATIS: "治療満足度",
+  SE: "副作用・気になる症状", Q11: "治療継続の希望", Q12: "迷う・中止の理由", Q13: "治療への感想・要望"
+};
+function buildKarteText(kind, schema, a, scores) {
+  function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
+  function n(v) { return has(v) ? v : null; }
+  var lines = ["【頭痛外来 " + (kind === "shoki" ? "初診" : "再診") + "問診】記入日 " + (a.FORM_DATE || window.currentFormDate || "不明")];
+  schema.sections.forEach(function (sec) {
+    sec.questions.forEach(function (q) {
+      if (q.type === "matrix" || !isShown(q, a)) return;
+      var label = (kind === "shoki" ? KARTE_LABELS : KARTE_LABELS_S)[q.code] || String(q.text || q.code).replace(/[（(].*$/, "").slice(0, 24);
+      var val = null;
+      if (q.type === "nrsmatrix") {   // 治療満足度（0〜10を項目ごとに）
+        var ps = (q.rows || []).filter(function (r) { return has(a[q.code + "_" + r.code]); }).map(function (r) {
+          return String(r.label || r.text || r.code).replace(/[（(].*$/, "") + " " + a[q.code + "_" + r.code];
+        });
+        if (ps.length) lines.push(label + ": " + ps.join("、") + "（0〜10）");
+        return;
+      }
+      if (q.type === "sideeffects") {   // 「あり」の症状だけ
+        var yes = [], answered = 0;
+        (q.rows || []).forEach(function (r) {
+          var v = a[q.code + "_" + r.code];
+          if (has(v)) answered++;
+          if (v === "あり") yes.push(r.symptom + (has(a[q.code + "_" + r.code + "_detail"]) ? "（" + a[q.code + "_" + r.code + "_detail"] + "）" : ""));
+        });
+        if (has(a.SE_other)) yes.push("その他: " + a.SE_other);
+        if (yes.length) lines.push(label + ": " + yes.join("・"));
+        else if (answered) lines.push(label + ": なし");
+        return;
+      }
+      if (kind !== "shoki" && typeof a[q.code] === "string" && /^N /.test(a[q.code])) return;   // 「使っていない」は書かない
+      if (q.code === "Q2b") {   // この1ヶ月の頭痛日数（ツリー）
+        var ha = n(a.Q2b_headache);
+        if (ha === null) return;
+        var p = ["頭痛 " + ha + "日"];
+        if (n(a.Q2b_mig) !== null) p.push("うち片頭痛 " + a.Q2b_mig + "日");
+        if (n(a.Q2b_clear) !== null) p.push("スッキリ " + a.Q2b_clear + "日");
+        if (n(a.Q2b_unclear) !== null) p.push("スッキリしない " + a.Q2b_unclear + "日");
+        if (n(a.Q2b_med) !== null) p.push("痛み止め " + a.Q2b_med + "日");
+        lines.push("この1ヶ月: " + p.join("、"));
+        return;
+      }
+      if (q.code === "Q19") {   // 現在の鎮痛薬（日数と効き目）
+        if (n(a.Q19_total) === null) return;
+        var parts = [];
+        [["naru", "ナルティーク"], ["trip", "トリプタン"], ["rayvow", "レイボー"], ["rx", "その他処方"], ["otc", "市販薬"]].forEach(function (d) {
+          var days = n(a["Q19_" + d[0]]);
+          if (!days) return;
+          var e = n(a["Q19eff_" + d[0]]);
+          parts.push(d[1] + " " + days + "日" + (e !== null && KARTE_EFF[e] ? "（" + KARTE_EFF[e] + "）" : ""));
+        });
+        lines.push("鎮痛薬（現在）: 月 " + a.Q19_total + "日" + (parts.length ? "［" + parts.join("、") + "］" : ""));
+        return;
+      }
+      if (q.type === "radio") {
+        if (!has(a[q.code])) return;
+        val = a[q.code] + (has(a[q.code + "_other"]) ? "（" + a[q.code + "_other"] + "）" : "");
+      } else if (q.type === "checkbox") {
+        var arr = (a[q.code] || []).slice();
+        if (has(a[q.code + "_other"])) arr.push("その他: " + a[q.code + "_other"]);
+        if (!arr.length) return;
+        val = arr.join("・");
+      } else if (q.type === "numbergroup") {
+        var fs = q.fields.filter(function (f) { return has(a[f.code]); }).map(function (f) {
+          return (q.fields.length > 1 ? String(f.label).replace(/^（内訳）/, "") + " " : "") + a[f.code] + (f.unit ? f.unit.replace(/^日\/月 程度$/, "日/月程度") : "");
+        });
+        if (!fs.length) return;
+        val = fs.join("、");
+      } else if (q.type === "slider" || q.type === "scale11") {
+        if (!has(a[q.code])) return;
+        val = a[q.code] + "/10";
+      } else {
+        if (!has(a[q.code])) return;
+        val = String(a[q.code]).replace(/\s*\n\s*/g, " ／ ");
+      }
+      lines.push(label + ": " + val);
+    });
+  });
+  scores = scores || {};
+  var sc = [["HIT-6", scores.hit6], ["GAD-7", scores.gad7], ["PHQ-9", scores.phq9], ["MIBS-4", scores.mibs4]]
+    .filter(function (x) { return x[1] !== null && x[1] !== undefined; }).map(function (x) { return x[0] + " " + x[1]; });
+  if (sc.length) lines.push("質問票: " + sc.join(" / "));
+  if (scores.phq9_item9_flag) lines.push("※PHQ-9 項目9（希死念慮）に回答あり");
+  return lines.join("\n");
+}
+function updateKarteText() {
+  var box = document.getElementById("karteText");
+  if (!box || !window.editedAnswers || !window.currentSchema) return;
+  box.value = buildKarteText(window.currentKind, window.currentSchema, window.editedAnswers, window.currentEditedScores);
+}
+function copyKarteText() {
+  var box = document.getElementById("karteText");
+  var done = function () { document.getElementById("karteCopied").textContent = "コピーしました"; setTimeout(function () { document.getElementById("karteCopied").textContent = ""; }, 2000); };
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(box.value).then(done, function () { box.select(); document.execCommand("copy"); done(); });
+  else { box.select(); document.execCommand("copy"); done(); }
+}
+
+function updateLiveScores() {
+  recomputeMatrixTotals(window.currentSchema, window.editedAnswers);
+  var scores = computeScoresLocal(window.currentKind, window.editedAnswers);
+  window.currentEditedScores = scores;
+  document.getElementById("scoreHIT6").textContent = scores.hit6 !== null && scores.hit6 !== undefined ? scores.hit6 : "-";
+  document.getElementById("scoreGAD7").textContent = scores.gad7 !== null && scores.gad7 !== undefined ? scores.gad7 : "-";
+  document.getElementById("scorePHQ9").textContent = scores.phq9 !== null && scores.phq9 !== undefined ? scores.phq9 : "-";
+  document.getElementById("scoreMIBS4").textContent = scores.mibs4 !== null && scores.mibs4 !== undefined ? scores.mibs4 : "-";
+  document.getElementById("scoreMHD").textContent = scores.mhd !== null && scores.mhd !== undefined ? scores.mhd : "-";
+  document.getElementById("scoreAMD").textContent = scores.amd !== null && scores.amd !== undefined ? scores.amd : "-";
+  document.getElementById("phq9Warning").style.display = scores.phq9_item9_flag ? "block" : "none";
+  updateKarteText();
+}
+
+/* =========================================================================
+   QR受信・保存・患者一覧・グラフ・CSV
+   ========================================================================= */
+var allPatients = [];
+var trendChart = null;
+
+function loadPatientsFromStorage() {
+  var stored = localStorage.getItem("patientDatabase");
+  if (stored) {
+    try { allPatients = JSON.parse(stored); } catch (e) { console.error("データ読み込みエラー", e); allPatients = []; }
+  }
+  refreshPatientsList();
+}
+function savePatientsToStorage() { localStorage.setItem("patientDatabase", JSON.stringify(allPatients)); }
+
+/* =========================================================================
+   受診データCSV（2027_migraine_visit.csv）からの取り込み・直接追記
+   Chrome/Edge（File System Access API対応）では、選択したCSVファイルへ
+   直接読み書きする。非対応ブラウザでは、ファイル選択（読み込みのみ）＋
+   セッション内の追記履歴からのコピー／ダウンロードにフォールバックする。
+   ========================================================================= */
+function isFileSystemAccessSupported() {
+  return typeof window.showOpenFilePicker === "function";
+}
+
+function parseCsvText(text) {
+  if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1);
+  var rows = [];
+  var row = [];
+  var field = "";
+  var inQuotes = false;
+  for (var i = 0; i < text.length; i++) {
+    var c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i + 1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else {
+        field += c;
+      }
+    } else if (c === '"') {
+      inQuotes = true;
+    } else if (c === ",") {
+      row.push(field); field = "";
+    } else if (c === "\r") {
+      // 改行はまとめて\nで処理するため無視
+    } else if (c === "\n") {
+      row.push(field); field = "";
+      rows.push(row); row = [];
+    } else {
+      field += c;
+    }
+  }
+  if (field.length || row.length) { row.push(field); rows.push(row); }
+  if (rows.length && rows[rows.length - 1].length === 1 && rows[rows.length - 1][0] === "") rows.pop();
+  return rows;
+}
+
+function excelSerialToDateStr(v) {
+  if (v instanceof Date) {
+    var y = v.getFullYear(), m = String(v.getMonth() + 1).padStart(2, "0"), d = String(v.getDate()).padStart(2, "0");
+    return y + "-" + m + "-" + d;
+  }
+  if (typeof v === "string" && v.trim()) {
+    var m2 = v.match(/(\d{4})[\/\-年](\d{1,2})[\/\-月](\d{1,2})/);
+    if (m2) return m2[1] + "-" + String(m2[2]).padStart(2, "0") + "-" + String(m2[3]).padStart(2, "0");
+  }
+  return null;
+}
+
+function numOrNull(v) {
+  if (v === null || v === undefined || v === "") return null;
+  var n = Number(v);
+  return isNaN(n) ? null : n;
+}
+
+function parseKaisekiCsvRows(rows) {
+  if (!rows || !rows.length) throw new Error("CSVにデータがありません。");
+  var idx = kaisekiHeaderIndex(rows[0]);
+
+  var required = ["ID", "DATE", "HIT6", "MIBS4"];
+  var missingCols = required.filter(function (c) { return !(c in idx); });
+  if (missingCols.length) throw new Error("必要な列が見つかりません: " + missingCols.join("、"));
+
+  // 患者氏名は解析用CSVには含まれないため、この一覧には表示しない（プライバシー保護のうえ、
+  // 患者一覧はカルテ番号・最終受診日・受診回数のみを表示する仕様と一致させる）。
+  var patientsMap = {};
+  var visitCount = 0;
+  for (var r = 1; r < rows.length; r++) {
+    var row = rows[r];
+    if (!row || !row.length) continue;
+    var karteRaw = row[idx["ID"]];
+    if (karteRaw === null || karteRaw === undefined || String(karteRaw).trim() === "") continue;
+    var karte = String(karteRaw).trim();
+    var dateStr = excelSerialToDateStr(row[idx["DATE"]]);
+    if (!dateStr) continue;
+
+    var scores = {
+      hit6: numOrNull(row[idx["HIT6"]]),
+      mibs4: numOrNull(row[idx["MIBS4"]]),
+      gad7: idx["GAD7"] !== undefined ? numOrNull(row[idx["GAD7"]]) : null,
+      phq9: idx["PHQ9"] !== undefined ? numOrNull(row[idx["PHQ9"]]) : null,
+      mhd: idx["MHD"] !== undefined ? numOrNull(row[idx["MHD"]]) : null,
+      amd: idx["AMD"] !== undefined ? numOrNull(row[idx["AMD"]]) : null,
+      pgic: idx["PGIC"] !== undefined ? numOrNull(row[idx["PGIC"]]) : null
+    };
+
+    if (!patientsMap[karte]) patientsMap[karte] = { id: karte, name: "", visits: [] };
+    patientsMap[karte].visits.push({ date: dateStr, scores: scores, source: "csv", timestamp: new Date().toISOString() });
+    visitCount++;
+  }
+
+  return { patients: Object.values(patientsMap), visitCount: visitCount };
+}
+
+function mergeExcelPatients(excelPatients) {
+  var addedVisits = 0, skippedVisits = 0, newPatients = 0;
+  excelPatients.forEach(function (ep) {
+    var existing = allPatients.find(function (p) { return p.id === ep.id; });
+    if (!existing) {
+      existing = { id: ep.id, name: ep.name || "", visits: [] };
+      allPatients.push(existing);
+      newPatients++;
+    } else if (ep.name && !existing.name) {
+      existing.name = ep.name;
+    }
+    ep.visits.forEach(function (v) {
+      var already = existing.visits.find(function (ev) { return ev.date === v.date; });
+      if (already) {
+        // QRコード経由の詳細な回答データを優先し、Excel由来データでは上書きしない
+        skippedVisits++;
+      } else {
+        existing.visits.push(v);
+        addedVisits++;
+      }
+    });
+  });
+  return { addedVisits: addedVisits, skippedVisits: skippedVisits, newPatients: newPatients };
+}
+
+function importKaisekiCsvText(text, statusEl, isDirectHandle) {
+  try {
+    var rows = parseCsvText(text);
+    window.kaisekiCsvRows = rows;
+    var parsed = parseKaisekiCsvRows(rows);
+    var result = mergeExcelPatients(parsed.patients);
+    savePatientsToStorage();
+    refreshPatientsList();
+    statusEl.style.color = "var(--primary)";
+    statusEl.textContent = "✅ 取り込み完了：新規患者 " + result.newPatients + " 名／新規受診データ " + result.addedVisits + " 件を追加しました" +
+      (result.skippedVisits > 0 ? "（既存データと同日の " + result.skippedVisits + " 件はスキップ）" : "") + "。" +
+      (isDirectHandle
+        ? " このファイルに直接追記できます。"
+        : " このブラウザでは直接追記できないため、「追記履歴」欄からコピー／ダウンロードして手動で貼り付けてください。");
+  } catch (err) {
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "⚠️ 取り込みに失敗しました: " + err.message;
+  }
+}
+
+async function openKaisekiCsvFile() {
+  var statusEl = document.getElementById("excelImportStatus");
+  if (!isFileSystemAccessSupported()) {
+    document.getElementById("excelFileInput").click();
+    return;
+  }
+  try {
+    var handles = await window.showOpenFilePicker({
+      types: [{ description: "CSVファイル", accept: { "text/csv": [".csv"] } }],
+      excludeAcceptAllOption: false,
+      multiple: false
+    });
+    var handle = handles[0];
+    var file = await handle.getFile();
+    var text = await file.text();
+    statusEl.textContent = "読み込み中…";
+    window.kaisekiCsvHandle = handle;
+    importKaisekiCsvText(text, statusEl, true);
+  } catch (err) {
+    if (err && err.name === "AbortError") return; // ユーザーがキャンセル
+    statusEl.style.color = "var(--danger)";
+    statusEl.textContent = "⚠️ ファイルを開けませんでした: " + err.message;
+  }
+}
+
+/* =========================================================================
+   受診データCSVへの追記機能
+   ・File System Access API対応ブラウザ（Chrome/Edge）では、「CSVファイルを開く」で
+     選択したファイルへ「CSVに追記」を押すたびに直接読み書きする。
+   ・非対応ブラウザ、またはファイル未選択の場合は、セッション内の追記履歴に
+     localStorageで蓄積し、ドクターが手動でコピー／ダウンロードして貼り付ける。
+   ========================================================================= */
+var KAISEKI_CSV_HEADER = SAISHIN_CODEC.CSV_HEADER;
+var KAISEKI_CSV_STORAGE_KEY = "kaisekiCsvQueueRows";
+
+function loadKaisekiCsvQueue() {
+  try {
+    var raw = localStorage.getItem(KAISEKI_CSV_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+function saveKaisekiCsvQueue(rows) {
+  localStorage.setItem(KAISEKI_CSV_STORAGE_KEY, JSON.stringify(rows));
+}
+
+function csvEscapeField(v) {
+  var s = String(v === null || v === undefined ? "" : v);
+  if (/[",\n]/.test(s)) s = '"' + s.replace(/"/g, '""') + '"';
+  return s;
+}
+
+function kaisekiRowsToCsvText(rows) {
+  var lines = [KAISEKI_CSV_HEADER.map(csvEscapeField).join(",")];
+  rows.forEach(function (row) { lines.push(row.map(csvEscapeField).join(",")); });
+  return "﻿" + lines.join("\r\n") + (rows.length ? "\r\n" : "");
+}
+
+// CSVファイル全体（ヘッダー行含む2次元配列）を、そのままファイルに書き戻すためのテキストに変換する。
+function kaisekiRowsArrayToCsvText(rows) {
+  var lines = rows.map(function (row) { return row.map(csvEscapeField).join(","); });
+  return "﻿" + lines.join("\r\n") + "\r\n";
+}
+
+function renderKaisekiCsvQueue() {
+  var rows = loadKaisekiCsvQueue();
+  var textarea = document.getElementById("kaisekiCsvQueue");
+  if (textarea) textarea.value = kaisekiRowsToCsvText(rows);
+  var statusEl = document.getElementById("kaisekiCsvStatus");
+  if (statusEl) {
+    statusEl.style.color = "var(--muted)";
+    statusEl.textContent = rows.length ? ("未貼り付けのデータが " + rows.length + " 件あります。") : "未貼り付けのデータはありません。";
+  }
+}
+
+function copyKaisekiCsvQueue() {
+  var text = document.getElementById("kaisekiCsvQueue").value;
+  if (!text.trim()) { alert("コピーするデータがありません。"); return; }
+  function fallbackCopy() {
+    var ta = document.getElementById("kaisekiCsvQueue");
+    ta.select();
+    document.execCommand("copy");
+    alert("コピーしました。Excelの解析用シートの末尾行に貼り付けてください。");
+  }
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(text).then(function () {
+      alert("コピーしました。Excelの解析用シートの末尾行に貼り付けてください。");
+    }).catch(fallbackCopy);
+  } else {
+    fallbackCopy();
+  }
+}
+
+function downloadKaisekiCsvQueue() {
+  var text = document.getElementById("kaisekiCsvQueue").value;
+  if (!text.trim()) { alert("ダウンロードするデータがありません。"); return; }
+  var blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+  var link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "解析用_追記_" + new Date().toISOString().split("T")[0] + ".csv";
+  link.click();
+}
+
+function clearKaisekiCsvQueue() {
+  var rows = loadKaisekiCsvQueue();
+  if (!rows.length) { alert("クリアするデータがありません。"); return; }
+  if (!confirm("Excelへの貼り付けが完了しましたか？\nこの一覧をクリアします（Excel側のデータは消えません）。")) return;
+  saveKaisekiCsvQueue([]);
+  renderKaisekiCsvQueue();
+}
+
+// saishin/shoki の回答から、解析用CSVの1行分（列名: 値）を作る。列名は SAISHIN_CODEC.CSV_HEADER。
+function computeKaisekiFields(kind, answers, scores) {
+  if (kind === "saishin") return SAISHIN_CODEC.toCsvObject(answers, scores);
+  function n(v) { return v === null || v === undefined ? "" : v; }
+  return {
+    MMD: n(answers.Q2b_mig), MHD: n(answers.Q2b_headache), UD: n(answers.Q2b_unclear), CCD: n(answers.Q2b_clear),
+    maxNRS: n(answers.Q8), AMD: n(scores.amd),
+    HIT6: n(scores.hit6), MIBS4: n(scores.mibs4), GAD7: n(scores.gad7), PHQ9: n(scores.phq9),
+    PHQ9_9: n(scores.phq9_item9_score),
+    AMD_RIM: n(answers.Q19_naru), AMD_TRP: n(answers.Q19_trip), AMD_LAS: n(answers.Q19_rayvow), AMD_RX: n(answers.Q19_rx), AMD_OTC: n(answers.Q19_otc),
+    EFF_RIM: n(answers.Q19eff_naru), EFF_TRP: n(answers.Q19eff_trip), EFF_LAS: n(answers.Q19eff_rayvow), EFF_RX: n(answers.Q19eff_rx), EFF_OTC: n(answers.Q19eff_otc)
+  };
+}
+
+// CSVの1行目（列名）から列位置を引く。旧ヘッダー（カルテ番号・受診日など）のファイルにも対応する。
+function kaisekiHeaderIndex(headerRow) {
+  var idx = {};
+  headerRow.forEach(function (h, i) {
+    h = String(h).replace(/^\ufeff/, "").trim();
+    var name = SAISHIN_CODEC.OLD_NAMES[h] || h;
+    if (idx[name] === undefined) idx[name] = i;
+  });
+  return idx;
+}
+
+// カルテ番号確定後の内容を、受診データCSVの1行として追記する。
+// 「CSVファイルを開く」でファイルを選択済み（Chrome/Edge）の場合はそのファイルへ直接
+// 読み書きし、来院回数もファイルの最新内容から数え直す。それ以外の場合は、
+// セッション内の追記履歴（localStorage）に貯め、手動でコピー／ダウンロードする運用とする。
+async function addVisitToKaisekiCsvQueue() {
+  var resultEl = document.getElementById("excelWriteResult");
+  resultEl.textContent = "";
+
+  if (!window.editedAnswers) {
+    alert("QRデータが読み込まれていません。");
+    return;
+  }
+  var karteInput = document.getElementById("karteInput");
+  var karte = karteInput.value.trim();
+  if (!karte) {
+    alert("カルテ番号を入力してください。");
+    karteInput.focus();
+    return;
+  }
+  var formDate = window.currentFormDate;
+  if (!formDate) {
+    alert("記入日が不明のため追記できません。");
+    return;
+  }
+
+  recomputeMatrixTotals(window.currentSchema, window.editedAnswers);
+  var scores = computeScoresLocal(window.currentKind, window.editedAnswers);
+  var fields = computeKaisekiFields(window.currentKind, window.editedAnswers, scores);
+
+  var hasDirectHandle = !!window.kaisekiCsvHandle;
+  var freshRows = null;
+
+  if (hasDirectHandle) {
+    try {
+      var file = await window.kaisekiCsvHandle.getFile();
+      var text = await file.text();
+      freshRows = parseCsvText(text);
+    } catch (err) {
+      alert("CSVファイルの再読み込みに失敗したため、直接追記できませんでした。\n" + err.message + "\n\n下の「追記履歴」欄に記録しますので、手動で貼り付けてください。");
+      hasDirectHandle = false;
+    }
+  }
+
+  var karteColIdx = 0, dateColIdx = 2;
+  var hidx = null;
+  if (freshRows && freshRows.length) {
+    hidx = kaisekiHeaderIndex(freshRows[0]);
+    if (hidx["ID"] !== undefined) karteColIdx = hidx["ID"];
+    if (hidx["DATE"] !== undefined) dateColIdx = hidx["DATE"];
+  }
+
+  var visitNumber = 1;
+  var matchRowIndex = -1;
+  if (freshRows && freshRows.length > 1) {
+    var count = 0;
+    for (var r = 1; r < freshRows.length; r++) {
+      var frow = freshRows[r];
+      if (!frow || !frow.length) continue;
+      if (String(frow[karteColIdx]).trim() === karte) {
+        count++;
+        if (String(frow[dateColIdx]).trim() === formDate) matchRowIndex = r;
+      }
+    }
+    visitNumber = matchRowIndex >= 0 ? count : count + 1;
+  } else {
+    var existingPatient = allPatients.find(function (p) { return p.id === karte; });
+    visitNumber = existingPatient ? existingPatient.visits.length + 1 : 1;
+  }
+
+  var updateNote = matchRowIndex >= 0 ? "\n※同じカルテ番号・受診日の行が既にあるため、その行を上書きします。" : "";
+  var modeNote = hasDirectHandle
+    ? "\n※「2027_migraine_visit.csv」に直接追記します。"
+    : "\n※CSVファイルが未選択、またはこのブラウザでは直接追記できないため、下の「追記履歴」欄に記録します。手動でコピー／ダウンロードして貼り付けてください。";
+
+  if (!confirm(
+    "以下の内容をCSVに追記します。よろしいですか？\n\n" +
+    "カルテ番号: " + karte + "\n" +
+    "受診日: " + formDate + "\n" +
+    "種別: " + (window.currentKind === "shoki" ? "初診" : "再診") + "\n" +
+    "来院回数（推定）: " + visitNumber + " 回目\n" +
+    "HIT-6: " + (scores.hit6 != null ? scores.hit6 : "-") + " / MIBS-4: " + (scores.mibs4 != null ? scores.mibs4 : "-") +
+    updateNote + modeNote
+  )) return;
+
+  fields.ID = karte;
+  fields.VISIT = visitNumber;
+  fields.DATE = formDate;
+  // 追記履歴用は新ヘッダー順の配列
+  var row = KAISEKI_CSV_HEADER.map(function (c) { return fields[c] === undefined ? "" : fields[c]; });
+
+  var directWriteOk = false;
+  if (hasDirectHandle) {
+    try {
+      // ファイル側の列順に合わせて並べる（ファイルにない列は書けないので、その場合は知らせる）
+      var width = freshRows[0].length;
+      var rowForFile = [];
+      for (var ci = 0; ci < width; ci++) rowForFile.push("");
+      var lost = [];
+      Object.keys(fields).forEach(function (c) {
+        var v = fields[c];
+        if (v === null || v === undefined || v === "") return;
+        if (hidx[c] !== undefined) rowForFile[hidx[c]] = v;
+        else lost.push(c);
+      });
+      if (lost.length && !confirm("このCSVファイルには次の列がないため、その値は書き込まれません：\n" + lost.join(", ") + "\n\n新しいヘッダーのCSVに切り替えることをおすすめします。続けますか？")) {
+        throw new Error("利用者が中止しました");
+      }
+      if (matchRowIndex >= 0) {
+        freshRows[matchRowIndex] = rowForFile;
+      } else {
+        freshRows.push(rowForFile);
+      }
+      var csvText = kaisekiRowsArrayToCsvText(freshRows);
+      var writable = await window.kaisekiCsvHandle.createWritable();
+      await writable.write(csvText);
+      await writable.close();
+      directWriteOk = true;
+
+      window.kaisekiCsvRows = freshRows;
+      var parsed = parseKaisekiCsvRows(freshRows);
+      mergeExcelPatients(parsed.patients);
+      savePatientsToStorage();
+      refreshPatientsList();
+    } catch (err) {
+      alert("CSVファイルへの書き込みに失敗しました: " + err.message + "\n\n下の「追記履歴」欄に記録しますので、手動で貼り付けてください。");
+      directWriteOk = false;
+    }
+  }
+
+  // 直接書き込みができた場合も、このセッションでの追記内容は履歴として残す。
+  var queueRows = loadKaisekiCsvQueue();
+  queueRows.push(row);
+  saveKaisekiCsvQueue(queueRows);
+  renderKaisekiCsvQueue();
+
+  resultEl.style.color = "var(--primary)";
+  resultEl.innerHTML = directWriteOk
+    ? "✅ CSVファイルに直接追記しました（来院回数 " + visitNumber + " 回目）。"
+    : "✅ 追記履歴に記録しました（来院回数 " + visitNumber + " 回目）。左側の「📋 追記履歴」欄からコピーしてCSVファイルに貼り付けてください。";
+}
+
+// QRリーダーは US 配列のキーとして文字を送るため、PC が日本語（JIS）配列だと記号がずれて入る
+// （「:」→「+」、「|」→「}」、「=」→「^」、「+」→「~」、「_」→「=」）。行頭が「HZQ2+」ならずれを戻す。
+function fixScanLine(l) {
+  l = String(l).replace(/^\uFEFF/, "").trim();
+  if (!/^HZQ[12]\+/.test(l)) return l;
+  var M = { "+": ":", "}": "|", "^": "=", "~": "+", "=": "_" };
+  return l.replace(/[+}^~=]/g, function (c) { return M[c]; });
+}
+function scanLines(text) {
+  return String(text).split(/\r?\n+/).map(fixScanLine).filter(function (l) { return l; });
+}
+
+// QRリーダー（キーボード入力）で欄に流し込まれたら、入力が止まって少ししてから自動で読み込み、
+// カルテ記載用テキストをクリップボードにコピーする（電子カルテには Ctrl+V で貼る）
+(function () {
+  var timer = null;
+  function complete(text) {
+    var lines = scanLines(text), seen = {}, total = 0;
+    lines.forEach(function (l) {
+      var m = /^HZQ[12]:([^:]+):(\d+)\/(\d+):/.exec(l);
+      if (m) { seen[m[2]] = 1; total = Number(m[3]); }
+    });
+    return total > 0 && Object.keys(seen).length >= total;
+  }
+  function tryAuto() {
+    var box = document.getElementById("qrTextInput");
+    var msg = document.getElementById("autoScanMsg");
+    if (!box || !complete(box.value)) return;
+    try {
+      var payload = FE.reassembleFrames(scanLines(box.value));
+      loadPayloadIntoReview(payload);
+      copyKarteText();
+      msg.textContent = "✅ 読み込みました。カルテ用の文をコピーしたので、電子カルテで Ctrl+V で貼り付けてください";
+    } catch (e) {
+      msg.textContent = "⚠️ 読み込めませんでした（" + e.message + "）。もう一度読ませてください";
+    }
+  }
+  document.addEventListener("DOMContentLoaded", function () {
+    var box = document.getElementById("qrTextInput");
+    if (!box) return;
+    box.addEventListener("input", function () {
+      clearTimeout(timer);
+      timer = setTimeout(tryAuto, 800);
+    });
+    box.addEventListener("focus", function () { box.select(); });   // 次の患者さんを読む前に、前の内容を選択して上書きできるように
+  });
+})();
+
+function parseQRText() {
+  var text = document.getElementById("qrTextInput").value.trim();
+  if (!text) { alert("QRデータを入力してください"); return; }
+  try {
+    var payload = FE.reassembleFrames(scanLines(text));
+    loadPayloadIntoReview(payload);
+  } catch (e) {
+    alert("QRデータの読み込みに失敗しました:\n" + e.message);
+  }
+}
+
+function loadPayloadIntoReview(payload) {
+  window.currentKind = payload.kind === "shoki" ? "shoki" : "saishin";
+  window.currentSchema = window.currentKind === "shoki" ? SCHEMA_SHOKI : SCHEMA_SAISHIN;
+  window.editedAnswers = JSON.parse(JSON.stringify(payload.a || {}));
+  // QRコードにはカルテ番号を含めない運用のため、ここでは未確定。
+  // 医師端末側でカルテ番号欄に入力してもらい、既存データと照合する。
+  window.currentPatientId = "";
+  window.currentFormDate = payload.date || "";
+
+  recomputeMatrixTotals(window.currentSchema, window.editedAnswers);
+
+  document.getElementById("reviewEmpty").classList.add("hidden");
+  document.getElementById("reviewWrap").classList.remove("hidden");
+  document.getElementById("displayMeta").textContent =
+    (window.currentKind === "shoki" ? "初診" : "再診") + " ／ 記入日: " + (window.currentFormDate || "不明");
+
+  var karteInput = document.getElementById("karteInput");
+  karteInput.value = "";
+  document.getElementById("karteMatchInfo").textContent = "";
+  document.getElementById("excelWriteResult").textContent = "";
+
+  renderReviewScreen(window.currentSchema, window.editedAnswers);
+  updateLiveScores();
+  setReviewFilter("all");
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  karteInput.focus();
+}
+
+function onKarteInputChange() {
+  var id = document.getElementById("karteInput").value.trim();
+  window.currentPatientId = id;
+  var infoEl = document.getElementById("karteMatchInfo");
+  if (!id) {
+    infoEl.textContent = "";
+    return;
+  }
+  var patient = allPatients.find(function (p) { return p.id === id; });
+  if (patient) {
+    var last = patient.visits[patient.visits.length - 1];
+    infoEl.innerHTML =
+      '<span style="color:var(--primary); font-weight:700;">✓ 既存患者と一致</span>　これまでに ' + patient.visits.length +
+      ' 回受診（前回記入日: ' + escapeHtml(last ? last.date : "-") + '）。今回のデータを追加登録します。';
+  } else {
+    infoEl.innerHTML =
+      '<span style="color:var(--accent); font-weight:700;">※ 該当なし</span>　このカルテ番号は初めて登録されます（新規患者として作成）。番号に誤りがないかご確認ください。';
+  }
+}
+
+function savePatientData() {
+  var karteInput = document.getElementById("karteInput");
+  var id = karteInput.value.trim();
+
+  if (!window.editedAnswers) {
+    alert("QRデータが読み込まれていません。QRデータを再度読み込んでください。");
+    return;
+  }
+  if (!id) {
+    alert("カルテ番号を入力してください。");
+    karteInput.focus();
+    karteInput.style.borderColor = "#c0392b";
+    return;
+  }
+  karteInput.style.borderColor = "";
+  window.currentPatientId = id;
+
+  recomputeMatrixTotals(window.currentSchema, window.editedAnswers);
+  var scores = computeScoresLocal(window.currentKind, window.editedAnswers);
+
+  var date = window.currentFormDate;
+  var patient = allPatients.find(function (p) { return p.id === id; });
+  var isNewPatient = !patient;
+  if (!patient) { patient = { id: id, visits: [] }; allPatients.push(patient); }
+
+  var existingVisit = patient.visits.find(function (v) { return v.date === date; });
+  var visitData = { date: date, answers: window.editedAnswers, scores: scores, timestamp: new Date().toISOString() };
+  if (existingVisit) {
+    if (!confirm("カルテ番号 " + id + " には同じ記入日（" + date + "）のデータが既に存在します。上書きしますか？")) return;
+    Object.assign(existingVisit, visitData);
+  } else {
+    patient.visits.push(visitData);
+  }
+
+  savePatientsToStorage();
+  alert((isNewPatient ? "新規患者として登録しました" : "既存患者にデータを追加しました") + "：カルテ番号 " + id);
+  resetReview();
+}
+
+function resetReview() {
+  window.editedAnswers = null;
+  window.currentPatientId = null;
+  document.getElementById("qrTextInput").value = "";
+  document.getElementById("karteInput").value = "";
+  document.getElementById("karteMatchInfo").textContent = "";
+  document.getElementById("reviewWrap").classList.add("hidden");
+  document.getElementById("reviewEmpty").classList.remove("hidden");
+  refreshPatientsList();
+}
+
+function refreshPatientsList() {
+  var searchText = document.getElementById("patientSearch").value.toLowerCase();
+  var filtered = allPatients.filter(function (p) {
+    return p.id.toLowerCase().indexOf(searchText) !== -1 || (p.name && p.name.toLowerCase().indexOf(searchText) !== -1);
+  });
+  var list = document.getElementById("patientsList");
+  list.innerHTML = "";
+  filtered.forEach(function (patient) {
+    var sortedVisits = patient.visits.slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+    var latestVisit = sortedVisits[sortedVisits.length - 1] || {};
+    var card = document.createElement("div");
+    card.className = "patient-card";
+    card.onclick = function () { selectPatient(patient.id); };
+    card.innerHTML =
+      '<div class="id">カルテ番号: ' + escapeHtml(patient.id) + '</div>' +
+      '<div class="date">最終受診日: ' + escapeHtml(latestVisit.date || "-") + '</div>' +
+      '<div class="date">受診回数: ' + patient.visits.length + ' 回</div>';
+    list.appendChild(card);
+  });
+  if (filtered.length === 0) list.innerHTML = '<p style="text-align:center; color:var(--muted);">患者データなし</p>';
+}
+
+function selectPatient(patientId) {
+  var patient = allPatients.find(function (p) { return p.id === patientId; });
+  if (!patient) return;
+  displayGraphForPatient(patient);
+  document.getElementById("graphSection").style.display = "block";
+}
+
+function displayGraphForPatient(patient) {
+  var visits = patient.visits.slice().sort(function (a, b) { return new Date(a.date) - new Date(b.date); });
+  var labels = visits.map(function (v) { return v.date; });
+  var hit6Data = visits.map(function (v) { return v.scores.hit6 || null; });
+  var mibs4Data = visits.map(function (v) { return v.scores.mibs4 || null; });
+  var mhdData = visits.map(function (v) { return v.scores.mhd || null; });
+
+  var ctx = document.getElementById("trendChart").getContext("2d");
+  if (trendChart) trendChart.destroy();
+  trendChart = new Chart(ctx, {
+    type: "line",
+    data: {
+      labels: labels,
+      datasets: [
+        { label: "HIT-6 (36-78)", data: hit6Data, borderColor: "#e8734a", backgroundColor: "rgba(232,115,74,0.1)", tension: 0.3, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
+        { label: "MIBS-4 (0-12)", data: mibs4Data, borderColor: "#2f6f6b", backgroundColor: "rgba(47,111,107,0.1)", tension: 0.3, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 },
+        { label: "MHD (日/月)", data: mhdData, borderColor: "#f39c12", backgroundColor: "rgba(243,156,18,0.1)", tension: 0.3, borderWidth: 2, pointRadius: 5, pointHoverRadius: 7 }
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { y: { beginAtZero: true, max: 80 } } }
+  });
+
+  var legend = document.getElementById("chartLegend");
+  legend.innerHTML =
+    '<div class="legend-item"><div class="legend-color" style="background:#e8734a;"></div><span>HIT-6</span></div>' +
+    '<div class="legend-item"><div class="legend-color" style="background:#2f6f6b;"></div><span>MIBS-4</span></div>' +
+    '<div class="legend-item"><div class="legend-color" style="background:#f39c12;"></div><span>MHD</span></div>';
+
+  window.currentSelectedPatient = patient;
+}
+
+function exportToCSV() {
+  if (allPatients.length === 0) { alert("データがありません"); return; }
+  var csv = "ID,DATE,HIT6,GAD7,PHQ9,MIBS4,MHD,AMD\n";
+  allPatients.forEach(function (patient) {
+    patient.visits.forEach(function (visit) {
+      var s = visit.scores;
+      csv += patient.id + "," + visit.date + "," + (s.hit6 || "") + "," + (s.gad7 || "") + "," + (s.phq9 || "") + "," + (s.mibs4 || "") + "," + (s.mhd || "") + "," + (s.amd || "") + "\n";
+    });
+  });
+  var blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  var link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = "頭痛外来_全患者データ_" + new Date().toISOString().split("T")[0] + ".csv";
+  link.click();
+}
+
+document.getElementById("patientSearch").addEventListener("input", refreshPatientsList);
+document.getElementById("excelFileInput").addEventListener("change", function (e) {
+  if (e.target.files && e.target.files[0]) {
+    var statusEl = document.getElementById("excelImportStatus");
+    statusEl.textContent = "読み込み中…";
+    var reader = new FileReader();
+    reader.onload = function (ev) {
+      importKaisekiCsvText(ev.target.result, statusEl, false);
+    };
+    reader.onerror = function () {
+      statusEl.style.color = "var(--danger)";
+      statusEl.textContent = "⚠️ ファイルの読み込みに失敗しました。";
+    };
+    reader.readAsText(e.target.files[0], "utf-8");
+    e.target.value = "";
+  }
+});
+window.addEventListener("load", function () { loadPatientsFromStorage(); renderKaisekiCsvQueue(); });
+</script>
+</body>
+</html>
