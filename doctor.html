@@ -332,6 +332,10 @@ input[type=number].review-input { width: 90px; }
   cursor: pointer;
 }
 .review-check input.review-input { width: auto; flex: 0 0 auto; margin: 0; padding: 0; }
+#baselinePreview { max-height: 260px; overflow: auto; margin-top: 6px; font-size: 0.78rem; }
+#baselinePreview .bl-row { display: grid; grid-template-columns: 3.2em 13em 1fr; gap: 6px; padding: 2px 0; border-bottom: 1px solid var(--border); }
+#baselinePreview .bl-col { color: var(--text-light, #888); }
+#baselinePreview .bl-name { font-weight: 600; }
 .review-check.on { background: #e7f3f1; border-color: var(--primary); font-weight: 700; }
 .review-row.wide textarea.review-input { grid-column: 1 / -1; }
 textarea.review-input { min-height: 50px; resize: vertical; }
@@ -474,6 +478,15 @@ textarea.review-input { min-height: 50px; resize: vertical; }
         <textarea id="karteText" readonly style="width:100%; height:260px; margin-top:6px; padding:8px; border:1px solid var(--border); border-radius:6px; font-size:0.82rem; line-height:1.5;"></textarea>
         <button class="btn-secondary" style="margin-top:6px;" onclick="copyKarteText();">📋 カルテ記載をコピー</button>
         <span id="karteCopied" style="font-size:0.8rem; color:var(--primary); margin-left:8px;"></span>
+      </div>
+
+      <div class="patient-info" id="baselineBox" style="margin-top:10px; display:none;">
+        <div class="label">📊 migraine_baseline に貼り付ける1行（初診のみ）</div>
+        <div style="font-size:0.8rem; line-height:1.5; margin-top:4px;">Excel の「整理版」シートで、新しい行の <b>A列</b> を選んで貼り付け（Ctrl+V）。研究ID・氏名・生年月日などは貼り付けたあとに入力してください。</div>
+        <button class="btn-secondary" style="margin-top:6px;" onclick="copyBaselineRow();">📋 baseline の1行をコピー</button>
+        <span id="baselineCount" style="font-size:0.8rem; margin-left:6px;"></span>
+        <span id="baselineCopied" style="font-size:0.8rem; color:var(--primary); margin-left:8px;"></span>
+        <details style="margin-top:4px;"><summary style="font-size:0.8rem; cursor:pointer;">中身を見る</summary><div id="baselinePreview"></div></details>
       </div>
 
       <div class="review-toolbar">
@@ -832,7 +845,8 @@ var SCHEMA_SHOKI = {
             {value:"視覚症状（光・ギザギザ・視野が欠ける）",label:"視覚症状（光・ギザギザ・視野が欠ける）"},
             {value:"感覚症状（しびれ・ピリピリ）",label:"感覚症状（しびれ・ピリピリ）"},
             {value:"運動症状（力が入らない）",label:"運動症状（力が入らない）"},
-            {value:"言語症状（言葉が出にくい）",label:"言語症状（言葉が出にくい）"}
+            {value:"言語症状（言葉が出にくい）",label:"言語症状（言葉が出にくい）"},
+            {value:"脳幹症状（ぐるぐる回るめまい・物が二重に見える・ろれつが回らない）",label:"脳幹症状（ぐるぐる回るめまい・物が二重に見える・ろれつが回らない）"}
           ]
         },
         {
@@ -1784,9 +1798,11 @@ function renderReviewScreen(schema, answers) {
     var secMissing = secRows.filter(function (r) { return r.missing; }).length;
     // 質問票（HIT-6・GAD-7 など1問ずつの尺度）は、未入力がなければ閉じておく（点数は上のカードとカルテ文に出る）
     var isScale = secRows.every(function (r) { return r.type === "matrixrow"; });
+    var scaleQ = isScale ? scaleQuestions(schema).filter(function (q) { return secRows[0].code.indexOf(q.code + "_") === 0; })[0] : null;
     var open = !isScale || secMissing > 0;
     var note = isScale ? (secRows.length + "問" + (secMissing ? "・未入力 " + secMissing : "") + (open ? "" : "（クリックで開く）")) : (secMissing ? "未入力 " + secMissing : "");
-    html += '<details class="review-section"' + (open ? " open" : "") + '><summary class="review-section-head"><span>' + escapeHtml(sectionTitle) + '</span><span class="sec-note">' + escapeHtml(note) + '</span></summary><div class="review-section-body">';
+    if (scaleQ) note = scaleItemScores(scaleQ, answers).text;
+    html += '<details class="review-section"' + (open ? " open" : "") + '><summary class="review-section-head"><span>' + escapeHtml(sectionTitle) + '</span><span class="sec-note"' + (scaleQ ? ' data-scale="' + escapeHtml(scaleQ.code) + '"' : "") + '>' + escapeHtml(note) + '</span></summary><div class="review-section-body">';
     secRows.forEach(function (r) {
       var wide = r.type === "multiselect" || r.type === "textarea";
       var seHide = r.seParent && answers[r.seParent] !== "あり" && !r.value;
@@ -2047,16 +2063,51 @@ function buildKarteText(kind, schema, a, scores) {
     });
   });
   scores = scores || {};
-  var sc = [["HIT-6", scores.hit6], ["GAD-7", scores.gad7], ["PHQ-9", scores.phq9], ["MIBS-4", scores.mibs4]]
-    .filter(function (x) { return x[1] !== null && x[1] !== undefined; }).map(function (x) { return x[0] + " " + x[1]; });
-  if (sc.length) lines.push("質問票: " + sc.join(" / "));
+  // 質問票は合計点と1問ずつの点数を1行ずつ
+  scaleQuestions(schema).forEach(function (q) {
+    var t = scaleItemScores(q, a);
+    if (t.answered) lines.push(t.name + ": " + t.text);
+  });
   if (scores.phq9_item9_flag) lines.push("※PHQ-9 項目9（希死念慮）に回答あり");
   return lines.join("\n");
 }
+// 質問票（matrix 型：HIT-6・GAD-7・PHQ-9・MIBS-4）の1問ずつの点数
+function scaleQuestions(schema) {
+  var out = [];
+  (schema && schema.sections || []).forEach(function (sec) {
+    sec.questions.forEach(function (q) { if (q.type === "matrix") out.push(q); });
+  });
+  return out;
+}
+function scaleItemScores(q, a) {
+  var total = 0, answered = 0;
+  var items = q.rows.map(function (r) {
+    var v = a[q.code + "_" + r.code];
+    if (v === null || v === undefined || v === "") return "－";
+    var col = q.columns[Number(v)];
+    if (!col) return "－";
+    total += col.points; answered++;
+    return String(col.points);
+  });
+  var name = q.title || q.code;
+  var text = answered
+    ? total + "点" + (answered < q.rows.length ? "（" + answered + "/" + q.rows.length + "問）" : "") + "（各問 " + items.join("・") + "）"
+    : "未回答";
+  return { name: name, text: text, total: answered ? total : null, answered: answered, items: items };
+}
+function updateScaleNotes() {
+  if (!window.currentSchema || !window.editedAnswers) return;
+  scaleQuestions(window.currentSchema).forEach(function (q) {
+    var el = document.querySelector('#reviewList .sec-note[data-scale="' + q.code + '"]');
+    if (el) el.textContent = scaleItemScores(q, window.editedAnswers).text;
+  });
+}
 function updateKarteText() {
+  updateScaleNotes();
   var box = document.getElementById("karteText");
   if (!box || !window.editedAnswers || !window.currentSchema) return;
   box.value = buildKarteText(window.currentKind, window.currentSchema, window.editedAnswers, window.currentEditedScores);
+  updateBaselineBox();
 }
 function copyKarteText() {
   var box = document.getElementById("karteText");
@@ -2271,7 +2322,15 @@ async function openKaisekiCsvFile() {
    ・非対応ブラウザ、またはファイル未選択の場合は、セッション内の追記履歴に
      localStorageで蓄積し、ドクターが手動でコピー／ダウンロードして貼り付ける。
    ========================================================================= */
-var KAISEKI_CSV_HEADER = SAISHIN_CODEC.CSV_HEADER;
+// 質問票の1問ずつの点数（2026-10-16 追加、末尾に足す）。PHQ-9 の第9問は既存の PHQ9_9 列。
+var KAISEKI_ITEM_COLS = (function () {
+  var c = [];
+  [["HIT6", 6], ["MIBS4", 4], ["GAD7", 7], ["PHQ9", 8]].forEach(function (x) {
+    for (var i = 1; i <= x[1]; i++) c.push(x[0] + "_" + i);
+  });
+  return c;
+})();
+var KAISEKI_CSV_HEADER = SAISHIN_CODEC.CSV_HEADER.concat(KAISEKI_ITEM_COLS);
 var KAISEKI_CSV_STORAGE_KEY = "kaisekiCsvQueueRows";
 
 function loadKaisekiCsvQueue() {
@@ -2354,6 +2413,18 @@ function clearKaisekiCsvQueue() {
 
 // saishin/shoki の回答から、解析用CSVの1行分（列名: 値）を作る。列名は SAISHIN_CODEC.CSV_HEADER。
 function computeKaisekiFields(kind, answers, scores) {
+  var base = computeKaisekiFieldsBase(kind, answers, scores);
+  // 1問ずつの点数（HIT6_1…、未回答は空欄）
+  scaleQuestions(window.currentSchema || (kind === "saishin" ? SCHEMA_SAISHIN : SCHEMA_SHOKI)).forEach(function (q) {
+    var t = scaleItemScores(q, answers);
+    t.items.forEach(function (v, i) {
+      var col = q.code + "_" + (i + 1);
+      if (KAISEKI_ITEM_COLS.indexOf(col) !== -1) base[col] = v === "－" ? "" : Number(v);
+    });
+  });
+  return base;
+}
+function computeKaisekiFieldsBase(kind, answers, scores) {
   if (kind === "saishin") return SAISHIN_CODEC.toCsvObject(answers, scores);
   function n(v) { return v === null || v === undefined ? "" : v; }
   return {
@@ -2778,6 +2849,183 @@ document.getElementById("excelFileInput").addEventListener("change", function (e
   }
 });
 window.addEventListener("load", function () { loadPatientsFromStorage(); renderKaisekiCsvQueue(); });
+
+/* ===== migraine_baseline（整理版）に貼り付ける1行（初診のみ） =====
+   BASELINE_COLS は baseline/build_baseline.py が作る列順と同じ（列を変えたら作り直して差し替える）。 */
+var BASELINE_COLS = /*BASELINE_COLS*/["研究ID", "#採用", "患者コード", "患者氏名", "ふりがな", "生年月日", "#初診時年齢", "#性別", "初診日", "仕事", "夜勤の有無", "身長(cm)", "体重(kg)", "BMI", "喫煙", "飲酒頻度", "初診時相談内容", "症例の特徴", "#家族歴", "家族歴_父", "家族歴_母", "家族歴_兄弟", "家族歴_子ども", "#発症年齢", "#罹病期間(年)", "診断", "#診断2", "#診断3", "#緊張型/群発", "#MOH", "MOH離脱のタイミング", "月15日以上の頭痛(最近3か月)", "片頭痛日数_区分(最近3か月)", "片頭痛日数(最近3か月・日/月)", "慢性片頭痛になった年齢", "#連日・持続性頭痛", "頭痛の性状_回答", "頭痛の性状_その他", "#拍動性", "#締め付け", "#頭重感", "持続時間_回答", "持続時間_その他", "持続時間", "持続時間詳細", "体動で悪化_回答", "#体動", "頭痛の側性", "#羞明", "#音過敏", "#匂い過敏", "#嘔気", "嘔吐", "#肩こり", "#めまい(随伴)", "片側の顔面自律神経症状", "前兆の頻度", "#視覚前兆", "#感覚性前兆", "#言語性前兆", "#運動性前兆", "#脳幹性前兆", "#網膜性前兆", "その他前兆", "予兆_あくび", "予兆_甘いもの欲求", "予兆_疲れやすい", "予兆_気分の落ち込み", "予兆_首こり", "#不眠/寝すぎ", "#月経", "#悪天候", "#ストレス", "飲酒など飲食物", "誘因_空腹", "誘因_目の疲れ・光", "誘因_音", "誘因_飲酒", "飲酒後の頭痛", "誘因_その他", "アロディニア", "アロディニア_回答", "#発作間欠期アロディニア", "ASC-12", "月経との関係_回答", "#婦人科/ピル", "婦人科詳細", "ホルモン療法・ピル_回答", "妊娠・授乳", "産婦人科治療", "月経症状がつらい", "婦人科補足", "#前兆ありで複合ホルモン避妊薬", "併存症_高血圧", "併存症_糖尿病", "併存症_脂質異常症", "併存症_心臓病", "併存症_脳卒中", "併存症_睡眠時無呼吸", "併存症_慢性肺疾患", "併存症_肝腎疾患", "併存症_免疫疾患", "併存症_悪性腫瘍", "初診時血圧_収縮期", "初診時血圧_拡張期", "併存症_レイノー現象", "併存症_慢性便秘", "併存症_その他の血管疾患", "#精神科疾患", "精神詳細", "精神_うつ病", "精神_双極性障害", "精神_適応障害", "精神_気分障害の治療状況", "精神_パニック障害", "精神_全般性不安障害", "精神_強迫性障害", "精神_不安障害の治療状況", "精神_統合失調症", "精神_発達障害", "精神_摂食障害", "精神_解離性障害", "精神_その他", "#自律神経失調(めまい/乗り物酔い)", "自律神経失調(めまい/乗り物酔い)詳細", "自律神経失調_回答", "普段の睡眠の状態", "睡眠_回答", "倦怠感", "予防薬投薬ある場合", "他院での頭痛加療歴詳細", "市販薬含め鎮痛剤内服", "鎮痛薬歴_市販薬", "鎮痛薬歴_ロキソプロフェン", "鎮痛薬歴_アセトアミノフェン", "鎮痛薬歴_イブプロフェン", "鎮痛薬歴_スマトリプタン", "鎮痛薬歴_リザトリプタン", "鎮痛薬歴_ゾルミトリプタン", "鎮痛薬歴_エレトリプタン", "鎮痛薬歴_エルゴタミン", "予防薬失敗クラス数", "失敗した予防薬クラス", "難治分類(2025国際合意)", "トリプタン反応性", "①MMD", "#①MHD(日)", "#①UD", "#①CCD", "#①AMD", "①AMD_ナルティーク", "①AMD_トリプタン", "①AMD_レイボー", "①AMD_その他処方", "①AMD_市販薬", "①効き目_ナルティーク", "①効き目_トリプタン", "①効き目_レイボー", "①効き目_その他処方", "①効き目_市販薬", "①maxNRS", "①MIDAS", "仕事・学業への影響", "#①HIT6", "①HIT6_1", "①HIT6_2", "①HIT6_3", "①HIT6_4", "①HIT6_5", "①HIT6_6", "#①MIBS4", "①MIBS4_1", "①MIBS4_2", "①MIBS4_3", "①MIBS4_4", "①GAD-7", "①GAD7_1", "①GAD7_2", "①GAD7_3", "①GAD7_4", "①GAD7_5", "①GAD7_6", "①GAD7_7", "①PHQ-9", "①PHQ9_1", "①PHQ9_2", "①PHQ9_3", "①PHQ9_4", "①PHQ9_5", "①PHQ9_6", "①PHQ9_7", "①PHQ9_8", "①PHQ9_9", "①中等度以上の頭痛日数", "①mTOQ-4", "①MSQ_役割制限", "①MSQ_役割防止", "①MSQ_感情", "①WPAI_欠勤%", "①WPAI_労働中の障害%", "①最も困る症状(MBS)", "①ベースラインの資料", "初診時投薬", "グループ", "#予防薬有無", "内服予防薬副作用", "#CGRP有無", "#選択したCGRP製剤", "CGRP副作用", "#ゲパント有無", "#ゲパント製品名", "ゲパント開始日", "最終カルテ", "最終フォロー時年齢", "受診日一覧", "#受診回数", "通院自己中断", "自己中断", "#自己中断有無", "#自己中断分類", "通院継続の障壁", "②受診日", "②前回外来からの日数", "②MMD", "#②MHD(日)", "#②UD", "#②CCD", "②maxNRS", "②meanNRS", "#②AMD", "#②HIT6", "#②MIBS4", "②GAD-7", "②PHQ-9", "③受診日", "③前回外来からの日数", "③MMD", "#③MHD", "#③UD", "#③CCD", "③maxNRS", "③meanNRS", "#③AMD", "#③HIT6", "#③MIBS4", "③GAD-7", "③PHQ-9", "カルテ内容", "カルテ内容要約"]/*END*/;
+function baselineLetter(i) { var s = ""; i++; while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
+function buildBaselineRow(a, scores) {
+  scores = scores || {};
+  function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
+  function v(x) { return has(x) ? x : ""; }
+  function arr(code) { return Array.isArray(a[code]) ? a[code] : []; }
+  function pick(code, val) { return arr(code).indexOf(val) !== -1; }
+  function startsAny(code, prefix) { return arr(code).some(function (x) { return String(x).indexOf(prefix) === 0; }); }
+  function yn(b) { return b ? "あり" : "なし"; }
+  // 「なし」の選択肢がある設問：選んだもの→あり、「なし」を選んだ／ほかを選んだ→なし、何も選んでいない→空欄
+  function cb(code, val, noneVal) {
+    var x = arr(code); if (!x.length) return "";
+    return yn(x.indexOf(val) !== -1);
+  }
+  function cbPrefix(code, prefix) { var x = arr(code); if (!x.length) return ""; return yn(startsAny(code, prefix)); }
+  // 「何も選ばずOK＝なし」の設問
+  function cb0(code, val) { return yn(pick(code, val)); }
+  function radioYes(code) { if (!has(a[code])) return ""; return yn(/^はい/.test(a[code])); }
+  var R = {};
+  var colIdx = {}; BASELINE_COLS.forEach(function (n, i) { colIdx[n] = i; });
+  function C(name) { var L = baselineLetter(colIdx[name]); return "INDEX(" + L + ":" + L + ",ROW())"; }
+  function blank(name) { return C(name) + '=""'; }
+
+  R["初診日"] = (function () { var d = a.FORM_DATE || window.currentFormDate || ""; return d ? String(d).replace(/-/g, "/") : ""; })();
+  // 社会・体格・嗜好
+  R["仕事"] = ({ "常勤・正規雇用": "常勤", "自営業・フリーランス": "自営業", "専業主婦（主夫）": "専業主婦" })[a.Q2job] || v(a.Q2job);
+  R["夜勤の有無"] = has(a.Q2night) ? (a.Q2night === "はい" ? "あり" : "なし") : "";
+  R["身長(cm)"] = v(a.Q1_height); R["体重(kg)"] = v(a.Q1_weight);
+  R["喫煙"] = v(a.Q30smoke); R["飲酒頻度"] = v(a.Q30alcohol);
+  R["初診時相談内容"] = v(a.SOUDAN);
+  // 家族歴・発症
+  R["#家族歴"] = yn(arr("Q3").length > 0);
+  R["家族歴_父"] = cb0("Q3", "父"); R["家族歴_母"] = cb0("Q3", "母"); R["家族歴_兄弟"] = cb0("Q3", "兄弟"); R["家族歴_子ども"] = cb0("Q3", "子ども");
+  R["#発症年齢"] = v(a.Q4_age);
+  // 頭痛の頻度
+  R["月15日以上の頭痛(最近3か月)"] = v(a.Q5); R["片頭痛日数_区分(最近3か月)"] = v(a.Q6); R["片頭痛日数(最近3か月・日/月)"] = v(a.Q6_days);
+  // 性状
+  R["頭痛の性状_回答"] = v(a.Q7type); R["頭痛の性状_その他"] = v(a.Q7type_other);
+  if (has(a.Q7type)) { R["#拍動性"] = yn(/^A/.test(a.Q7type)); R["#締め付け"] = yn(/^(B|AB)/.test(a.Q7type)); }
+  R["持続時間_回答"] = v(a.Q7dur); R["持続時間_その他"] = v(a.Q7dur_other);
+  R["持続時間"] = ({ "１時間以内で収まる": "1時間以内", "数時間続く": "数時間(その日のうちに軽快)", "翌日以降も休まず続く": "時々翌日まで持ち越す" })[a.Q7dur] || "";
+  R["持続時間詳細"] = has(a.Q7dur) && !R["持続時間"] ? a.Q7dur + (has(a.Q7dur_other) ? "（" + a.Q7dur_other + "）" : "") : "";
+  R["体動で悪化_回答"] = v(a.Q9); R["#体動"] = radioYes("Q9");
+  // 随伴症状
+  var noneQ10 = pick("Q10", "なし");
+  function q10(val) { if (!arr("Q10").length) return ""; return yn(!noneQ10 && pick("Q10", val)); }
+  R["#羞明"] = q10("光が眩しい（光過敏）"); R["#音過敏"] = q10("音がうるさい（音過敏）"); R["#匂い過敏"] = q10("においが気になる（嗅覚過敏）");
+  R["#嘔気"] = q10("吐き気"); R["嘔吐"] = q10("嘔吐"); R["#肩こり"] = q10("肩こり・首こり"); R["#めまい(随伴)"] = q10("めまい");
+  R["片側の顔面自律神経症状"] = v(a.Q14);
+  // 前兆
+  R["前兆の頻度"] = v(a.Q11);
+  if (has(a.Q11)) {
+    var auraYes = a.Q11 !== "いいえ";
+    function aura(prefix) { return yn(auraYes && startsAny("Q11sub", prefix)); }
+    R["#視覚前兆"] = aura("視覚"); R["#感覚性前兆"] = aura("感覚"); R["#言語性前兆"] = aura("言語");
+    R["#運動性前兆"] = aura("運動"); R["#脳幹性前兆"] = aura("脳幹");
+    R["その他前兆"] = yn(auraYes && arr("Q11sub").some(function (x) { return !/^視覚/.test(x); }));
+  }
+  // 予兆
+  if (arr("Q12").length) {
+    var noneQ12 = pick("Q12", "なし・わからない");
+    [["予兆_あくび", "あくびが出る"], ["予兆_甘いもの欲求", "甘いものが食べたくなる"], ["予兆_疲れやすい", "疲れやすくなる"],
+     ["予兆_気分の落ち込み", "気分が落ち込む"], ["予兆_首こり", "首が凝る"]].forEach(function (p) { R[p[0]] = yn(!noneQ12 && pick("Q12", p[1])); });
+  }
+  // 誘因（何も選ばずOK＝なし）
+  R["#不眠/寝すぎ"] = cb0("Q16trigger", "寝不足/寝すぎ"); R["#悪天候"] = cb0("Q16trigger", "悪天候"); R["#ストレス"] = cb0("Q16trigger", "ストレス");
+  R["飲酒など飲食物"] = yn(pick("Q16trigger", "飲酒") || pick("Q16trigger", "空腹"));
+  R["誘因_空腹"] = cb0("Q16trigger", "空腹"); R["誘因_目の疲れ・光"] = cb0("Q16trigger", "目の疲れ・光の刺激"); R["誘因_音"] = cb0("Q16trigger", "うるさい音");
+  R["誘因_飲酒"] = cb0("Q16trigger", "飲酒"); R["誘因_その他"] = pick("Q16trigger", "その他") ? (v(a.Q16trigger_other) || "あり") : "";
+  R["飲酒後の頭痛"] = v(a.Q30hango);
+  if (has(a.Q15)) R["#月経"] = yn(/^生理の前後/.test(a.Q15));
+  // アロディニア
+  R["アロディニア"] = radioYes("Q13"); R["アロディニア_回答"] = v(a.Q13);
+  // 女性
+  R["月経との関係_回答"] = v(a.Q15); R["ホルモン療法・ピル_回答"] = v(a.Q16horm); R["妊娠・授乳"] = v(a.Q31);
+  var q32 = arr("Q32"), female = has(a.Q15) && !/^該当しない/.test(a.Q15);
+  var gyn = q32.filter(function (x) { return /産婦人科/.test(x); });
+  R["産婦人科治療"] = gyn.length ? gyn.join("・") : (female ? "なし" : "");
+  R["月経症状がつらい"] = pick("Q32", "生理の症状はツラい") ? "あり" : (female ? "なし" : "");
+  R["婦人科補足"] = v(a.Q32note);
+  if (has(a.Q16horm) || gyn.length || female) R["#婦人科/ピル"] = yn(/^はい/.test(a.Q16horm || "") || gyn.length > 0);
+  var gynDetail = []; if (/^はい/.test(a.Q16horm || "")) gynDetail.push(a.Q16horm); gynDetail = gynDetail.concat(gyn); if (has(a.Q32note)) gynDetail.push(a.Q32note);
+  R["婦人科詳細"] = gynDetail.join("・");
+  // 併存症
+  [["併存症_高血圧", "高血圧"], ["併存症_糖尿病", "糖尿病"], ["併存症_脂質異常症", "高脂血症"], ["併存症_心臓病", "心臓病"], ["併存症_脳卒中", "脳卒中"],
+   ["併存症_睡眠時無呼吸", "睡眠時無呼吸"], ["併存症_慢性肺疾患", "慢性肺疾患"], ["併存症_肝腎疾患", "肝臓"], ["併存症_免疫疾患", "関節リウマチ"], ["併存症_悪性腫瘍", "悪性腫瘍"]]
+    .forEach(function (p) { R[p[0]] = cbPrefix("Q22", p[1]); });
+  // 精神
+  var dx23 = ["うつ病", "双極性障害", "適応障害"], dx24 = ["パニック障害", "全般性不安障害", "強迫性障害"], dx25 = ["統合失調症", "ADHD等の発達障害", "摂食障害", "解離性障害", "その他"];
+  function st(code) { var x = arr(code).filter(function (y) { return /治療中|回復/.test(y); }); return x.join("・"); }
+  var psy = [], psyAns = false;
+  [["Q23", dx23], ["Q24", dx24], ["Q25", dx25]].forEach(function (p) {
+    var x = arr(p[0]); if (x.length) psyAns = true;
+    p[1].forEach(function (d) { if (x.indexOf(d) !== -1 || (d === "双極性障害" && startsAny(p[0], "双極性"))) psy.push(d); });
+  });
+  if (psyAns) {
+    R["#精神科疾患"] = yn(psy.length > 0);
+    R["精神詳細"] = psy.join("・") + (st("Q23") || st("Q24") ? "（" + [st("Q23"), st("Q24")].filter(Boolean).join("・") + "）" : "");
+    var m = { "精神_うつ病": ["Q23", "うつ病"], "精神_双極性障害": ["Q23", "双極性"], "精神_適応障害": ["Q23", "適応障害"],
+              "精神_パニック障害": ["Q24", "パニック障害"], "精神_全般性不安障害": ["Q24", "全般性不安障害"], "精神_強迫性障害": ["Q24", "強迫性障害"],
+              "精神_統合失調症": ["Q25", "統合失調症"], "精神_発達障害": ["Q25", "ADHD"], "精神_摂食障害": ["Q25", "摂食障害"], "精神_解離性障害": ["Q25", "解離性障害"], "精神_その他": ["Q25", "その他"] };
+    Object.keys(m).forEach(function (k) { R[k] = cbPrefix(m[k][0], m[k][1]); });
+    R["精神_気分障害の治療状況"] = st("Q23"); R["精神_不安障害の治療状況"] = st("Q24");
+  }
+  // 自律神経・睡眠・倦怠感
+  R["#自律神経失調(めまい/乗り物酔い)"] = radioYes("Q27"); R["自律神経失調_回答"] = v(a.Q27);
+  R["普段の睡眠の状態"] = ({ "眠れないことが多い（不眠）": "不眠", "昼間も眠い（過眠）": "過眠", "特に問題ない": "問題なし", "呼吸が止まると言われた（睡眠時無呼吸）": "睡眠時無呼吸" })[a.Q28] || "";
+  R["睡眠_回答"] = v(a.Q28); R["倦怠感"] = v(a.Q29);
+  // 初診前の治療歴
+  R["予防薬投薬ある場合"] = has(a.Q20) ? (a.Q20 === "はい" ? "あり" : "なし") : "";
+  R["他院での頭痛加療歴詳細"] = v(a.Q20med);
+  var q17 = arr("Q17"), none17 = pick("Q17", "なし");
+  if (q17.length) {
+    R["市販薬含め鎮痛剤内服"] = none17 ? "なし" : q17.map(function (x) { return String(x).replace(/^市販の頭痛薬.*$/, "市販薬").replace(/^.*（(.+?)(等)?）$/, "$1"); }).join("、");
+    [["鎮痛薬歴_市販薬", "市販"], ["鎮痛薬歴_ロキソプロフェン", "ロキソプロフェン"], ["鎮痛薬歴_アセトアミノフェン", "アセトアミノフェン"], ["鎮痛薬歴_イブプロフェン", "イブプロフェン"],
+     ["鎮痛薬歴_スマトリプタン", "スマトリプタン"], ["鎮痛薬歴_リザトリプタン", "リザトリプタン"], ["鎮痛薬歴_ゾルミトリプタン", "ゾルミトリプタン"],
+     ["鎮痛薬歴_エレトリプタン", "エレトリプタン"], ["鎮痛薬歴_エルゴタミン", "エルゴタミン"]].forEach(function (p) { R[p[0]] = yn(!none17 && startsAny("Q17", p[1])); });
+  }
+  // ①初診時評価
+  R["①MMD"] = v(a.Q2b_mig); R["#①MHD(日)"] = v(a.Q2b_headache); R["#①UD"] = v(a.Q2b_unclear); R["#①CCD"] = v(a.Q2b_clear);
+  R["#①AMD"] = v(scores.amd);
+  [["naru", "ナルティーク"], ["trip", "トリプタン"], ["rayvow", "レイボー"], ["rx", "その他処方"], ["otc", "市販薬"]].forEach(function (d) {
+    R["①AMD_" + d[1]] = v(a["Q19_" + d[0]]); R["①効き目_" + d[1]] = v(a["Q19eff_" + d[0]]);
+  });
+  R["①maxNRS"] = v(a.Q8); R["仕事・学業への影響"] = v(a.Q33);
+  R["#①HIT6"] = v(scores.hit6); R["#①MIBS4"] = v(scores.mibs4); R["①GAD-7"] = v(scores.gad7); R["①PHQ-9"] = v(scores.phq9);
+  scaleQuestions(SCHEMA_SHOKI).forEach(function (q) {
+    scaleItemScores(q, a).items.forEach(function (x, i) { var k = "①" + q.code + "_" + (i + 1); if (colIdx[k] !== undefined) R[k] = x === "－" ? "" : Number(x); });
+  });
+  // 式（どの行に貼っても動くよう INDEX(列,ROW()) で書く）
+  var F = {};
+  F["#初診時年齢"] = '=IF(OR(' + blank("生年月日") + ',' + blank("初診日") + '),"",DATEDIF(' + C("生年月日") + ',' + C("初診日") + ',"Y"))';
+  F["#罹病期間(年)"] = '=IF(OR(' + blank("#初診時年齢") + ',' + blank("#発症年齢") + '),"",' + C("#初診時年齢") + '-' + C("#発症年齢") + ')';
+  F["BMI"] = '=IF(AND(ISNUMBER(' + C("身長(cm)") + '),ISNUMBER(' + C("体重(kg)") + ')),ROUND(' + C("体重(kg)") + '/(' + C("身長(cm)") + '/100)^2,1),"")';
+  F["最終フォロー時年齢"] = '=IF(OR(' + blank("生年月日") + ',' + blank("最終カルテ") + '),"",DATEDIF(' + C("生年月日") + ',' + C("最終カルテ") + ',"Y"))';
+  F["#自己中断有無"] = '=IF(' + blank("自己中断") + ',"",IF(' + C("自己中断") + '="なし","なし","あり"))';
+  F["②前回外来からの日数"] = '=IF(OR(' + blank("②受診日") + ',' + blank("初診日") + '),"",' + C("②受診日") + '-' + C("初診日") + ')';
+  F["③前回外来からの日数"] = '=IF(OR(' + blank("③受診日") + ',' + blank("②受診日") + '),"",' + C("③受診日") + '-' + C("②受診日") + ')';
+  var filled = 0;
+  var cells = BASELINE_COLS.map(function (name) {
+    if (F[name] && colIdx[name] !== undefined) return F[name];
+    var x = R[name];
+    if (x === undefined || x === null || x === "") return "";
+    filled++;
+    return String(x).replace(/[\t\r\n]+/g, " ／ ");
+  });
+  return { tsv: cells.join("\t"), filled: filled, values: R };
+}
+function updateBaselineBox() {
+  var box = document.getElementById("baselineBox");
+  if (!box) return;
+  var on = window.currentKind === "shoki" && !!window.editedAnswers && BASELINE_COLS.length > 0;
+  box.style.display = on ? "" : "none";
+  if (!on) return;
+  var r = buildBaselineRow(window.editedAnswers, window.currentEditedScores || computeScoresLocal("shoki", window.editedAnswers));
+  window.currentBaselineTsv = r.tsv;
+  document.getElementById("baselineCount").textContent = "（" + BASELINE_COLS.length + "列のうち " + r.filled + "列に値）";
+  var html = "";
+  BASELINE_COLS.forEach(function (n, i) {
+    var x = r.values[n];
+    if (x === undefined || x === null || x === "") return;
+    html += '<div class="bl-row"><span class="bl-col">' + baselineLetter(i) + '</span><span class="bl-name">' + escapeHtmlBl(n) + '</span><span class="bl-val">' + escapeHtmlBl(String(x)) + '</span></div>';
+  });
+  document.getElementById("baselinePreview").innerHTML = html;
+}
+function escapeHtmlBl(s) { return s.replace(/[&<>"]/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]; }); }
+function copyBaselineRow() {
+  var t = window.currentBaselineTsv || "";
+  var done = function () { var el = document.getElementById("baselineCopied"); el.textContent = "コピーしました"; setTimeout(function () { el.textContent = ""; }, 2000); };
+  function fallback() { var ta = document.createElement("textarea"); ta.value = t; document.body.appendChild(ta); ta.select(); document.execCommand("copy"); document.body.removeChild(ta); done(); }
+  if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
+}
+
 </script>
 </body>
 </html>
