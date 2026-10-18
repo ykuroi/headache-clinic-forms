@@ -530,6 +530,9 @@ table.matrix td.qcell .row-code{
 }
 .tabbar button.active{background:var(--primary);color:#fff;}
 .output-panel{display:none;}
+.qr-raw{margin:10px 0 4px;padding:8px 10px;background:#f6f5f1;border:1px solid var(--border);border-radius:8px;text-align:left;}
+.qr-raw-label{font-size:.75rem;color:var(--muted);margin-bottom:4px;}
+.qr-raw code{display:block;font-family:ui-monospace,Menlo,Consolas,monospace;font-size:.78rem;line-height:1.45;word-break:break-all;user-select:all;-webkit-user-select:all;}
 .output-panel.active{display:block;}
 textarea.readout{
   width:100%;min-height:260px;font-size:0.78rem;font-family:ui-monospace,monospace;
@@ -2563,6 +2566,7 @@ var SCHEMA_SAISHIN = {
       '<button class="small-btn" id="qrPlayPause">一時停止</button>' +
       '<button class="small-btn" id="qrNext">次へ ▶</button>' +
       "</div>" +
+      '<div class="qr-raw"><div class="qr-raw-label">このQRコードの中身（英数字）</div><code id="qrRawText"></code></div>' +
       '<p class="notice" style="text-align:left;" id="qrNotice">医療スタッフの画面でこのQRコードを読み取っていただきます。</p>' +
       "</div>" +
       "</div>" +
@@ -2613,6 +2617,8 @@ var SCHEMA_SAISHIN = {
       intervalMs: QR_SWITCH_MS,
       onDraw: function (idx, total) {
         progressText.textContent = (idx + 1) + " / " + total + " 枚目";
+        var raw = document.getElementById("qrRawText");
+        if (raw) raw.textContent = chunkResult.frames[idx];
         var bar = document.querySelector("#qrTimer i");
         if (bar) { bar.classList.remove("run"); void bar.offsetWidth; bar.style.setProperty("--qr-ms", QR_SWITCH_MS + "ms"); if (playing) bar.classList.add("run"); }
         Array.prototype.forEach.call(dotsWrap.children, function (d, di) {
@@ -3314,6 +3320,27 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     }
     var confirmed = stages.map(function () { return false; });
     var cleared = false;
+    // 進み具合（HIT-6 などと同じ「1 / N」と丸い番号）：まだ次の分類が続くことが分かるように
+    var prog = mk("div", "gm-quiz-prog");
+    var count = mk("span", "gm-quiz-count");
+    var dots = mk("div", "gm-quiz-dots");
+    prog.appendChild(count);
+    prog.appendChild(dots);
+    opts.parentNode.insertBefore(prog, opts);
+    function renderProg() {
+      var cur = confirmed.indexOf(false);
+      dots.innerHTML = "";
+      stages.forEach(function (st, i) {
+        var d = mk("button", (confirmed[i] ? "done" : "") + (i === cur ? " cur" : ""), String(i + 1));
+        d.type = "button";
+        var g = st.querySelector(".opt-group");
+        if (g) d.title = g.textContent;
+        d.disabled = !(confirmed[i] || i === cur);
+        d.addEventListener("click", function () { if (!d.disabled) scrollToEl(st); });
+        dots.appendChild(d);
+      });
+      count.textContent = cur === -1 ? "✓ " + label + " ぜんぶ回答済み" : label + "　" + (cur + 1) + " / " + stages.length;
+    }
     var bars = stages.map(function (st, i) {
       var bar = mk("div", "gm-okbar");
       var msg = mk("span", "gm-okbar-msg");
@@ -3354,11 +3381,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         var b = bars[i], has = stageHasAnswer(st);
         b.bar.classList.toggle("gm-cleared", confirmed[i]);
         b.btn.classList.toggle("gm-gone", confirmed[i]);
+        var rest = stages.length - 1 - i;
         b.msg.textContent = confirmed[i] ? (has ? "✓ OK！" : "✓ あてはまるものなし")
-          : has ? "選び終わったら OK" : "なければ、そのまま OK";
+          : (has ? "選び終わったら OK" : "なければ、そのまま OK") + (rest > 0 ? "（あと " + rest + " つ）" : "");
         setReady(b.btn, !confirmed[i]);
         gate = gate && confirmed[i];
       });
+      renderProg();
     }
     block.addEventListener("click", function (ev) {
       var opt = ev.target.closest(".opt-btn");
