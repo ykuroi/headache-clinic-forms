@@ -2736,6 +2736,19 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
   0%,100%{box-shadow:0 4px 0 #b5441f, 0 6px 14px rgba(232,115,74,.45), 0 0 0 0 rgba(232,115,74,.5);}
   50%{box-shadow:0 4px 0 #b5441f, 0 6px 14px rgba(232,115,74,.45), 0 0 0 10px rgba(232,115,74,0);}
 }
+/* Q8：①〜④を横スライドで1つずつ */
+.dt-car{overflow:hidden;transition:height .3s ease;}
+.dt-car-track{display:flex;align-items:flex-start;transition:transform .4s cubic-bezier(.3,.9,.4,1);}
+.dt-car-track > .dt-step{flex:0 0 100%;box-sizing:border-box;}
+.dt-car .dt-step.gm-wait{display:block !important;}
+.dt-car .dt-step.gm-enter{animation:none;}
+.dt-dots{display:flex;justify-content:center;gap:8px;margin:2px 0 8px;}
+.dt-dots button{width:30px;height:30px;border-radius:50%;border:2px solid var(--border);background:#fff;color:var(--muted);font-weight:800;font-size:.8rem;padding:0;cursor:pointer;}
+.dt-dots button.on{border-color:var(--primary);color:var(--primary);}
+.dt-dots button.done{background:#27ae60;border-color:#27ae60;color:#fff;}
+.dt-dots button.on.done{box-shadow:0 0 0 3px rgba(39,174,96,.3);}
+.dt-dots button:disabled{opacity:.35;cursor:default;}
+@media (prefers-reduced-motion: reduce){.dt-car,.dt-car-track{transition:none;}}
 /* 入力し終えたステップ */
 .dt-step{position:relative;transition:border-color .3s, background .3s;}
 .dt-step.gm-done{border-color:#27ae60;background:#f3fbf5;}
@@ -3227,8 +3240,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
             if (isShown(k)) { next = k; break; }
           }
           if (next !== null) {
-            scrollToEl(steps[next]);
-            setTimeout(function () { try { inputs[next].focus({ preventScroll: true }); } catch (e) { inputs[next].focus(); } }, 350);
+            go(next);
+            setTimeout(function () { try { inputs[next].focus({ preventScroll: true }); } catch (e) { inputs[next].focus(); } car.scrollLeft = 0; }, 450);
           } else if (allDone() && !cleared) {
             cleared = true;
             banner("🎉 Q1 クリア！", function () { scrollToEl(nextVisibleQuestion(block)); });
@@ -3237,6 +3250,46 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       });
       return btn;
     });
+
+    // ①〜④を横に並べ、OK で次が右から出てくる（縦にはスクロールしない）
+    var car = mk("div", "dt-car"), track = mk("div", "dt-car-track");
+    steps[0].parentNode.insertBefore(car, steps[0]);
+    car.appendChild(track);
+    steps.forEach(function (s) { track.appendChild(s); });
+    var dots = mk("div", "dt-dots");
+    var dotBtns = steps.map(function (s, i) {
+      var d = mk("button", "", "①②③④⑤⑥".charAt(i));
+      d.type = "button";
+      d.addEventListener("click", function () { if (!d.disabled) go(i); });
+      dots.appendChild(d);
+      return d;
+    });
+    car.parentNode.insertBefore(dots, car);
+    var active = 0;
+    car.addEventListener("scroll", function () { car.scrollLeft = 0; });   // 入力欄のフォーカスで横にずれないように
+    function fit() {
+      if (!isShown(active)) {
+        for (var k = active; k >= 0; k--) if (isShown(k)) { active = k; break; }
+      }
+      track.style.transform = "translateX(" + (-steps[active].offsetLeft) + "px)";
+      var h = steps[active].offsetHeight;
+      car.style.height = h ? h + "px" : "";
+      steps.forEach(function (s, i) { s.setAttribute("aria-hidden", i === active ? "false" : "true"); });
+      dotBtns.forEach(function (d, i) {
+        d.style.display = needed(i) ? "" : "none";
+        d.disabled = !isShown(i);
+        d.classList.toggle("on", i === active);
+        d.classList.toggle("done", confirmed[i]);
+      });
+    }
+    function go(i) {
+      active = i;
+      fit();
+      var t = dots.getBoundingClientRect().top;
+      if (t < 0) scrollToEl(dots);
+    }
+    if (window.ResizeObserver) new ResizeObserver(function () { fit(); }).observe(track);
+    window.addEventListener("resize", fit);
 
     function needed(i) { return !steps[i].classList.contains("hidden"); }
     function isShown(i) { return needed(i) && !steps[i].classList.contains("gm-wait"); }
@@ -3263,6 +3316,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         if (needed(i)) gate = gate && confirmed[i];
       }
       if (!allDone()) cleared = false;
+      if (dotBtns) fit();
     }
 
     // 自動計算欄の数字が変わったら跳ねさせる
