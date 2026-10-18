@@ -2573,10 +2573,6 @@ var SCHEMA_SAISHIN = {
       '<div class="output-panel" data-panel="text">' +
       '<p class="notice" style="text-align:left; margin-top:0;">QRコードで送信される内容です。回答は番号に置きかえてあり、お名前などは含まれません。</p>' +
       '<textarea class="readout" readonly id="textOut"></textarea>' +
-      '<div class="small-btn-row">' +
-      '<button class="small-btn filled" id="btnCopyText">📋 送信内容をコピー</button>' +
-      '<button class="small-btn" id="btnDownloadText">⬇ 送信内容を保存</button>' +
-      "</div>" +
       "</div>" +
       '<div class="brand-footer">脳神経外科　頭痛外来担当　黒井</div>';
 
@@ -2653,20 +2649,6 @@ var SCHEMA_SAISHIN = {
 
     // テキスト出力
     document.getElementById("textOut").value = textText;
-    document.getElementById("btnCopyText").addEventListener("click", function () {
-      navigator.clipboard.writeText(textText).then(function () {
-        alert("送信内容をコピーしました");
-      }).catch(function () {
-        var ta = document.getElementById("textOut");
-        ta.select();
-        document.execCommand("copy");
-        alert("送信内容をコピーしました");
-      });
-    });
-    document.getElementById("btnDownloadText").addEventListener("click", function () {
-      downloadBlob(textText, "text/plain;charset=utf-8", FILE_LABEL + "_" + answers.FORM_DATE + ".txt");
-    });
-
 
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -2836,7 +2818,19 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-stage .opt-group{margin-top:0;}
 .gm-stage .other-input{flex:0 0 100%;margin-top:0 !important;}
 .gm-stage.gm-done{border-color:#27ae60;background:#f3fbf5;}
-.gm-stage .gm-okbar{flex:0 0 100%;}
+.gm-stage .gm-okbar{flex:0 0 100%;position:static;}
+/* 2026-10-18 Q2 は分類を横に並べ、OK で次の分類が横から出てくる（縦には動かさない） */
+.gm-car{flex:0 0 100%;overflow:hidden;transition:height .3s ease;}
+.gm-car-track{display:flex;align-items:flex-start;transition:transform .4s cubic-bezier(.3,.9,.4,1);}
+.gm-car-track > .gm-stage{flex:0 0 100%;box-sizing:border-box;}
+.gm-car .gm-stage.gm-wait{display:flex !important;}
+/* 質問票（HIT-6 など）のカードも横から入れ替わる */
+@keyframes gm-from-right{from{transform:translateX(60%);opacity:0;}to{transform:none;opacity:1;}}
+@keyframes gm-from-left{from{transform:translateX(-60%);opacity:0;}to{transform:none;opacity:1;}}
+.gm-qcard.gm-in-r{animation:gm-from-right .35s cubic-bezier(.3,.9,.4,1);}
+.gm-qcard.gm-in-l{animation:gm-from-left .35s cubic-bezier(.3,.9,.4,1);}
+.gm-quiz{overflow-x:hidden;}
+@media (prefers-reduced-motion: reduce){.gm-car-track,.gm-car{transition:none;}.gm-qcard.gm-in-r,.gm-qcard.gm-in-l{animation:none;}}
 /* Q2 の OK バー（画面下に追従） */
 .gm-okbar{
   position:sticky;bottom:88px;z-index:5;
@@ -3320,6 +3314,24 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     }
     var confirmed = stages.map(function () { return false; });
     var cleared = false;
+    // 分類を横一列に並べ、1つずつ見せる（横スライドで切り替え）
+    var car = mk("div", "gm-car"), track = mk("div", "gm-car-track");
+    car.appendChild(track);
+    opts.insertBefore(car, stages[0]);
+    stages.forEach(function (st) { track.appendChild(st); });
+    var active = 0;
+    function fitHeight() { var h = stages[active].offsetHeight; car.style.height = h ? h + "px" : ""; }
+    function go(i) {
+      active = i;
+      track.style.transform = "translateX(" + (-100 * i) + "%)";
+      stages.forEach(function (st, k) { st.setAttribute("aria-hidden", k === i ? "false" : "true"); });
+      fitHeight();
+      renderProg();
+      var t = prog.getBoundingClientRect().top;   // 分類の頭が画面の上に隠れているときだけ、少し戻す
+      if (t < 0) scrollToEl(prog);
+    }
+    window.addEventListener("resize", function () { fitHeight(); });
+    if (window.ResizeObserver) { var ro = new ResizeObserver(function () { fitHeight(); }); stages.forEach(function (st) { ro.observe(st); }); }
     // 進み具合（HIT-6 などと同じ「1 / N」と丸い番号）：まだ次の分類が続くことが分かるように
     var prog = mk("div", "gm-quiz-prog");
     var count = mk("span", "gm-quiz-count");
@@ -3331,12 +3343,12 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var cur = confirmed.indexOf(false);
       dots.innerHTML = "";
       stages.forEach(function (st, i) {
-        var d = mk("button", (confirmed[i] ? "done" : "") + (i === cur ? " cur" : ""), String(i + 1));
+        var d = mk("button", (confirmed[i] ? "done" : "") + (i === active ? " cur" : ""), String(i + 1));
         d.type = "button";
         var g = st.querySelector(".opt-group");
         if (g) d.title = g.textContent;
         d.disabled = !(confirmed[i] || i === cur);
-        d.addEventListener("click", function () { if (!d.disabled) scrollToEl(st); });
+        d.addEventListener("click", function () { if (!d.disabled) go(i); });
         dots.appendChild(d);
       });
       count.textContent = cur === -1 ? "✓ " + label + " ぜんぶ回答済み" : label + "　" + (cur + 1) + " / " + stages.length;
@@ -3355,7 +3367,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         explode(btn, function () {
           refresh(true);
           if (i + 1 < stages.length) {
-            scrollToEl(stages[i + 1]);
+            go(i + 1);
             if (stages[i + 1].contains(other)) setTimeout(function () { try { other.focus({ preventScroll: true }); } catch (e) {} }, 400);
           } else if (!cleared) {
             cleared = true;
@@ -3388,6 +3400,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         gate = gate && confirmed[i];
       });
       renderProg();
+      fitHeight();
     }
     block.addEventListener("click", function (ev) {
       var opt = ev.target.closest(".opt-btn");
@@ -3652,7 +3665,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     block.insertBefore(prog, anchor);
     block.insertBefore(card, anchor);
     var done = q.rows.map(function () { return false; });
-    var cur = 0, cleared = false;
+    var cur = 0, cleared = false, prevShown = 0;
 
     function renderDots() {
       dots.innerHTML = "";
@@ -3723,10 +3736,11 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       });
       refreshBar();
       renderDots();
-      if (animate && !REDUCE) replayClass(card, "gm-enter");
+      if (animate && !REDUCE) replayClass(card, i < prevShown ? "gm-in-l" : "gm-in-r");   // 次の問題は右から、戻るときは左から
+      prevShown = i;
       if (animate) {
-        var top = prog.getBoundingClientRect().top;
-        if (top < 0 || top > window.innerHeight * 0.5) scrollToEl(prog);
+        var top = prog.getBoundingClientRect().top;   // 縦には、カードの頭が画面の上に隠れたときだけ戻す
+        if (top < 0) scrollToEl(prog);
       }
     }
     show(0, false);
