@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>頭痛外来ブログ</title>
+<link rel="stylesheet" href="style.css">
+<script src="articles.js"></script>
+</head><body>
+<header class="top"><a href="index.html">頭痛外来ブログ</a></header>
+<main>
+<h1>頭痛外来ブログ</h1>
+<p class="lead">頭痛外来の診察室でよくいただく質問や、知っておいてほしいことを書いています。</p>
+<ul class="list" id="list"></ul>
+</main>
+<footer>脳神経外科　頭痛外来担当　黒井</footer>
+<script>
+(function(){
+  var ul=document.getElementById("list"), a=(window.HZ_BLOG||[]).slice().reverse();
+  function esc(s){return String(s).replace(/[&<>"]/g,function(c){return{"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c];});}
+  ul.innerHTML=a.map(function(x){return '<li><a href="'+esc(x.file)+'"><span class="no">第'+x.no+'回</span><b>'+esc(x.title)+'</b></a></li>';}).join("");
+})();
+</script>
+</body></html>
