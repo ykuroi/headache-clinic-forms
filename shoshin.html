@@ -4189,5 +4189,99 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 })();
 </script>
 
+<!-- ブログルーレット：結果画面で「ルーレットを回す」と頭痛外来ブログの記事が1本選ばれ、別タブで開ける。
+     記事一覧は GitHub Pages の blog/articles.js を読む（読めないときは下の控えを使う）。新しい記事は articles.js に足すだけでよい。 -->
+<style>
+.hz-blog{background:var(--card);border-radius:var(--radius);box-shadow:var(--shadow);padding:16px;margin:18px 0 8px;text-align:center;border-top:4px solid var(--accent);}
+.hz-blog h3{margin:0 0 4px;font-size:1rem;color:var(--primary-dark);}
+.hz-blog .hz-bl-sub{font-size:.78rem;color:var(--muted);margin:0 0 12px;}
+.hz-blog .hz-bl-win{position:relative;min-height:92px;display:flex;flex-direction:column;justify-content:center;align-items:center;background:#f6f4ee;border:2px dashed #d9d3c4;border-radius:12px;padding:10px 12px;overflow:hidden;}
+.hz-blog .hz-bl-win.spin{border-style:solid;border-color:var(--accent);}
+.hz-blog .hz-bl-win.done{border-style:solid;border-color:var(--primary);background:#eef6f5;animation:hz-bl-pop .4s ease;}
+@keyframes hz-bl-pop{0%{transform:scale(.94)}60%{transform:scale(1.03)}100%{transform:scale(1)}}
+.hz-blog .hz-bl-no{font-size:.72rem;font-weight:700;color:var(--accent);}
+.hz-blog .hz-bl-title{font-size:.95rem;font-weight:700;line-height:1.5;color:var(--text);}
+.hz-blog .hz-bl-win.spin .hz-bl-title{filter:blur(.4px);opacity:.85;}
+.hz-blog .hz-bl-btn{display:block;width:100%;margin-top:12px;border:none;border-radius:12px;padding:13px;font-size:1rem;font-weight:700;cursor:pointer;background:var(--accent);color:#fff;}
+.hz-blog .hz-bl-btn:disabled{opacity:.6;}
+.hz-blog .hz-bl-read{display:none;margin-top:10px;padding:12px;border-radius:12px;background:var(--primary);color:#fff;font-weight:700;text-decoration:none;}
+.hz-blog .hz-bl-read.show{display:block;}
+.hz-blog .hz-bl-all{display:inline-block;margin-top:10px;font-size:.78rem;color:var(--primary);}
+</style>
+<script>
+(function () {
+  var BASE = "https://ykuroi.github.io/headache-clinic-forms/blog/";
+  // 控え（articles.js が読めないとき用）
+  var FALLBACK = [
+    {no:1, title:"タバコの煙で頭痛が起こるのはなぜ？ 片頭痛とにおいの関係", file:"001.html"},
+    {no:2, title:"「肩こりがあるから緊張型頭痛」と言われたけれど……本当にそうでしょうか？", file:"002.html"},
+    {no:3, title:"ズキズキする頭痛が、肩こりを伴う重い頭痛に？「変容性片頭痛」という考え方", file:"003.html"},
+    {no:4, title:"片頭痛には予防薬があることを知っていますか？", file:"004.html"},
+    {no:5, title:"片頭痛は、いつまで続くのでしょうか？", file:"005.html"},
+    {no:6, title:"片頭痛の予防薬は、いつまで続ければいいのでしょうか？", file:"006.html"},
+    {no:7, title:"めまいが治らない。その原因は片頭痛かもしれません", file:"007.html"},
+    {no:8, title:"片頭痛は頭痛だけではありません", file:"008.html"}
+  ];
+  try {
+    var s = document.createElement("script");
+    s.src = BASE + "articles.js?t=" + Math.floor(Date.now() / 3600000);
+    s.async = true;
+    document.head.appendChild(s);
+  } catch (e) {}
+
+  function list() {
+    var a = window.HZ_BLOG;
+    return (a && a.length) ? a : FALLBACK;
+  }
+  function esc(t) { return String(t).replace(/[&<>"]/g, function (c) { return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]; }); }
+
+  function mount() {
+    var rs = document.getElementById("resultScreen");
+    if (!rs || rs.querySelector(".hz-blog")) return;
+    var foot = rs.querySelector(".brand-footer");
+    if (!foot) return;
+    var box = document.createElement("div");
+    box.className = "hz-blog";
+    box.innerHTML =
+      '<h3>🎰 頭痛外来ブログ ルーレット</h3>' +
+      '<p class="hz-bl-sub">診察までのあいだに、記事を1つ読んでみませんか？</p>' +
+      '<div class="hz-bl-win"><div class="hz-bl-no"></div><div class="hz-bl-title">？ ？ ？</div></div>' +
+      '<button type="button" class="hz-bl-btn">ルーレットを回す</button>' +
+      '<a class="hz-bl-read" target="_blank" rel="noopener">この記事を読む ↗</a>' +
+      '<a class="hz-bl-all" href="' + BASE + 'index.html" target="_blank" rel="noopener">記事の一覧を見る</a>';
+    foot.parentNode.insertBefore(box, foot);
+    var win = box.querySelector(".hz-bl-win"), no = box.querySelector(".hz-bl-no"),
+        ttl = box.querySelector(".hz-bl-title"), btn = box.querySelector(".hz-bl-btn"),
+        read = box.querySelector(".hz-bl-read");
+    var last = -1;
+    function show(x) { no.textContent = "第" + x.no + "回"; ttl.textContent = x.title; }
+    btn.addEventListener("click", function () {
+      var arts = list(), n = arts.length;
+      if (!n) return;
+      var pick = Math.floor(Math.random() * n);
+      if (n > 1 && pick === last) pick = (pick + 1 + Math.floor(Math.random() * (n - 1))) % n;
+      last = pick;
+      btn.disabled = true; read.classList.remove("show");
+      win.classList.remove("done"); win.classList.add("spin");
+      // だんだん遅くなって、最後に pick で止まる
+      var steps = 18 + Math.floor(Math.random() * 4), i = 0, k = pick - steps;
+      (function tick() {
+        show(arts[((k + i) % n + n) % n]);
+        if (i >= steps) {
+          win.classList.remove("spin"); void win.offsetWidth; win.classList.add("done");
+          read.href = BASE + arts[pick].file;
+          read.classList.add("show");
+          btn.disabled = false; btn.textContent = "もう一回まわす";
+          return;
+        }
+        i++;
+        setTimeout(tick, 50 + Math.pow(i / steps, 3) * 380);
+      })();
+    });
+  }
+  var rsEl = document.getElementById("resultScreen");
+  if (rsEl && window.MutationObserver) new MutationObserver(mount).observe(rsEl, { childList: true });
+})();
+</script>
 </body>
 </html>
