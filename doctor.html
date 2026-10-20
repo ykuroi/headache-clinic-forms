@@ -431,7 +431,7 @@ textarea.review-input { min-height: 50px; resize: vertical; }
         </div>
         <div class="chart-legend" id="chartLegend"></div>
         <div class="btn-row">
-          <a class="btn-link btn-accent" href="doctor_v2_PDF.html" target="_blank">📄 成績表PDF生成画面を開く</a>
+          <a class="btn-link btn-accent" href="頭痛成績表.html" target="_blank">📄 頭痛成績表（印刷・QR）を開く</a>
         </div>
       </div>
 
@@ -604,6 +604,9 @@ var SAISHIN_CODEC = (function () {
   // 2026-10-11 追加：QRの並びは末尾に足す（以前のQRもそのまま読めるように）
   add("EFF_LAS", "Q9las", "map", effMap("N レイボーを使っていない"));
   add("EFF_RX", "Q9rx", "map", effMap("N 病院でもらったその他の痛み止めを使っていない"));
+  // 2026-10-20 追加：スマホ問診票そのものの満足度（1〜10）と意見。結果画面で答える。CSVには入れずカルテ文に出す
+  add("APP_SAT", "APP_SAT", "num", null, false);
+  add("APP_CMT", "APP_CMT", "text", null, false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
@@ -2069,6 +2072,9 @@ function buildKarteText(kind, schema, a, scores) {
     if (t.answered) lines.push(t.name + ": " + t.text);
   });
   if (scores.phq9_item9_flag) lines.push("※PHQ-9 項目9（希死念慮）に回答あり");
+  // スマホ問診票そのものの満足度（2026-10-20、結果画面で回答）
+  if (has(a.APP_SAT)) lines.push("スマホ問診の満足度: " + a.APP_SAT + "/10");
+  if (has(a.APP_CMT)) lines.push("スマホ問診への意見: " + String(a.APP_CMT).replace(/\s*\n\s*/g, " ／ "));
   return lines.join("\n");
 }
 // 質問票（matrix 型：HIT-6・GAD-7・PHQ-9・MIBS-4）の1問ずつの点数
