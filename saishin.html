@@ -1999,6 +1999,9 @@ var SAISHIN_CODEC = (function () {
   // 2026-10-11 追加：QRの並びは末尾に足す（以前のQRもそのまま読めるように）
   add("EFF_LAS", "Q9las", "map", effMap("N レイボーを使っていない"));
   add("EFF_RX", "Q9rx", "map", effMap("N 病院でもらったその他の痛み止めを使っていない"));
+  // 2026-10-20 追加：スマホ問診票そのものの満足度（1〜10）と意見。結果画面で答える。CSVには入れずカルテ文に出す
+  add("APP_SAT", "APP_SAT", "num", null, false);
+  add("APP_CMT", "APP_CMT", "text", null, false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
@@ -2517,9 +2520,13 @@ var SCHEMA_SAISHIN = {
   });
 
   var qrPlayer = null;
+  // 結果画面で答えるスマホ問診票の満足度（回答画面に戻って出し直しても残す）
+  var appSat = { APP_SAT: null, APP_CMT: "" };
 
   function showResult() {
     var answers = collectAllAnswers();
+    if (appSat.APP_SAT != null) answers.APP_SAT = appSat.APP_SAT;
+    if (appSat.APP_CMT) answers.APP_CMT = appSat.APP_CMT;
     var scores = FE.computeScores(KIND, answers);
 
     formScreen.classList.add("hidden");
@@ -2535,15 +2542,11 @@ var SCHEMA_SAISHIN = {
       : "";
 
     var scoreCardsHtml =
-      scoreCard("GAD-7", scores.gad7, "点 (0-21)") +
-      scoreCard("PHQ-9", scores.phq9, "点 (0-27)", flagPhq9);
+      scoreCard("GAD-7", scores.gad7, "点 (0-21)", false, allAnswered(answers, "GAD7", 7)) +
+      scoreCard("PHQ-9", scores.phq9, "点 (0-27)", flagPhq9, allAnswered(answers, "PHQ9", 9));
     // 本日の成績表（MMD・MHD・AMD・HIT-6・MIBS-4）はゲーム層が画面の先頭に出す
     window.__hzResult = { kind: KIND, answers: answers, scores: scores };
 
-    var chunkResult = FE.chunkCompact(SAISHIN_CODEC.encode(answers));
-    var csvText = FE.toCSV(KIND, answers, scores);
-    // 「送信内容」タブ：QRコードに載せている文字列そのもの（複数枚のときは1行に1枚分。医師画面にそのまま貼り付けて読み込める）
-    var textText = chunkResult.frames.join("\n");
 
     resultScreen.innerHTML =
       '<h2 style="margin:6px 0 2px;">ご回答ありがとうございました</h2>' +
@@ -2589,6 +2592,22 @@ var SCHEMA_SAISHIN = {
       });
     });
 
+    // 満足度の OK で QR を作り直す
+    window.__hzSetAppSat = function (sat, cmt) {
+      appSat.APP_SAT = sat; appSat.APP_CMT = cmt || "";
+      if (sat == null) delete answers.APP_SAT; else answers.APP_SAT = sat;
+      if (!cmt) delete answers.APP_CMT; else answers.APP_CMT = cmt;
+      drawQR();
+    };
+    window.__hzGetAppSat = function () { return appSat; };
+    drawQR();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+
+  function drawQR() {
+    if (qrPlayer) qrPlayer.stop();
+    var chunkResult = FE.chunkCompact(SAISHIN_CODEC.encode(answers));
+    // 「送信内容」タブ：QRコードに載せている文字列そのもの（複数枚のときは1行に1枚分。医師画面にそのまま貼り付けて読み込める）
+    var textText = chunkResult.frames.join("\n");
     // QR描画（通常は1枚。回答量が多い場合のみ自動で複数枚に分割される）
     var holder = document.getElementById("qrcanvas-holder");
     var progressText = document.getElementById("qrProgressText");
@@ -2604,6 +2623,7 @@ var SCHEMA_SAISHIN = {
       : "QRコードが " + chunkResult.frames.length + " 枚あります。画面が自動で順に切り替わるので、そのまま読み取り機にかざしたままお待ちください。";
     document.getElementById("qrTimer").style.display = isSingleFrame ? "none" : "block";
     dotsWrap.innerHTML = "";
+    holder.innerHTML = "";
     for (var i = 0; i < chunkResult.frames.length; i++) {
       dotsWrap.appendChild(document.createElement("span"));
     }
@@ -2622,19 +2642,19 @@ var SCHEMA_SAISHIN = {
         });
       }
     });
-    document.getElementById("qrPrev").addEventListener("click", function () {
+    document.getElementById("qrPrev").onclick = function () {
       qrPlayer.stop();
       playing = false;
       document.getElementById("qrPlayPause").textContent = "再生";
       qrPlayer.prev();
-    });
-    document.getElementById("qrNext").addEventListener("click", function () {
+    };
+    document.getElementById("qrNext").onclick = function () {
       qrPlayer.stop();
       playing = false;
       document.getElementById("qrPlayPause").textContent = "再生";
       qrPlayer.next();
-    });
-    document.getElementById("qrPlayPause").addEventListener("click", function (e) {
+    };
+    document.getElementById("qrPlayPause").onclick = function (e) {
       if (playing) {
         qrPlayer.stop();
         playing = false;
@@ -2645,12 +2665,11 @@ var SCHEMA_SAISHIN = {
         playing = true;
         e.target.textContent = "一時停止";
       }
-    });
+    };
 
     // テキスト出力
     document.getElementById("textOut").value = textText;
-
-    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
   }
 
   btnBackTop.addEventListener("click", function () {
@@ -2662,7 +2681,18 @@ var SCHEMA_SAISHIN = {
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
 
-  function scoreCard(label, value, unit, flag) {
+  function allAnswered(a, code, n) {
+    for (var i = 1; i <= n; i++) if (a[code + "_" + i] === null || a[code + "_" + i] === undefined || a[code + "_" + i] === "") return false;
+    return true;
+  }
+  function scoreCard(label, value, unit, flag, complete) {
+    // GAD-7・PHQ-9 は公式の区切り（5・10・15点）で「こころの負担」の段階を添える（頭痛の重症度には混ぜない）
+    var lv = "";
+    if (complete && value !== null && value !== undefined && (label === "GAD-7" || label === "PHQ-9")) {
+      var l = value < 5 ? 0 : value < 10 ? 1 : value < 15 ? 2 : 3;
+      var names = label === "PHQ-9" && value >= 20 ? "重度" : label === "PHQ-9" && value >= 15 ? "中等度〜重度" : ["ほぼなし", "軽度", "中等度", "重度"][l];   // 各尺度の公式の区分
+      lv = '<div class="lv" style="color:' + ["#2e7d32", "#b8860b", "#e65100", "#c62828"][l] + '">こころの負担：' + names + "</div>";
+    }
     return (
       '<div class="score-card' + (flag ? " flag" : "") + '"><div class="label">' +
       label +
@@ -2670,7 +2700,7 @@ var SCHEMA_SAISHIN = {
       (value === null || value === undefined ? "-" : value) +
       '</div><div class="unit">' +
       unit +
-      "</div></div>"
+      "</div>" + lv + "</div>"
     );
   }
 
@@ -2975,6 +3005,20 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-rp-val{font-size:1.75rem;font-weight:900;color:var(--primary-dark,#1f6f78);line-height:1.15;margin-top:2px;}
 .gm-rp-unit{font-size:.65rem;color:var(--muted);}
 .gm-report .gm-rw-note{margin-top:8px;}
+.gm-sv{margin:8px 0 4px;padding:10px 10px 8px;border-radius:14px;background:#fff;box-shadow:0 1px 3px rgba(0,0,0,.08);}
+.gm-sv-val{font-size:2rem;font-weight:900;line-height:1.2;}
+.gm-sv-bar{display:grid;grid-template-columns:repeat(4,1fr);gap:4px;margin:6px 0 4px;}
+.gm-sv-bar span{height:26px;border-radius:7px;background:#eceff1;color:#90a4ae;font-size:.68rem;font-weight:800;display:flex;align-items:center;justify-content:center;}
+.gm-sv-bar span.on{color:#fff;box-shadow:0 0 0 2px rgba(0,0,0,.12) inset;}
+.gm-sv-why{font-size:.75rem;color:#555;font-weight:700;}
+.gm-lv0{color:#2e7d32;} .gm-sv-bar span.on.gm-bg0{background:#43a047;}
+.gm-lv1{color:#b8860b;} .gm-sv-bar span.on.gm-bg1{background:#f0b400;}
+.gm-lv2{color:#e65100;} .gm-sv-bar span.on.gm-bg2{background:#f57c00;}
+.gm-lv3{color:#c62828;} .gm-sv-bar span.on.gm-bg3{background:#d32f2f;}
+.gm-rp-lv{font-size:.66rem;font-weight:800;margin-top:1px;}
+.gm-rp-warn{margin-top:8px;padding:7px 9px;border-radius:10px;background:#fff3e0;border:1px solid #ffcc80;font-size:.74rem;line-height:1.5;color:#7a4b00;text-align:left;}
+.gm-rp-foot{margin-top:6px;font-size:.62rem;color:var(--muted);line-height:1.45;}
+.score-card .lv{font-size:.72rem;font-weight:800;margin-top:2px;}
 .gm-rp-save{display:block;width:100%;margin-top:10px;padding:12px;border:0;border-radius:12px;background:#e8734a;color:#fff;font-size:1rem;font-weight:800;}
 .gm-rp-more{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-top:8px;}
 .gm-rp-more[hidden]{display:none;}
@@ -4459,6 +4503,9 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         hit6: sc.hit6 == null ? null : sc.hit6,
         mibs4: sc.mibs4 == null ? null : sc.mibs4
       };
+      // 重症度の判定には、すべての項目に答えた質問票だけを使う
+      function done(code, n) { for (var i = 1; i <= n; i++) if (a[code + "_" + i] == null || a[code + "_" + i] === "") return false; return true; }
+      d.hit6Done = done("HIT6", 6); d.mibs4Done = done("MIBS4", 4);
       // 30日のドットカレンダー
       var ha = num('input[data-dt="Q2b_headache"]'); if (ha === null) ha = num('input[data-dt="ha"]'); if (ha === null) ha = d.mhd;
       var mig = num('input[data-dt="Q2b_mig"]'); if (mig === null) mig = num('input[data-dt="mig"]'); if (mig === null) mig = d.mmd;
@@ -4471,6 +4518,27 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       }
       return d;
     }
+    // 今月の頭痛重症度（当院独自の目安）：各指標を公式の区切り値で4段階（0〜3）に分け、
+    // 片頭痛日数・頭痛日数・HIT-6・MIBS-4 のうち、いちばん重い段階を重症度とする。痛み止めと気分は混ぜない
+    var SEV_NAMES = ["軽度", "中等度", "重度", "最重度"];
+    var LV = {
+      mmd: function (v) { return v < 4 ? 0 : v < 8 ? 1 : v < 15 ? 2 : 3; },
+      mhd: function (v) { return v < 4 ? 0 : v < 8 ? 1 : v < 15 ? 2 : 3; },
+      hit6: function (v) { return v <= 49 ? 0 : v <= 55 ? 1 : v <= 59 ? 2 : 3; },
+      mibs4: function (v) { return v <= 0 ? 0 : v <= 2 ? 1 : v <= 4 ? 2 : 3; },
+      amd: function (v) { return v < 5 ? 0 : v < 10 ? 1 : v < 15 ? 2 : 3; }
+    };
+    var SEV_KEYS = ["mmd", "mhd", "hit6", "mibs4"];
+    function levelOf(k, v) { return v === null || v === undefined || !LV[k] ? null : LV[k](Number(v)); }
+    function usable(d, k) { return k === "hit6" ? d.hit6Done : k === "mibs4" ? d.mibs4Done : true; }
+    function severity(d) {
+      var best = null;
+      SEV_KEYS.forEach(function (k) {
+        var l = usable(d, k) ? levelOf(k, d[k]) : null;
+        if (l !== null && (best === null || l > best.lv)) best = { lv: l, key: k };
+      });
+      return best;
+    }
     var TILES = [
       ["mmd", "片頭痛日数", "MMD", "日/月"],
       ["mhd", "頭痛日数", "MHD", "日/月"],
@@ -4479,6 +4547,12 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       ["mibs4", "MIBS-4", "発作のない日の負担", "点（0〜12）"]
     ];
     function fmtV(v) { return v === null || v === undefined ? "−" : String(v); }
+    function tileLv(k, v) {
+      var l = levelOf(k, v);
+      if (l === null) return "";
+      if (k === "amd") return l >= 2 ? '<div class="gm-rp-lv gm-lv2">使いすぎ注意</div>' : "";
+      return '<div class="gm-rp-lv gm-lv' + l + '">' + SEV_NAMES[l] + "</div>";
+    }
     function dotClass(c, i) {
       return i < c.m ? "mig" : i < c.ha ? "oth" : c.c === null ? "non" : i < c.ha + c.c ? "clr" : "unc";
     }
@@ -4491,8 +4565,10 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       return L;
     }
     function reportText(d) {
-      var L = ["【頭痛外来 本日の成績表】" + d.date + (d.kind === "shoki" ? "（初診）" : "（再診）")];
-      TILES.forEach(function (t) { L.push(t[1] + (t[2] && t[0].length === 3 ? "(" + t[2] + ")" : "") + "：" + fmtV(d[t[0]]) + " " + t[3]); });
+      var L = ["【頭痛外来 今月の頭痛重症度】" + d.date + (d.kind === "shoki" ? "（初診）" : "（再診）")];
+      var sv = severity(d);
+      L.push("今月の頭痛重症度：" + (sv ? SEV_NAMES[sv.lv] : "−"));
+      TILES.forEach(function (t) { L.push(t[1] + (t[2] && t[0].length === 3 ? "(" + t[2] + ")" : "") + "：" + fmtV(usable(d, t[0]) ? d[t[0]] : null) + " " + t[3]); });
       L.push("※この1ヶ月（30日）の記録です");
       return L.join("\n");
     }
@@ -4506,14 +4582,26 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       }
       var tiles = TILES.map(function (t) {
         return '<div class="gm-rp-tile gm-rp-' + t[0] + '"><div class="gm-rp-lab">' + t[1] + (t[2] ? "<small>" + t[2] + "</small>" : "") + "</div>" +
-          '<div class="gm-rp-val">' + fmtV(d[t[0]]) + '</div><div class="gm-rp-unit">' + t[3] + "</div></div>";
+          '<div class="gm-rp-val">' + fmtV(usable(d, t[0]) ? d[t[0]] : null) + '</div><div class="gm-rp-unit">' + t[3] + "</div>" + (usable(d, t[0]) ? tileLv(t[0], d[t[0]]) : "") + "</div>";
       }).join("");
+      var sv = severity(d), svHtml;
+      if (sv) {
+        var tl = TILES.filter(function (t) { return t[0] === sv.key; })[0];
+        svHtml = '<div class="gm-sv"><div class="gm-sv-val gm-lv' + sv.lv + '">' + SEV_NAMES[sv.lv] + "</div>" +
+          '<div class="gm-sv-bar">' + SEV_NAMES.map(function (n, i) { return '<span class="gm-bg' + i + (i === sv.lv ? " on" : "") + '">' + n + "</span>"; }).join("") + "</div>" +
+          '<div class="gm-sv-why">いちばん重かった項目：' + tl[1] + "（" + d[sv.key] + (tl[3].indexOf("日") === 0 ? "日" : "点") + "）</div></div>";
+      } else svHtml = '<div class="gm-sv"><div class="gm-sv-val" style="color:#999">−</div><div class="gm-sv-why">判定に必要な回答がありません</div></div>';
+      var amdLv = levelOf("amd", d.amd);
+      var warn = amdLv !== null && amdLv >= 2
+        ? '<div class="gm-rp-warn">⚠️ 痛み止めを使った日が月10日以上です。この状態が続くと、薬の使いすぎによる頭痛（薬剤の使用過多による頭痛）につながることがあります。診察でご相談ください。</div>' : "";
       return '<div class="gm-reward gm-report">' +
         '<div class="gm-rp-head"><div class="gm-rw-chara">' + CHARA_SVG + "</div>" +
-        '<div><div class="gm-rp-title">本日の成績表</div><div class="gm-rp-date">' + d.date + (d.kind === "shoki" ? "　初診" : "　再診") + "</div></div></div>" +
+        '<div><div class="gm-rp-title">今月の頭痛重症度</div><div class="gm-rp-date">' + d.date + (d.kind === "shoki" ? "　初診" : "　再診") + "</div></div></div>" +
         '<div class="gm-rw-sub">全 ' + total + " 問のアンケートにご協力いただき、ありがとうございました</div>" +
+        svHtml +
         '<div class="gm-rp-sec">この1ヶ月（30日）</div>' + cal +
-        '<div class="gm-rp-grid">' + tiles + "</div>" +
+        '<div class="gm-rp-grid">' + tiles + "</div>" + warn +
+        '<div class="gm-rp-foot">※重症度は当院独自の目安です。片頭痛日数・頭痛日数・HIT-6・MIBS-4 をそれぞれ4段階に分け、いちばん重い段階で表しています。</div>' +
         '<div class="gm-rw-note">📸 この枠をスクリーンショットで保存できます。診察のときに先生と一緒に見てみましょう</div>' +
         '<button type="button" class="gm-rp-save" id="gmRpSave">💾 結果を保存する</button>' +
         '<div class="gm-rp-more" id="gmRpMore" hidden>' +
@@ -4525,7 +4613,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     }
     // 成績表を画像（PNG）に描く
     function reportCanvas(d) {
-      var W = 1080, H = 1420, cv = document.createElement("canvas");
+      var W = 1080, H = 1620, cv = document.createElement("canvas");
       cv.width = W; cv.height = H;
       var g = cv.getContext("2d"), F = '"Hiragino Sans","Hiragino Kaku Gothic ProN","Noto Sans JP","Meiryo",sans-serif';
       function rr(x, y, w, h, r, fill, stroke) {
@@ -4540,9 +4628,18 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var bg = g.createLinearGradient(0, 0, W, H); bg.addColorStop(0, "#fffaf0"); bg.addColorStop(1, "#eef7f5");
       g.fillStyle = "#ffffff"; g.fillRect(0, 0, W, H);
       rr(24, 24, W - 48, H - 48, 48, bg, "#f0ad4e");
-      txt("本日の成績表", W / 2, 150, 76, "#e8734a", 900);
+      txt("今月の頭痛重症度", W / 2, 150, 76, "#e8734a", 900);
       txt(d.date + (d.kind === "shoki" ? "　初診" : "　再診"), W / 2, 220, 40, "#666666", 700);
-      var y = 300;
+      var SVC = ["#43a047", "#f0b400", "#f57c00", "#d32f2f"], sv = severity(d);
+      rr(70, 260, W - 140, 200, 28, "#ffffff", null);
+      txt(sv ? SEV_NAMES[sv.lv] : "−", W / 2, 360, 92, sv ? ["#2e7d32", "#b8860b", "#e65100", "#c62828"][sv.lv] : "#999999", 900);
+      var bw = (W - 140 - 60 - 3 * 12) / 4;
+      SEV_NAMES.forEach(function (n, i) {
+        var bx = 100 + i * (bw + 12), on = sv && i === sv.lv;
+        rr(bx, 392, bw, 48, 14, on ? SVC[i] : "#eceff1", null);
+        txt(n, bx + bw / 2, 427, 28, on ? "#ffffff" : "#90a4ae", 800);
+      });
+      var y = 520;
       txt("この1ヶ月（30日）", W / 2, y, 40, "#333333", 800);
       if (d.cal) {
         var COL = { mig: "#e57373", oth: "#ffb74d", clr: "#81c784", unc: "#cfd8dc", non: "#a5d6a7" };
@@ -4580,10 +4677,14 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
           rr(x, yy, tw, th, 28, "#ffffff", null);
           txt(t[1], x + tw / 2, yy + 58, t[1].length > 6 ? 32 : 38, "#555555", 800);
           if (t[2]) txt(t[2], x + tw / 2, yy + 100, 28, "#888888", 700);
-          txt(fmtV(d[t[0]]), x + tw / 2, yy + 200, 96, "#1f6f78", 900);
+          txt(fmtV(usable(d, t[0]) ? d[t[0]] : null), x + tw / 2, yy + 200, 96, "#1f6f78", 900);
           txt(t[3], x + tw / 2, yy + 248, 30, "#888888", 700);
+          var l = usable(d, t[0]) ? levelOf(t[0], d[t[0]]) : null;
+          if (l !== null && t[0] !== "amd") txt(SEV_NAMES[l], x + tw - 20, yy + 58, 26, ["#2e7d32", "#b8860b", "#e65100", "#c62828"][l], 800, "right");
+          if (t[0] === "amd" && l !== null && l >= 2) txt("使いすぎ注意", x + tw - 20, yy + 58, 26, "#e65100", 800, "right");
         });
       });
+      txt("※重症度は当院独自の目安です", W / 2, H - 110, 28, "#999999", 700);
       txt("脳神経外科　頭痛外来", W / 2, H - 56, 32, "#999999", 700);
       return cv;
     }
@@ -4614,7 +4715,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         toBlob(reportCanvas(d), function (b) {
           var f = null;
           try { f = new File([b], fileName(d), { type: "image/png" }); } catch (e) {}
-          var data = f && navigator.canShare && navigator.canShare({ files: [f] }) ? { files: [f], title: "本日の成績表", text: text } : { title: "本日の成績表", text: text };
+          var data = f && navigator.canShare && navigator.canShare({ files: [f] }) ? { files: [f], title: "今月の頭痛重症度", text: text } : { title: "今月の頭痛重症度", text: text };
           navigator.share(data).catch(function () {});
         });
       });
@@ -4622,7 +4723,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         var b = e.target.closest("button"); if (!b) return;
         var d = reportData(), text = reportText(d), act = b.getAttribute("data-act");
         if (act === "img") saveImage(d);
-        else if (act === "mail") location.href = "mailto:?subject=" + encodeURIComponent("頭痛外来 本日の成績表 " + d.date) + "&body=" + encodeURIComponent(text);
+        else if (act === "mail") location.href = "mailto:?subject=" + encodeURIComponent("頭痛外来 今月の頭痛重症度 " + d.date) + "&body=" + encodeURIComponent(text);
         else if (act === "line") window.open("https://line.me/R/share?text=" + encodeURIComponent(text), "_blank");
         else if (act === "copy") copyText(text, b);
       });
@@ -4744,6 +4845,82 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
   var rsEl = document.getElementById("resultScreen");
   if (rsEl && window.MutationObserver) new MutationObserver(mount).observe(rsEl, { childList: true });
+})();
+</script>
+
+<!-- ===== スマホ問診票の満足度（2026-10-20）：結果画面の「今月の頭痛重症度」の下で 1〜10 と自由記載を答え、OK で QR に載せ直す ===== -->
+<style>
+.hz-sat{background:#fff;border:2px solid #cfe3df;border-radius:18px;padding:14px 12px 12px;margin:0 0 14px;}
+.hz-sat h3{margin:0 0 2px;font-size:1.02rem;color:var(--primary,#2f6f6b);}
+.hz-sat .hz-sat-sub{margin:0 0 10px;font-size:.8rem;color:#6b7280;}
+.hz-sat-nums{display:grid;grid-template-columns:repeat(5,1fr);gap:6px;}
+.hz-sat-nums button{height:46px;border:2px solid #d8e2e0;border-radius:12px;background:#f7faf9;font-size:1.15rem;font-weight:800;color:#374151;-webkit-tap-highlight-color:transparent;}
+.hz-sat-nums button.on{background:linear-gradient(135deg,#ff9a5a,#e8734a);border-color:#d4552a;color:#fff;}
+.hz-sat-ends{display:flex;justify-content:space-between;font-size:.72rem;color:#6b7280;margin:4px 2px 10px;}
+.hz-sat label{display:block;font-size:.85rem;font-weight:700;margin-bottom:4px;}
+.hz-sat textarea{width:100%;box-sizing:border-box;min-height:72px;border:1px solid #d1d5db;border-radius:10px;padding:8px;font-size:16px;font-family:inherit;}
+.hz-sat .hz-sat-warn{font-size:.74rem;color:#b91c1c;margin:4px 0 10px;}
+.hz-sat .hz-sat-row{display:flex;align-items:center;gap:10px;}
+.hz-sat .hz-sat-msg{flex:1;font-size:.82rem;font-weight:700;color:#15803d;}
+.hz-sat .gm-ok{margin-left:auto;}
+</style>
+<script>
+(function () {
+  var rs = document.getElementById("resultScreen");
+  if (!rs || !window.MutationObserver) return;
+  function place(box) {
+    var rw = rs.querySelector(".gm-reward");
+    var after = rw || null;
+    if (after) { if (after.nextSibling !== box) rs.insertBefore(box, after.nextSibling); }
+    else if (rs.firstChild !== box) rs.insertBefore(box, rs.firstChild);
+  }
+  function mount() {
+    if (!rs.classList.contains("active") || !window.__hzSetAppSat) return;
+    var box = rs.querySelector(".hz-sat");
+    if (box) { place(box); return; }
+    var saved = window.__hzGetAppSat ? window.__hzGetAppSat() : { APP_SAT: null, APP_CMT: "" };
+    box = document.createElement("div");
+    box.className = "hz-sat";
+    var nums = "";
+    for (var i = 1; i <= 10; i++) nums += '<button type="button" data-v="' + i + '">' + i + "</button>";
+    box.innerHTML =
+      "<h3>このスマホ問診票の満足度を教えてください</h3>" +
+      '<p class="hz-sat-sub">使いやすさ・わかりやすさなど、全体の印象で選んでください（答えなくてもかまいません）。</p>' +
+      '<div class="hz-sat-nums">' + nums + "</div>" +
+      '<div class="hz-sat-ends"><span>1 とても不満</span><span>10 とても満足</span></div>' +
+      '<label for="hzSatCmt">ご意見・ご要望（自由記載）</label>' +
+      '<textarea id="hzSatCmt" maxlength="200" placeholder="使いにくかった点、わかりにくかった質問など"></textarea>' +
+      '<div class="hz-sat-warn">お名前など個人情報は書かないでください。</div>' +
+      '<div class="hz-sat-row"><span class="hz-sat-msg"></span><button type="button" class="gm-ok">OK</button></div>';
+    var sel = saved.APP_SAT, ta = box.querySelector("textarea"), ok = box.querySelector(".gm-ok"), msg = box.querySelector(".hz-sat-msg");
+    var sent = { sat: saved.APP_SAT, cmt: saved.APP_CMT || "" };
+    ta.value = saved.APP_CMT || "";
+    function paint() {
+      Array.prototype.forEach.call(box.querySelectorAll(".hz-sat-nums button"), function (b) { b.classList.toggle("on", Number(b.getAttribute("data-v")) === sel); });
+      var dirty = sel !== sent.sat || ta.value.trim() !== sent.cmt;
+      var any = sel != null || ta.value.trim() !== "";
+      ok.classList.toggle("ready", dirty && any);
+      if (dirty) msg.textContent = "";
+      else if (sent.sat != null || sent.cmt) msg.textContent = "✓ QRコードに反映しました";
+    }
+    box.querySelector(".hz-sat-nums").addEventListener("click", function (e) {
+      var b = e.target.closest("button"); if (!b) return;
+      var v = Number(b.getAttribute("data-v"));
+      sel = sel === v ? null : v;
+      paint();
+    });
+    ta.addEventListener("input", paint);
+    ok.addEventListener("click", function () {
+      if (!ok.classList.contains("ready")) return;
+      sent = { sat: sel, cmt: ta.value.trim() };
+      window.__hzSetAppSat(sent.sat, sent.cmt);
+      ta.blur();
+      paint();
+    });
+    paint();
+    place(box);
+  }
+  new MutationObserver(mount).observe(rs, { childList: true, attributes: true, attributeFilter: ["class"] });
 })();
 </script>
 
