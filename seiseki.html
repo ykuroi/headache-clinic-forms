@@ -51,7 +51,9 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:"Hiragino Sans"
 .lvt0{color:#2e7d32;} .lvt1{color:#b8860b;} .lvt2{color:#e65100;} .lvt3{color:#c62828;}
 .bg0{background:var(--lv0)!important;} .bg1{background:var(--lv1)!important;} .bg2{background:var(--lv2)!important;} .bg3{background:var(--lv3)!important;}
 .strip{display:flex;gap:1mm;}
-.strip div{flex:1;text-align:center;}
+.strip div{flex:1 1 0;min-width:0;text-align:center;}
+.strip.many b{font-size:5.6pt;letter-spacing:-.06em;}
+.strip.many span{font-size:5.8pt;letter-spacing:-.04em;}
 .strip b{display:block;height:7mm;border-radius:1.5mm;color:#fff;font-size:7pt;line-height:7mm;}
 .strip span{font-size:6.5pt;color:#666;}
 .charts{display:grid;grid-template-columns:1fr 1fr;gap:3mm;}
@@ -115,8 +117,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     <select id="nvis">
       <option value="6">直近6回</option>
       <option value="12" selected>直近12回</option>
-      <option value="24">直近24回</option>
-      <option value="0">すべて</option>
+      <option value="20">直近20回（最大）</option>
     </select>
     <label><input type="checkbox" id="showId"> カルテ番号を載せる</label>
   </div>
@@ -225,6 +226,8 @@ body.viewer .sheet{margin:4px auto 20px;}
       // 受診10回：予防薬を始めて少しずつ良くなった
       "DEMO-0010（架空・10回）": demoCase("2026-01-08", [14, 13, 11, 8, 6, 7, 5, 4, 3, 2], [20, 19, 16, 12, 9, 10, 7, 6, 4, 3], [15, 14, 11, 8, 6, 7, 5, 4, 3, 2], [66, 65, 63, 59, 56, 57, 53, 51, 48, 46], [9, 9, 8, 6, 5, 5, 3, 3, 2, 1]),
       // 受診15回：慢性片頭痛から1年以上かけて改善
+      // 受診20回：慢性片頭痛。予防薬で改善し、12回目ごろに一度ぶり返したあと落ち着いた
+      "DEMO-0020（架空・20回）": demoCase("2025-03-06", [20, 18, 16, 13, 11, 9, 8, 7, 6, 6, 8, 11, 9, 7, 6, 5, 4, 4, 3, 3], [26, 24, 21, 18, 15, 13, 12, 10, 9, 8, 11, 15, 12, 10, 8, 7, 6, 5, 4, 4], [20, 18, 15, 12, 10, 8, 7, 6, 5, 5, 8, 12, 9, 6, 5, 4, 4, 3, 3, 2], [69, 68, 66, 64, 61, 59, 57, 56, 55, 54, 57, 60, 58, 55, 53, 51, 50, 49, 47, 46], [12, 11, 10, 9, 8, 7, 6, 5, 5, 4, 6, 7, 6, 5, 4, 3, 3, 2, 2, 1]),
       "DEMO-0015（架空・15回）": demoCase("2025-08-07", [18, 17, 15, 12, 10, 9, 10, 8, 7, 6, 7, 5, 4, 4, 3], [24, 22, 20, 17, 14, 12, 13, 11, 9, 8, 9, 7, 6, 5, 4], [18, 16, 14, 11, 9, 8, 9, 7, 6, 5, 6, 4, 4, 3, 3], [68, 67, 65, 63, 60, 58, 59, 56, 55, 53, 54, 51, 49, 48, 47], [11, 10, 10, 8, 7, 6, 7, 5, 5, 4, 4, 3, 2, 2, 1])
     };
   }
@@ -300,7 +303,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     var id = document.getElementById("pt").value;
     if (!DATA[id]) { sheet.innerHTML = '<div class="empty">データを読み込み、患者を選ぶと成績表がここに表示されます。</div>'; return; }
     var all = DATA[id], nv = Number(document.getElementById("nvis").value);
-    var vis = nv ? all.slice(-nv) : all.slice();
+    var vis = all.slice(-(nv || 20));
     var cur = vis[vis.length - 1], first = all[0], prev = all.length > 1 ? all[all.length - 2] : null;
     var sv = severity(cur);
     var labels = vis.map(function (v) { return shortDate(v.date); });
@@ -321,9 +324,10 @@ body.viewer .sheet{margin:4px auto 20px;}
       return '<div class="tile"><div class="l">' + t[1] + "<small>" + t[2] + '</small></div><div class="v">' + fmt(v) + '</div><div class="u">' + t[3] + "</div>" + d + c + "</div>";
     }).join("");
 
-    var strip = '<div class="strip">' + vis.map(function (v) {
+    var many = vis.length > 12;
+    var strip = '<div class="strip' + (many ? " many" : "") + '">' + vis.map(function (v) {
       var s = severity(v);
-      return "<div><b class=\"" + (s ? "bg" + s.lv : "") + '" style="' + (s ? "" : "background:#ccc") + '">' + (s ? SEV[s.lv] : "−") + "</b><span>" + shortDate(v.date) + "</span></div>";
+      return "<div><b class=\"" + (s ? "bg" + s.lv : "") + '" style="' + (s ? "" : "background:#ccc") + '">' + (s ? SEV[s.lv] : "−") + "</b><span>" + (many ? v.date.slice(2, 4) + "/" + v.date.slice(5, 7) : shortDate(v.date)) + "</span></div>";
     }).join("") + "</div>";
 
     var maxDays = Math.max(15, Math.max.apply(null, vis.map(function (v) { return Math.max(v.MHD || 0, v.MMD || 0, v.AMD || 0); })));
@@ -403,7 +407,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     var id = document.getElementById("pt").value;
     if (!id || !DATA[id]) return;
     var nv = Number(document.getElementById("nvis").value), all = DATA[id];
-    var vis = (nv ? all.slice(-nv) : all.slice()).slice(-24);
+    var vis = all.slice(-(nv || 20));
     var url = VIEW_URL + "#r=" + packVisits(vis);
     var holder = document.getElementById("qrHolder");
     holder.innerHTML = "";
@@ -421,7 +425,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     try {
       DATA = { "": unpackVisits(m[1]) };
       document.getElementById("pt").innerHTML = '<option value="" selected></option>';
-      document.getElementById("nvis").value = "0";
+      document.getElementById("nvis").value = "20";
       render();
     } catch (err) { sheet.innerHTML = '<div class="empty">成績表を読み込めませんでした。QRコードを読み取り直してください。</div>'; }
     var fit = function () { var w = document.documentElement.clientWidth; sheet.style.zoom = w < 820 ? String((w - 8) / 794) : ""; };
