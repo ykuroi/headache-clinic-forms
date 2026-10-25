@@ -83,6 +83,9 @@ main{
   color:var(--muted);
   margin-top:4px;
 }
+.doc-add-banner{background:#fff8e6;border:2px solid #f0b429;border-radius:14px;padding:12px 14px;margin:0 0 14px;font-size:.92rem;line-height:1.6;}
+.doc-add-banner span{font-size:.8rem;color:#6b7280;}
+section.qsection.doc-add > .sec-head{background:#f0b429;color:#3b2a00;}
 section.qsection{
   background:var(--card);
   border-radius:var(--radius);
@@ -466,6 +469,7 @@ table.matrix td.qcell .row-code{
   flex:1;
 }
 .btn-primary{background:var(--primary);color:#fff;}
+#btnSubmit{background:linear-gradient(135deg,#ff9a5a,#e8734a);color:#fff;border-color:#d4552a;}   /* 回答内容を確認する：オレンジ（2026-10-25） */
 .btn-secondary{background:#eee;color:var(--text);}
 .btn-accent{background:var(--accent);color:#fff;}
 .btn:disabled{opacity:0.4;}
@@ -1283,11 +1287,34 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     sideeffects: renderSideEffects
   };
 
+  FE.MOD_NAMES = { acc: "発作のときの随伴症状", iis: "頭痛のない日の症状", asc12: "ASC-12（皮ふの過敏）", phq9: "PHQ-9（気分）", gad7: "GAD-7（不安）", sleep: "睡眠・疲れやすさ", ae: "副作用のチェック" };
+  FE.forced = {};
+  FE.forcedList = [];
+  (function () {
+    var m = /[?&]add=([^&#]*)/.exec(location.search || "");
+    if (!m) return;
+    decodeURIComponent(m[1]).toLowerCase().split(/[,.\s]+/).forEach(function (k) {
+      if (FE.MOD_NAMES[k] && !FE.forced[k]) { FE.forced[k] = true; FE.forcedList.push(k); }
+    });
+  })();
+  FE.isForced = function (q) { return !!(q.mod && FE.forced[q.mod]); };
+
   FE.render = function (schema, containerEl) {
     containerEl.innerHTML = "";
+    if (FE.forcedList.length) {
+      var fb = el("div", "doc-add-banner");
+      fb.innerHTML = "👩‍⚕️ <b>今回は先生からの追加質問があります</b><br>" + FE.forcedList.map(function (k) { return "・" + FE.MOD_NAMES[k]; }).join("<br>") +
+        '<br><span>途中に出てきますので、最後まで答えてください。</span>';
+      containerEl.appendChild(fb);
+    }
     schema.sections.forEach(function (sec) {
       var s = el("section", "qsection");
-      s.appendChild(el("div", "sec-head", sec.title));
+      var forcedSec = sec.questions.some(FE.isForced);
+      if (forcedSec) {
+        s.classList.add("doc-add");
+        sec.questions.forEach(function (q) { if (FE.isForced(q) && (q.type === "matrix" || q.type === "radio")) q.required = true; });
+      }
+      s.appendChild(el("div", "sec-head", (forcedSec ? "👩‍⚕️ 先生からの追加質問　" : "") + sec.title));
       var body = el("div", "sec-body");
       sec.questions.forEach(function (q) {
         var renderer = RENDERERS[q.type];
@@ -1323,13 +1350,19 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
         if (!q.showIf) return;
         var block = containerEl.querySelector('.qblock[data-code="' + q.code + '"]');
         if (!block) return;
-        var show = FE.showIfMet(q.showIf, answers);
+        // 先生が追加した質問票は「気になること」に関係なく出す（痛み止めの日数などほかの条件は残す）
+        var cond = FE.isForced(q) ? [].concat(q.showIf).filter(function (c) { return c.code !== "CONCERN"; }) : q.showIf;
+        var show = FE.showIfMet(cond, answers);
         block.classList.toggle("hidden", !show);
         if (!show && q.clearWhenHidden) {   // 隠れた設問の答えは残さない（2026-10-25）
           Array.prototype.forEach.call(block.querySelectorAll(".opt-btn.selected"), function (b) { b.classList.remove("selected"); });
           var oi = block.querySelector(".other-input");
           if (oi) oi.value = "";
         }
+      });
+      Array.prototype.forEach.call(containerEl.querySelectorAll("section.qsection"), function (sec) {
+        var bl = Array.prototype.filter.call(sec.querySelectorAll(".qblock"), function (x) { return !x.parentElement.closest(".qblock"); });
+        sec.classList.toggle("hidden", bl.length > 0 && bl.every(function (x) { return x.classList.contains("hidden"); }));
       });
     }
     FE._onAnswerChanged = function () {
@@ -1432,7 +1465,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
               answeredCount++;
             }
           });
-          answers[q.code + "__total"] = rowTotal;
+          answers[q.code + "__total"] = answeredCount ? rowTotal : null;   // 1問も答えていない質問票は未回答（null）
           answers[q.code + "__complete"] = answeredCount === q.rows.length;
           if (!silent) {
             var subEl = block.querySelector(".subscore[data-subscore-for='" + q.code + "']");
@@ -1456,9 +1489,23 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
           var freeT = block.querySelector('[data-code="' + q.code + '_other"]');
           answers[q.code + "_other"] = freeT ? freeT.value.trim() : "";
         }
+        // 隠れている設問（「気になること」で選ばなかった質問票など）の答えは送らない。もう一度出せば元の答えが戻る（2026-10-25）
+        if (q.showIf && block.classList.contains("hidden")) FE._blank(q, answers);
       });
     });
+    answers.DOC_ADD = FE.forcedList.slice();
     return answers;
+  };
+  FE._blank = function (q, answers) {
+    answers[q.code] = q.type === "checkbox" ? [] : null;
+    if (q.other) answers[q.code + "_other"] = "";
+    (q.fields || []).forEach(function (f) { answers[f.code] = null; });
+    (q.rows || []).forEach(function (r) {
+      answers[q.code + "_" + r.code] = null;
+      if (q.type === "sideeffects") answers[q.code + "_" + r.code + "_detail"] = "";
+    });
+    if (q.type === "sideeffects") answers[q.code + "_other"] = "";
+    if (q.type === "matrix") { answers[q.code + "__total"] = null; answers[q.code + "__complete"] = false; }
   };
 
   /* 未回答必須項目のチェック。false=OK, true=エラーあり */
@@ -1512,6 +1559,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     s.gad7 = matrixTotal(answers, "GAD7");
     s.phq9 = matrixTotal(answers, "PHQ9");
     s.mibs4 = matrixTotal(answers, "MIBS4");
+    s.asc12 = matrixTotal(answers, "ASC12");
 
     // PHQ-9 第9項目（希死念慮）安全確認フラグ
     var phq9item9 = answers["PHQ9_9"];
@@ -2017,6 +2065,15 @@ var SAISHIN_CODEC = (function () {
   add("MBSF2H", "AQ_MBS2H", "map", FREQ4, false);
   add("REC24", "AQ_REC24", "map", FREQ4, false);
   add("AE_ACUTE", "AQ_AE", "map", { "ない": 0, "ときどき": 1, "よくある": 2 }, false);
+  // 2026-10-25 追加：「今日とくに気になること」と、選んだ人だけに出す質問票（随伴症状・頭痛のない日の症状・ASC-12）。各項目は選択肢番号。CSVには入れずカルテ文に出す
+  var CONCERNS = ["発作のときの吐き気・まぶしさ・音のつらさ", "頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）", "皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",
+    "気分の落ち込み", "不安・心配", "うつ病・不安障害で治療中、または治療したことがある", "眠り・疲れやすさ", "薬の副作用", "とくにない"];
+  add("CONCERN", "CONCERN", "multi", CONCERNS, false);
+  [["ACC", 5], ["IIS", 9], ["ASC12", 12]].forEach(function (sc) {
+    for (var i = 1; i <= sc[1]; i++) add(sc[0] + "_" + i, sc[0] + "_" + i, "num", null, false);
+  });
+  // 先生が前もって追加した質問票（saishin.html?add=… の QR から開いたとき）
+  add("DOC_ADD", "DOC_ADD", "multi", ["acc", "iis", "asc12", "phq9", "gad7", "sleep", "ae"], false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
@@ -2327,16 +2384,6 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_AE", type: "radio", label: "Q6-5", wide: true, clearWhenHidden: true,
-          showIf: { code: "Q6_total", gt: 0 },
-          text: "痛み止めを飲んだあと、眠気・めまい・だるさで困ることはありましたか？",
-          options: [
-            {value:"ない",label:"ない"},
-            {value:"ときどき",label:"ときどき"},
-            {value:"よくある",label:"よくある"}
-          ]
-        },
-        {
           code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
@@ -2369,22 +2416,139 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ GAD-7　--- 過去2週間についてお答えください",
+      title: "■ MIBS-4　--- 過去4週間のことを振り返ってお答えください",
       questions: [
         {
-          code: "GAD7", type: "matrix", title: "GAD-7",
+          code: "MIBS4", type: "matrix", title: "MIBS-4",
           columns: [
-            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
-            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
+            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
+            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"不安、または落ち着かない感じがする"},
-            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
-            {code:"3",text:"いろいろなことを心配しすぎる"},
-            {code:"4",text:"リラックスすることが難しい"},
-            {code:"5",text:"じっとしていられないほど落ち着かない"},
-            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
-            {code:"7",text:"何か恐ろしいことが起こるのではないかと恐れる"}
+            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 全体的な変化・治療満足度",
+      questions: [
+        {
+          code: "PGIC", type: "slider_named", label: "Q8", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          options: [
+            {value:"-3",label:"-3 著明悪化"},
+            {value:"-2",label:"-2 中等悪化"},
+            {value:"-1",label:"-1 軽度悪化"},
+            {value:"0",label:"0 変化なし"},
+            {value:"1",label:"+1 軽度改善"},
+            {value:"2",label:"+2 中等改善"},
+            {value:"3",label:"+3 著明改善"}
+          ]
+        },
+        {
+          code: "SATIS", type: "nrsmatrix", label: "Q9", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          rows: [
+            {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
+            {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
+            {code:"fukusayou",label:"副作用",note:"副作用の少なさについて"},
+            {code:"sougou",label:"総合満足度",note:"治療全体を通じて"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🔎 今日とくに気になること",
+      questions: [
+        {
+          code: "CONCERN", type: "checkbox", label: "Q10", wide: true,
+          text: "今日、とくに気になっていることを選んでください（複数可）",
+          note: "選んだことについての質問だけが、この下に追加されます。",
+          options: [
+            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・まぶしさ・音のつらさ"},
+            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"},
+            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"},
+            {value:"気分の落ち込み",label:"😔 気分の落ち込み"},
+            {value:"不安・心配",label:"😟 不安・心配"},
+            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害で治療中、または治療したことがある"},
+            {value:"眠り・疲れやすさ",label:"🌙 眠り・疲れやすさ"},
+            {value:"薬の副作用",label:"💊 薬の副作用"},
+            {value:"とくにない",label:"とくにない",exclusive:true}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 発作のときの随伴症状　--- この1ヶ月についてお答えください",
+      questions: [
+        {
+          code: "ACC", mod: "acc", type: "matrix", title: "発作のときの随伴症状", symptom: true,
+          showIf: { code: "CONCERN", in: ["発作のときの吐き気・まぶしさ・音のつらさ"] },
+          text: "この1ヶ月、頭痛のときに次の症状はどのくらいつらかったですか？",
+          columns: [
+            {label:"なし",points:0},{label:"少し",points:1},{label:"かなり",points:2},{label:"とてもつらい",points:3}
+          ],
+          rows: [
+            {code:"1",text:"吐き気",short:"吐き気"},
+            {code:"2",text:"吐いた（嘔吐）",short:"嘔吐"},
+            {code:"3",text:"光がまぶしくてつらい（光過敏）",short:"光過敏"},
+            {code:"4",text:"音がうるさくてつらい（音過敏）",short:"音過敏"},
+            {code:"5",text:"においがつらい（におい過敏）",short:"におい過敏"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 頭痛のない日の症状　--- この1ヶ月についてお答えください",
+      questions: [
+        {
+          code: "IIS", mod: "iis", type: "matrix", title: "頭痛のない日の症状", symptom: true,
+          showIf: { code: "CONCERN", in: ["頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"] },
+          text: "この1ヶ月、頭痛がない日に、次の症状はどのくらいありましたか？",
+          columns: [
+            {label:"ない",points:0},{label:"ときどき",points:1},{label:"よくある",points:2},{label:"ほぼいつも",points:3}
+          ],
+          rows: [
+            {code:"1",text:"首や肩のこり",short:"首肩こり"},
+            {code:"2",text:"めまい・ふらつき",short:"めまい"},
+            {code:"3",text:"耳鳴り・耳がつまる感じ",short:"耳鳴り・耳閉感"},
+            {code:"4",text:"光がまぶしく感じる",short:"光過敏"},
+            {code:"5",text:"音がうるさく感じる",short:"音過敏"},
+            {code:"6",text:"においが気になる",short:"におい過敏"},
+            {code:"7",text:"だるさ・疲れやすさ",short:"倦怠感"},
+            {code:"8",text:"集中しにくい・頭がぼんやりする",short:"集中困難"},
+            {code:"9",text:"「また頭痛が来るのでは」という不安",short:"予期不安"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ ASC-12（アロディニア）　--- いちばんひどい頭痛のときについてお答えください",
+      questions: [
+        {
+          code: "ASC12", mod: "asc12", type: "matrix", title: "ASC-12",
+          showIf: { code: "CONCERN", in: ["皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"] },
+          text: "いちばんひどい頭痛のとき、次のことをすると、皮ふがふだんより痛い・不快に感じることはどのくらいありますか？",
+          columns: [
+            {label:"当てはまらない・しない\n(0点)",points:0},{label:"ない\n(0点)",points:0},{label:"まれに\n(0点)",points:0},
+            {label:"半分未満\n(1点)",points:1},{label:"半分以上\n(2点)",points:2}
+          ],
+          rows: [
+            {code:"1",text:"髪をとかす"},
+            {code:"2",text:"髪を後ろでまとめる（ポニーテールなど）"},
+            {code:"3",text:"顔のひげをそる"},
+            {code:"4",text:"メガネをかける"},
+            {code:"5",text:"コンタクトレンズをつける"},
+            {code:"6",text:"イヤリング・ピアスをつける"},
+            {code:"7",text:"ネックレスをつける"},
+            {code:"8",text:"きつい服を着る"},
+            {code:"9",text:"シャワーを浴びる（顔にお湯があたる）"},
+            {code:"10",text:"枕に顔や頭をのせて休む"},
+            {code:"11",text:"熱いものにふれる（料理の熱気・温かいタオルなど）"},
+            {code:"12",text:"冷たいものにふれる（保冷剤・寒い日に鼻で息をするなど）"}
           ]
         }
       ]
@@ -2393,7 +2557,8 @@ var SCHEMA_SAISHIN = {
       title: "■ PHQ-9　--- 過去2週間についてお答えください",
       questions: [
         {
-          code: "PHQ9", type: "matrix", title: "PHQ-9",
+          code: "PHQ9", mod: "phq9", type: "matrix", title: "PHQ-9",
+          showIf: { code: "CONCERN", in: ["気分の落ち込み", "うつ病・不安障害で治療中、または治療したことがある"] },
           note: "※項目9でご心配な回答があった場合は、診察時に必ずスタッフからお声がけします。",
           columns: [
             {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
@@ -2414,29 +2579,34 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ MIBS-4　--- 過去4週間のことを振り返ってお答えください",
+      title: "■ GAD-7　--- 過去2週間についてお答えください",
       questions: [
         {
-          code: "MIBS4", type: "matrix", title: "MIBS-4",
+          code: "GAD7", mod: "gad7", type: "matrix", title: "GAD-7",
+          showIf: { code: "CONCERN", in: ["不安・心配", "うつ病・不安障害で治療中、または治療したことがある"] },
           columns: [
-            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
-            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
-            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
-            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
-            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
-            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+            {code:"1",text:"不安、または落ち着かない感じがする"},
+            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
+            {code:"3",text:"いろいろなことを心配しすぎる"},
+            {code:"4",text:"リラックスすることが難しい"},
+            {code:"5",text:"じっとしていられないほど落ち着かない"},
+            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
+            {code:"7",text:"何か恐ろしいことが起こるのではないかと恐れる"}
           ]
         }
       ]
     },
     {
-      title: "🌙 気分・睡眠の変化",
+      title: "🌙 睡眠・疲れやすさ",
       questions: [
         {
-          code: "Q14", type: "slider_named", label: "Q8", text: "睡眠の質は、治療を始める前と比べてどうですか？",
+          code: "Q14", mod: "sleep", type: "slider_named", label: "睡眠",
+          showIf: { code: "CONCERN", in: ["眠り・疲れやすさ"] },
+          text: "睡眠の質は、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -2446,7 +2616,9 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q15", type: "slider_named", label: "Q9", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
+          code: "Q15", mod: "sleep", type: "slider_named", label: "疲れ",
+          showIf: { code: "CONCERN", in: ["眠り・疲れやすさ"] },
+          text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -2458,36 +2630,22 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ 全体的な変化・治療満足度",
+      title: "🔍 副作用のチェック",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q10", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "AQ_AE", mod: "ae", type: "radio", label: "副作用①", wide: true, clearWhenHidden: true,
+          showIf: [{ code: "Q6_total", gt: 0 }, { code: "CONCERN", in: ["薬の副作用"] }],
+          text: "痛み止めを飲んだあと、眠気・めまい・だるさで困ることはありましたか？",
           options: [
-            {value:"-3",label:"-3 著明悪化"},
-            {value:"-2",label:"-2 中等悪化"},
-            {value:"-1",label:"-1 軽度悪化"},
-            {value:"0",label:"0 変化なし"},
-            {value:"1",label:"+1 軽度改善"},
-            {value:"2",label:"+2 中等改善"},
-            {value:"3",label:"+3 著明改善"}
+            {value:"ない",label:"ない"},
+            {value:"ときどき",label:"ときどき"},
+            {value:"よくある",label:"よくある"}
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q11", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
-          rows: [
-            {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
-            {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
-            {code:"fukusayou",label:"副作用",note:"副作用の少なさについて"},
-            {code:"sougou",label:"総合満足度",note:"治療全体を通じて"}
-          ]
-        }
-      ]
-    },
-    {
-      title: "🔍 副作用・気になる症状のチェック",
-      questions: [
-        {
-          code: "SE", type: "sideeffects", label: "Q12", text: "副作用・気になる症状について教えてください",
+          code: "SE", mod: "ae", type: "sideeffects", label: "副作用②",
+          showIf: { code: "CONCERN", in: ["薬の副作用"] },
+          text: "副作用・気になる症状について教えてください",
           rows: [
             {code:"inj",area:"💉 注射した場所（注射治療中の方のみ）",symptom:"発赤・腫れ・痛み・かゆみ・しこり"},
             {code:"benpi",area:"🚽 お腹・排便",symptom:"便秘"},
@@ -2512,7 +2670,7 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q13", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q11", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -2528,7 +2686,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q14", text: "治療について感じていること・ご要望を自由にご記入ください" }
+        { code: "Q13", type: "textarea", label: "Q12", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
@@ -2613,9 +2771,11 @@ var SCHEMA_SAISHIN = {
       ? '<div class="warn-banner">⚠️ PHQ-9 項目9（希死念慮に関する項目）にご回答がありました。恐れ入りますが、この画面のまま受付・看護師にお声がけください。</div>'
       : "";
 
+    // 「気になること」で選んで答えた質問票だけカードにする（2026-10-25）
     var scoreCardsHtml =
-      scoreCard("GAD-7", scores.gad7, "点 (0-21)", false, allAnswered(answers, "GAD7", 7)) +
-      scoreCard("PHQ-9", scores.phq9, "点 (0-27)", flagPhq9, allAnswered(answers, "PHQ9", 9));
+      (scores.asc12 != null ? scoreCard("ASC-12", scores.asc12, "点 (0-24)", false, allAnswered(answers, "ASC12", 12)) : "") +
+      (scores.phq9 != null ? scoreCard("PHQ-9", scores.phq9, "点 (0-27)", flagPhq9, allAnswered(answers, "PHQ9", 9)) : "") +
+      (scores.gad7 != null ? scoreCard("GAD-7", scores.gad7, "点 (0-21)", false, allAnswered(answers, "GAD7", 7)) : "");
     // 本日の成績表（MMD・MHD・AMD・HIT-6・MIBS-4）はゲーム層が画面の先頭に出す
     window.__hzResult = { kind: KIND, answers: answers, scores: scores };
 
@@ -2764,6 +2924,10 @@ var SCHEMA_SAISHIN = {
       var l = value < 5 ? 0 : value < 10 ? 1 : value < 15 ? 2 : 3;
       var names = label === "PHQ-9" && value >= 20 ? "重度" : label === "PHQ-9" && value >= 15 ? "中等度〜重度" : ["ほぼなし", "軽度", "中等度", "重度"][l];   // 各尺度の公式の区分
       lv = '<div class="lv" style="color:' + ["#2e7d32", "#b8860b", "#e65100", "#c62828"][l] + '">こころの負担：' + names + "</div>";
+    }
+    if (complete && value !== null && value !== undefined && label === "ASC-12") {   // ASC-12 の公式の区分（0-2 なし・3-5 軽度・6-8 中等度・9以上 重度）
+      var la = value <= 2 ? 0 : value <= 5 ? 1 : value <= 8 ? 2 : 3;
+      lv = '<div class="lv" style="color:' + ["#2e7d32", "#b8860b", "#e65100", "#c62828"][la] + '">皮ふの過敏：' + ["なし", "軽度", "中等度", "重度"][la] + "</div>";
     }
     return (
       '<div class="score-card' + (flag ? " flag" : "") + '"><div class="label">' +
@@ -3747,7 +3911,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   setupSingleOk("Q9", sliderTouched, "Q9");
   setupSingleOk("Q9las", sliderTouched, null);
   setupSingleOk("Q9rx", sliderTouched, null);
-  ["AQ_MBS", "AQ_PF2H", "AQ_MBS2H", "AQ_REC24", "AQ_AE"].forEach(function (c, i) {
+  ["AQ_MBS", "AQ_PF2H", "AQ_MBS2H", "AQ_REC24"].forEach(function (c, i) {
     setupSingleOk(c, function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q6-" + (i + 1));
   });
   // Q6-1 の「その他」の記入欄は「その他」を選んだときだけ。Q6-3 の文に選んだ症状を入れる
@@ -3772,11 +3936,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     upd();
   })();
   setupSingleOk("Q10", sliderTouched, "Q7");
-  setupSingleOk("Q14", sliderTouched, "Q8");      // 睡眠（画面上の番号は Q8）
-  setupSingleOk("Q15", sliderTouched, "Q9");      // 疲れやすさ（Q9）
-  setupSingleOk("PGIC", sliderTouched, "Q10");
-  setupSingleOk("SATIS", allSlidersTouched, "Q11");
-  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q13"); // 今後の治療（Q13）
+  setupSingleOk("PGIC", sliderTouched, "Q8");
+  setupSingleOk("SATIS", allSlidersTouched, "Q9");
+  setupSingleOk("CONCERN", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q10");   // 今日とくに気になること（2026-10-25）
+  setupSingleOk("Q14", sliderTouched, "睡眠");    // 「眠り・疲れやすさ」を選んだ人だけ
+  setupSingleOk("Q15", sliderTouched, "疲れやすさ");
+  setupSingleOk("AQ_AE", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "副作用①");   // 「薬の副作用」を選んだ人だけ
+  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q11"); // 今後の治療
 
   /* ---------------- 副作用チェック：とくになし（全部なし） ---------------- */
   (function () {
@@ -3800,7 +3966,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     });
     setupSingleOk("SE", function () {
       return rows.every(function (o) { return !!o.querySelector(".opt-btn.selected"); });
-    }, "Q12");
+    }, "副作用②");
   })();
 
   /* ---------------- Q11〜Q13 のスライダーにも両端の顔 ---------------- */
@@ -4431,6 +4597,14 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     "HIT-6は<b>あなたの頭痛のひどさを点数化</b>するためによく使われるスコアです。過去4週間の頭痛が日常生活や仕事、気分にどれくらい影響を与えているかを簡易的に評価できます。");
   addTip("GAD7", "💡 GAD-7 とは",
     "過去2週間における<b>不安の強さや心のプレッシャーの程度</b>を客観的に把握し、適切なケアにつなげるための指標です。片頭痛は、発作が起きるとメンタルに影響が出ることがよくあるため、こちらも点数化させて評価しています。");
+  addTip("CONCERN", "💡 豆知識",
+    "気になることだけ答えてもらうことで、<b>毎回の負担を減らしながら</b>、あなたに合ったところをくわしく見ていきます。何も選ばなくても大丈夫です。");
+  addTip("ACC", "💡 豆知識",
+    "片頭痛では、はき気や光・音・においへの過敏さなど、<b>頭痛以外の症状</b>をともなうことがよくあります。治療がうまくいくと、これらの症状も軽くなることが多いです。");
+  addTip("IIS", "💡 豆知識",
+    "片頭痛の方は、<b>頭痛がない日</b>にも、まぶしさ・めまい・首のこり・だるさなどの不調が続くことがあります。片頭痛による脳の敏感さが関係していると考えられています。");
+  addTip("ASC12", "💡 アロディニアとは",
+    "頭痛のときに、髪をとかす・メガネをかけるなど、<b>ふだんは痛くない刺激で皮ふが痛く感じる</b>状態です。片頭痛の方によくみられ、強いときは<b>頭痛が慢性化しやすいサイン</b>の一つとされます。痛み止めは早めに飲むほうが効きやすいことも知られています。ASC-12 はその程度を点数にする質問票です。");
   addTip("TRIGGER", "💡 豆知識",
     "たくさん聞いてしまいましたが、<b>頭痛のきっかけを知って上手に付き合うこと</b>が、くすりに頼りすぎずに頭痛をコントロールしていくコツです。");
 
@@ -4498,8 +4672,44 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     hud.appendChild(left);
     var foot = document.getElementById("footerNav");   // 画面下の「回答内容を確認する」の上に1行で出す（上の見出しと重ならないように）
     if (foot) { foot.classList.add("gm-has-hud"); foot.insertBefore(hud, foot.firstChild); } else document.body.appendChild(hud);
-    var total = topBlocks().length;
+    // あと◯問（2026-10-25 修正）：押したOKの位置からではなく、表示中の設問のうち「まだ答えていない数」を数える。
+    // 質問票（HIT-6 など）は1問ずつ数える。「気になること」で出た質問票も数に入る。
+    var SCH = window.SCHEMA_SAISHIN || window.SCHEMA_SHOKI;
+    var QBY = {};
+    if (SCH) SCH.sections.forEach(function (sec) { sec.questions.forEach(function (q) { QBY[q.code] = q; }); });
+    function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
+    function units() {
+      var a = SCH ? FE.collect(SCH, qc, true) : {}, tot = 0, rest = 0;
+      topBlocks().forEach(function (b) {
+        var q = QBY[b.getAttribute("data-code")], done;
+        if (q && q.type === "matrix") {
+          q.rows.forEach(function (r) { tot++; if (!has(a[q.code + "_" + r.code])) rest++; });
+          return;
+        }
+        tot++;
+        if (!q) done = !!b.querySelector(".gm-okbar.gm-cleared");
+        else if (q.type === "daytree") done = b.getAttribute("data-dt-complete") === "1" || has(a.Q2_headache) && (a.Q2_headache === 0 || has(a.Q1_days));
+        else if (q.type === "numbergroup") done = (q.fields || []).some(function (f) { return has(a[f.code]); });
+        else if (q.type === "nrsmatrix" || q.type === "sideeffects") done = (q.rows || []).every(function (r) { return has(a[q.code + "_" + r.code]); });
+        else done = has(a[q.code]);
+        if (!done) rest++;
+      });
+      return { tot: tot, rest: rest };
+    }
+    var total = units().tot, started = false;
     left.textContent = "ぜんぶで " + total + " 問";
+    function refreshHud(pop) {
+      var u = units();
+      total = u.tot;
+      if (u.rest < u.tot) started = true;   // 1問でも答えたら「あと◯問」に切り替える
+      left.textContent = !started ? "ぜんぶで " + u.tot + " 問" : u.rest > 0 ? "あと " + u.rest + " 問" : "ぜんぶ回答！";
+      if (pop) replayClass(left, "gm-stamp-pop");
+      return u;
+    }
+    var hudTimer = null;
+    ["click", "input", "change"].forEach(function (ev) {
+      qc.addEventListener(ev, function () { clearTimeout(hudTimer); hudTimer = setTimeout(function () { refreshHud(false); }, 250); });
+    });
 
     var cheered = {};
     var bubbleTimer = null;
@@ -4548,12 +4758,10 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       while (b && b.parentElement.closest(".qblock")) b = b.parentElement.closest(".qblock");
       if (!b) return;
       var all = topBlocks();
-      total = all.length;
       var idx = all.indexOf(b);
       if (idx < 0) return;
-      var remaining = all.length - idx - 1;
-      left.textContent = remaining > 0 ? "あと " + remaining + " 問" : "ぜんぶ回答！";
-      replayClass(left, "gm-stamp-pop");
+      started = true;
+      var remaining = refreshHud(true).rest;
       // このセクションの最後の設問まで来たら
       var sec = b.closest(".qsection");
       var si = sections.indexOf(sec);
