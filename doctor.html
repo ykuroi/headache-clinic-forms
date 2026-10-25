@@ -391,23 +391,35 @@ textarea.review-input { min-height: 50px; resize: vertical; }
     </div>
 
     <div class="panel" style="margin-top:16px;">
+      <h2>🗓 次回の追加質問（患者さん用QR）</h2>
+      <p style="font-size:0.82rem; margin:0 0 8px;">次回の再診アンケートで必ず答えてほしい質問票を選ぶと、その患者さん用のQRができます。印刷して渡すか、この画面をスマホで読んでもらってください（QRに個人情報は入りません）。</p>
+      <div id="docAddChecks" style="display:grid; grid-template-columns:1fr 1fr; gap:4px 10px; font-size:0.88rem;"></div>
+      <div id="docAddOut" style="display:none; text-align:center; margin-top:10px;">
+        <div id="docAddQr" style="display:inline-block; padding:8px; background:#fff;"></div>
+        <div id="docAddNames" style="font-size:0.85rem; font-weight:700; margin-top:4px;"></div>
+        <div id="docAddUrl" style="font-size:0.72rem; font-family:monospace; word-break:break-all; color:var(--muted); margin-top:4px;"></div>
+        <div class="btn-row" style="justify-content:center;"><button class="btn-secondary" onclick="printDocAddQr();">🖨 印刷用に開く</button></div>
+      </div>
+    </div>
+
+    <div class="panel" style="margin-top:16px;">
       <h2>📊 患者データ管理</h2>
 
       <div style="background:#f0f8f5; border:2px dashed var(--primary); border-radius:8px; padding:12px; margin-bottom:15px;">
-        <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin-bottom:6px;">📁 受診データCSVを開く</div>
+        <div style="font-size:0.85rem; font-weight:700; color:var(--primary); margin-bottom:6px;">📁 受診データCSVを開く（読むだけ）</div>
         <div style="font-size:0.78rem; color:var(--muted); margin-bottom:8px;">
-          「2027_migraine_visit.csv」を選択すると、受診データをここに取り込みます。<br>
-          Chrome・Edgeでは、この後「CSVに追記」を押すと同じファイルへ直接追記されます（他のブラウザでは読み込みのみ）。
+          「migraine_visit.csv」「研究コード対応表.csv」と「受診データ追記」フォルダの visit_*.csv を選んでください（Ctrl＋クリックで複数、別のフォルダは続けて選べます）。来院回数の推定・研究コードの照合・グラフに使います。<br>
+          ファイルは書き換えません。Excel で開いて保存しないでください。
         </div>
         <button class="btn-secondary" id="btnOpenKaisekiCsv" onclick="openKaisekiCsvFile();" style="width:100%; margin-bottom:8px;">📂 CSVファイルを開く</button>
-        <input type="file" id="excelFileInput" accept=".csv" style="width:100%; font-size:0.82rem;">
+        <input type="file" id="excelFileInput" accept=".csv" multiple style="width:100%; font-size:0.82rem;">
         <div id="excelImportStatus" style="font-size:0.8rem; margin-top:8px; color:var(--muted);"></div>
       </div>
 
       <div style="background:#fff4ec; border:2px dashed var(--accent); border-radius:8px; padding:12px; margin-bottom:15px;">
         <div style="font-size:0.85rem; font-weight:700; color:var(--accent); margin-bottom:6px;">📋 追記履歴（このセッション分）</div>
         <div style="font-size:0.78rem; color:var(--muted); margin-bottom:8px;">
-          右側で「CSVに追記」を押すたびに、下の欄に追加された内容が表示されます。CSVファイルを開いていない場合は、ここからコピー・ダウンロードして手動で貼り付けてください。
+          右側で「受診データを保存」を押すたびに、その内容が控えとしてここにも残ります（保存に失敗したときは、ここからダウンロードしてください）。
         </div>
         <textarea id="kaisekiCsvQueue" readonly style="width:100%; height:90px; font-family:monospace; font-size:0.75rem; padding:6px; border:1px solid var(--border); border-radius:6px;" placeholder="ここに追記されたデータが表示されます"></textarea>
         <div class="btn-row" style="margin-top:8px;">
@@ -501,7 +513,10 @@ textarea.review-input { min-height: 50px; resize: vertical; }
         <button class="btn-secondary" onclick="resetReview();">🔄 リセット</button>
       </div>
       <div class="btn-row" style="margin-top:8px;">
-        <button class="btn-accent" id="btnWriteToExcel" onclick="addVisitToKaisekiCsvQueue();" style="width:100%;">📋 CSVに追記</button>
+        <button class="btn-secondary" onclick="openGoalSheet();" style="width:100%;">🎯 治療目標の合意シート（初診）</button>
+      </div>
+      <div class="btn-row" style="margin-top:8px;">
+        <button class="btn-accent" id="btnWriteToExcel" onclick="addVisitToKaisekiCsvQueue();" style="width:100%;">💾 受診データを保存（1受診1ファイル）</button>
       </div>
       <div id="excelWriteResult" style="font-size:0.82rem; margin-top:8px; line-height:1.5;"></div>
     </div>
@@ -615,6 +630,15 @@ var SAISHIN_CODEC = (function () {
   add("MBSF2H", "AQ_MBS2H", "map", FREQ4, false);
   add("REC24", "AQ_REC24", "map", FREQ4, false);
   add("AE_ACUTE", "AQ_AE", "map", { "ない": 0, "ときどき": 1, "よくある": 2 }, false);
+  // 2026-10-25 追加：「今日とくに気になること」と、選んだ人だけに出す質問票（随伴症状・頭痛のない日の症状・ASC-12）。各項目は選択肢番号。CSVには入れずカルテ文に出す
+  var CONCERNS = ["発作のときの吐き気・まぶしさ・音のつらさ", "頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）", "皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",
+    "気分の落ち込み", "不安・心配", "うつ病・不安障害で治療中、または治療したことがある", "眠り・疲れやすさ", "薬の副作用", "とくにない"];
+  add("CONCERN", "CONCERN", "multi", CONCERNS, false);
+  [["ACC", 5], ["IIS", 9], ["ASC12", 12]].forEach(function (sc) {
+    for (var i = 1; i <= sc[1]; i++) add(sc[0] + "_" + i, sc[0] + "_" + i, "num", null, false);
+  });
+  // 先生が前もって追加した質問票（saishin.html?add=… の QR から開いたとき）
+  add("DOC_ADD", "DOC_ADD", "multi", ["acc", "iis", "asc12", "phq9", "gad7", "sleep", "ae"], false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
@@ -1122,6 +1146,29 @@ var SCHEMA_SHOKI = {
           ]
         }
       ]
+    },
+    {
+      title: "🎯 G　治療でめざしたいこと",
+      questions: [
+        {
+          code: "GOAL", type: "checkbox", label: "Q36", wide: true, fpSkip: true,
+          text: "治療で、とくにかなえたいことを選んでください（3つまで）",
+          note: "診察のときに、先生と一緒に治療の目標を決めます。",
+          options: [
+            {value:"頭痛の日を減らしたい",label:"📅 頭痛の日を減らしたい"},
+            {value:"頭痛の痛みを軽くしたい",label:"🩹 頭痛の痛みを軽くしたい"},
+            {value:"痛み止めを飲む日を減らしたい",label:"💊 痛み止めを飲む日を減らしたい"},
+            {value:"発作がきても早く楽になりたい",label:"⏱ 発作がきても早く楽になりたい"},
+            {value:"仕事・学校・家事を休まずにすごしたい",label:"🏢 仕事・学校・家事を休まずにすごしたい"},
+            {value:"予定（外出・旅行など）を気にせず楽しみたい",label:"✈️ 予定（外出・旅行など）を気にせず楽しみたい"},
+            {value:"「また頭痛が来るかも」という不安を減らしたい",label:"🌤 「また頭痛が来るかも」という不安を減らしたい"},
+            {value:"吐き気・まぶしさなどのつらさを減らしたい",label:"🤢 吐き気・まぶしさなどのつらさを減らしたい"},
+            {value:"妊娠・授乳中も安心できる治療にしたい",label:"🤱 妊娠・授乳中も安心できる治療にしたい"},
+            {value:"飲む薬はできるだけ少なくしたい",label:"🍃 飲む薬はできるだけ少なくしたい"}
+          ]
+        },
+        { code: "GOAL_TOP", type: "textarea", label: "Q37", fpSkip: true, text: "いちばんかなえたいことを、自分の言葉で書いてください（書かなくてもかまいません）", placeholder: "例）子どもの運動会に元気に参加したい" }
+      ]
     }
   ]
 };
@@ -1141,6 +1188,7 @@ function makeShokiCodec(schema) {
   var FIELDS = [{ k: "FORM_DATE", t: "date" }];
   schema.sections.forEach(function (sec) {
     sec.questions.forEach(function (q) {
+      var from = FIELDS.length;
       if (q.type === "radio" || q.type === "checkbox") {
         FIELDS.push({ k: q.code, t: q.type === "radio" ? "idx" : "bits", o: q.options.map(function (o) { return o.value; }) });
         if (q.other) FIELDS.push({ k: q.code + "_other", t: "text" });
@@ -1153,9 +1201,10 @@ function makeShokiCodec(schema) {
       } else if (q.type === "matrix") {
         FIELDS.push({ k: q.code, t: "mx", rows: q.rows.map(function (r) { return q.code + "_" + r.code; }) });
       }
+      if (q.fpSkip) for (var fi = from; fi < FIELDS.length; fi++) FIELDS[fi].skip = true;   // 末尾に足した設問（2026-10-25 治療目標）は指紋に入れない
     });
   });
-  var FP = ("0000" + hash(FIELDS.map(function (f) { return f.k + ":" + f.t + (f.o ? f.o.length : "") + (f.rows ? f.rows.length : ""); }).join(","))).slice(-4);
+  var FP = ("0000" + hash(FIELDS.filter(function (f) { return !f.skip; }).map(function (f) { return f.k + ":" + f.t + (f.o ? f.o.length : "") + (f.rows ? f.rows.length : ""); }).join(","))).slice(-4);
 
   function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
   function escText(s) {
@@ -1416,16 +1465,6 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_AE", type: "radio", label: "Q6-5", wide: true, clearWhenHidden: true,
-          showIf: { code: "Q6_total", gt: 0 },
-          text: "痛み止めを飲んだあと、眠気・めまい・だるさで困ることはありましたか？",
-          options: [
-            {value:"ない",label:"ない"},
-            {value:"ときどき",label:"ときどき"},
-            {value:"よくある",label:"よくある"}
-          ]
-        },
-        {
           code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
@@ -1458,22 +1497,139 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ GAD-7　--- 過去2週間についてお答えください",
+      title: "■ MIBS-4　--- 過去4週間のことを振り返ってお答えください",
       questions: [
         {
-          code: "GAD7", type: "matrix", title: "GAD-7",
+          code: "MIBS4", type: "matrix", title: "MIBS-4",
           columns: [
-            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
-            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
+            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
+            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
+            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"不安、または落ち着かない感じがする"},
-            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
-            {code:"3",text:"いろいろなことを心配しすぎる"},
-            {code:"4",text:"リラックスすることが難しい"},
-            {code:"5",text:"じっとしていられないほど落ち着かない"},
-            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
-            {code:"7",text:"何か恐ろしいことが起こるのではないかと恐れる"}
+            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
+            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
+            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
+            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 全体的な変化・治療満足度",
+      questions: [
+        {
+          code: "PGIC", type: "slider_named", label: "Q8", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          options: [
+            {value:"-3",label:"-3 著明悪化"},
+            {value:"-2",label:"-2 中等悪化"},
+            {value:"-1",label:"-1 軽度悪化"},
+            {value:"0",label:"0 変化なし"},
+            {value:"1",label:"+1 軽度改善"},
+            {value:"2",label:"+2 中等改善"},
+            {value:"3",label:"+3 著明改善"}
+          ]
+        },
+        {
+          code: "SATIS", type: "nrsmatrix", label: "Q9", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          rows: [
+            {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
+            {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
+            {code:"fukusayou",label:"副作用",note:"副作用の少なさについて"},
+            {code:"sougou",label:"総合満足度",note:"治療全体を通じて"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "🔎 今日とくに気になること",
+      questions: [
+        {
+          code: "CONCERN", type: "checkbox", label: "Q10", wide: true,
+          text: "今日、とくに気になっていることを選んでください（複数可）",
+          note: "選んだことについての質問だけが、この下に追加されます。",
+          options: [
+            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・まぶしさ・音のつらさ"},
+            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"},
+            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"},
+            {value:"気分の落ち込み",label:"😔 気分の落ち込み"},
+            {value:"不安・心配",label:"😟 不安・心配"},
+            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害で治療中、または治療したことがある"},
+            {value:"眠り・疲れやすさ",label:"🌙 眠り・疲れやすさ"},
+            {value:"薬の副作用",label:"💊 薬の副作用"},
+            {value:"とくにない",label:"とくにない",exclusive:true}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 発作のときの随伴症状　--- この1ヶ月についてお答えください",
+      questions: [
+        {
+          code: "ACC", mod: "acc", type: "matrix", title: "発作のときの随伴症状", symptom: true,
+          showIf: { code: "CONCERN", in: ["発作のときの吐き気・まぶしさ・音のつらさ"] },
+          text: "この1ヶ月、頭痛のときに次の症状はどのくらいつらかったですか？",
+          columns: [
+            {label:"なし",points:0},{label:"少し",points:1},{label:"かなり",points:2},{label:"とてもつらい",points:3}
+          ],
+          rows: [
+            {code:"1",text:"吐き気",short:"吐き気"},
+            {code:"2",text:"吐いた（嘔吐）",short:"嘔吐"},
+            {code:"3",text:"光がまぶしくてつらい（光過敏）",short:"光過敏"},
+            {code:"4",text:"音がうるさくてつらい（音過敏）",short:"音過敏"},
+            {code:"5",text:"においがつらい（におい過敏）",short:"におい過敏"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ 頭痛のない日の症状　--- この1ヶ月についてお答えください",
+      questions: [
+        {
+          code: "IIS", mod: "iis", type: "matrix", title: "頭痛のない日の症状", symptom: true,
+          showIf: { code: "CONCERN", in: ["頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"] },
+          text: "この1ヶ月、頭痛がない日に、次の症状はどのくらいありましたか？",
+          columns: [
+            {label:"ない",points:0},{label:"ときどき",points:1},{label:"よくある",points:2},{label:"ほぼいつも",points:3}
+          ],
+          rows: [
+            {code:"1",text:"首や肩のこり",short:"首肩こり"},
+            {code:"2",text:"めまい・ふらつき",short:"めまい"},
+            {code:"3",text:"耳鳴り・耳がつまる感じ",short:"耳鳴り・耳閉感"},
+            {code:"4",text:"光がまぶしく感じる",short:"光過敏"},
+            {code:"5",text:"音がうるさく感じる",short:"音過敏"},
+            {code:"6",text:"においが気になる",short:"におい過敏"},
+            {code:"7",text:"だるさ・疲れやすさ",short:"倦怠感"},
+            {code:"8",text:"集中しにくい・頭がぼんやりする",short:"集中困難"},
+            {code:"9",text:"「また頭痛が来るのでは」という不安",short:"予期不安"}
+          ]
+        }
+      ]
+    },
+    {
+      title: "■ ASC-12（アロディニア）　--- いちばんひどい頭痛のときについてお答えください",
+      questions: [
+        {
+          code: "ASC12", mod: "asc12", type: "matrix", title: "ASC-12",
+          showIf: { code: "CONCERN", in: ["皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"] },
+          text: "いちばんひどい頭痛のとき、次のことをすると、皮ふがふだんより痛い・不快に感じることはどのくらいありますか？",
+          columns: [
+            {label:"当てはまらない・しない\n(0点)",points:0},{label:"ない\n(0点)",points:0},{label:"まれに\n(0点)",points:0},
+            {label:"半分未満\n(1点)",points:1},{label:"半分以上\n(2点)",points:2}
+          ],
+          rows: [
+            {code:"1",text:"髪をとかす"},
+            {code:"2",text:"髪を後ろでまとめる（ポニーテールなど）"},
+            {code:"3",text:"顔のひげをそる"},
+            {code:"4",text:"メガネをかける"},
+            {code:"5",text:"コンタクトレンズをつける"},
+            {code:"6",text:"イヤリング・ピアスをつける"},
+            {code:"7",text:"ネックレスをつける"},
+            {code:"8",text:"きつい服を着る"},
+            {code:"9",text:"シャワーを浴びる（顔にお湯があたる）"},
+            {code:"10",text:"枕に顔や頭をのせて休む"},
+            {code:"11",text:"熱いものにふれる（料理の熱気・温かいタオルなど）"},
+            {code:"12",text:"冷たいものにふれる（保冷剤・寒い日に鼻で息をするなど）"}
           ]
         }
       ]
@@ -1482,7 +1638,8 @@ var SCHEMA_SAISHIN = {
       title: "■ PHQ-9　--- 過去2週間についてお答えください",
       questions: [
         {
-          code: "PHQ9", type: "matrix", title: "PHQ-9",
+          code: "PHQ9", mod: "phq9", type: "matrix", title: "PHQ-9",
+          showIf: { code: "CONCERN", in: ["気分の落ち込み", "うつ病・不安障害で治療中、または治療したことがある"] },
           note: "※項目9でご心配な回答があった場合は、診察時に必ずスタッフからお声がけします。",
           columns: [
             {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
@@ -1503,29 +1660,34 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ MIBS-4　--- 過去4週間のことを振り返ってお答えください",
+      title: "■ GAD-7　--- 過去2週間についてお答えください",
       questions: [
         {
-          code: "MIBS4", type: "matrix", title: "MIBS-4",
+          code: "GAD7", mod: "gad7", type: "matrix", title: "GAD-7",
+          showIf: { code: "CONCERN", in: ["不安・心配", "うつ病・不安障害で治療中、または治療したことがある"] },
           columns: [
-            {label:"わからない/該当なし\n(0点)",points:0},{label:"全くなかった\n(0点)",points:0},
-            {label:"ほとんどなかった\n(1点)",points:1},{label:"時々\n(2点)",points:2},
-            {label:"多くの時\n(3点)",points:3},{label:"ほぼいつも\n(3点)",points:3}
+            {label:"全くない\n(0点)",points:0},{label:"数日\n(1点)",points:1},
+            {label:"半分以上の日\n(2点)",points:2},{label:"ほとんど毎日\n(3点)",points:3}
           ],
           rows: [
-            {code:"1",text:"頭痛がない時に、頭痛は仕事や学校に影響を与えた",plain:"頭痛がない日でも、頭痛のせいで仕事や学校（家事）がうまくはかどらないことがありましたか？"},
-            {code:"2",text:"頭痛が起こるかもしれないために、私は人付き合いやレジャー活動を計画することに不安を感じた",plain:"「頭痛が起きるかも」と思って、人と会う約束やお出かけの予定を立てるのが不安になりましたか？"},
-            {code:"3",text:"頭痛が起こっていない時に、頭痛は私の生活に影響を与えた",plain:"頭痛がない日でも、頭痛のことが気になって、ふだんの生活に影響がありましたか？"},
-            {code:"4",text:"頭痛が起こっていない時に、私は頭痛のために無力感を覚えた",plain:"頭痛がない日でも、「頭痛はどうにもならない」と、あきらめや無力さを感じましたか？"}
+            {code:"1",text:"不安、または落ち着かない感じがする"},
+            {code:"2",text:"心配することを止められない、または心配をコントロールできない"},
+            {code:"3",text:"いろいろなことを心配しすぎる"},
+            {code:"4",text:"リラックスすることが難しい"},
+            {code:"5",text:"じっとしていられないほど落ち着かない"},
+            {code:"6",text:"いらいらしやすい、または怒りっぽい"},
+            {code:"7",text:"何か恐ろしいことが起こるのではないかと恐れる"}
           ]
         }
       ]
     },
     {
-      title: "🌙 気分・睡眠の変化",
+      title: "🌙 睡眠・疲れやすさ",
       questions: [
         {
-          code: "Q14", type: "slider_named", label: "Q8", text: "睡眠の質は、治療を始める前と比べてどうですか？",
+          code: "Q14", mod: "sleep", type: "slider_named", label: "睡眠",
+          showIf: { code: "CONCERN", in: ["眠り・疲れやすさ"] },
+          text: "睡眠の質は、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -1535,7 +1697,9 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q15", type: "slider_named", label: "Q9", text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
+          code: "Q15", mod: "sleep", type: "slider_named", label: "疲れ",
+          showIf: { code: "CONCERN", in: ["眠り・疲れやすさ"] },
+          text: "疲れやすさ・だるさは、治療を始める前と比べてどうですか？",
           options: [
             {value:"-2 明らかに悪化した",label:"-2 明らかに悪化"},
             {value:"-1 少し悪化した",label:"-1 少し悪化"},
@@ -1547,36 +1711,22 @@ var SCHEMA_SAISHIN = {
       ]
     },
     {
-      title: "■ 全体的な変化・治療満足度",
+      title: "🔍 副作用のチェック",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q10", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "AQ_AE", mod: "ae", type: "radio", label: "副作用①", wide: true, clearWhenHidden: true,
+          showIf: [{ code: "Q6_total", gt: 0 }, { code: "CONCERN", in: ["薬の副作用"] }],
+          text: "痛み止めを飲んだあと、眠気・めまい・だるさで困ることはありましたか？",
           options: [
-            {value:"-3",label:"-3 著明悪化"},
-            {value:"-2",label:"-2 中等悪化"},
-            {value:"-1",label:"-1 軽度悪化"},
-            {value:"0",label:"0 変化なし"},
-            {value:"1",label:"+1 軽度改善"},
-            {value:"2",label:"+2 中等改善"},
-            {value:"3",label:"+3 著明改善"}
+            {value:"ない",label:"ない"},
+            {value:"ときどき",label:"ときどき"},
+            {value:"よくある",label:"よくある"}
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q11", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
-          rows: [
-            {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
-            {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
-            {code:"fukusayou",label:"副作用",note:"副作用の少なさについて"},
-            {code:"sougou",label:"総合満足度",note:"治療全体を通じて"}
-          ]
-        }
-      ]
-    },
-    {
-      title: "🔍 副作用・気になる症状のチェック",
-      questions: [
-        {
-          code: "SE", type: "sideeffects", label: "Q12", text: "副作用・気になる症状について教えてください",
+          code: "SE", mod: "ae", type: "sideeffects", label: "副作用②",
+          showIf: { code: "CONCERN", in: ["薬の副作用"] },
+          text: "副作用・気になる症状について教えてください",
           rows: [
             {code:"inj",area:"💉 注射した場所（注射治療中の方のみ）",symptom:"発赤・腫れ・痛み・かゆみ・しこり"},
             {code:"benpi",area:"🚽 お腹・排便",symptom:"便秘"},
@@ -1601,7 +1751,7 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q13", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q11", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -1617,7 +1767,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q14", text: "治療について感じていること・ご要望を自由にご記入ください" }
+        { code: "Q13", type: "textarea", label: "Q12", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
@@ -1736,7 +1886,19 @@ function escapeHtml(s) {
 
 function isShown(q, answers) {
   if (!q.showIf) return true;
+  if (q.mod && (answers.DOC_ADD || []).indexOf(q.mod) !== -1)   // 先生が前もって追加した質問票
+    return showIfMet([].concat(q.showIf).filter(function (c) { return c.code !== "CONCERN"; }), answers);
+  // 2026-10-25「今日とくに気になること」（CONCERN）で出す設問：CONCERN が空（古いQR・何も選ばない）なら、答えがあるときだけ出す
+  if (JSON.stringify(q.showIf).indexOf('"CONCERN"') !== -1 && !((answers.CONCERN || []).length)) {
+    var rest = [].concat(q.showIf).filter(function (c) { return c.code !== "CONCERN"; });
+    return hasAnyAnswer(q, answers) && showIfMet(rest, answers);
+  }
   return showIfMet(q.showIf, answers);
+}
+function hasAnyAnswer(q, a) {
+  function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
+  if (has(a[q.code])) return true;
+  return (q.rows || []).some(function (r) { return has(a[q.code + "_" + r.code]); });
 }
 // showIf: {code, in:[...]} / {code, gt:数} / それらの配列（すべて満たすとき）。saishin の FE.showIfMet と同じ
 function showIfMet(cond, answers) {
@@ -2049,7 +2211,7 @@ var KARTE_LABELS = {
   Q16horm: "ホルモン療法・ピル", Q17: "鎮痛薬の使用歴", Q20: "予防薬歴", Q20med: "予防薬（記入）", Q22: "治療中・既往の病気",
   Q23: "気分障害", Q24: "不安障害", Q25: "その他の精神疾患", Q27: "自律神経症状", Q28: "睡眠", Q29: "疲れやすさ",
   Q30smoke: "喫煙", Q30alcohol: "飲酒", Q30hango: "飲酒量", Q31: "妊娠・授乳・妊娠希望", Q32: "婦人科", Q32note: "婦人科（記入）",
-  Q33: "仕事・学業への影響"
+  Q33: "仕事・学業への影響", GOAL: "治療でかなえたいこと（本人）", GOAL_TOP: "いちばんかなえたいこと"
 };
 var KARTE_EFF = ["全然効かない", "それほど効かない", "よく効く", "とてもよく効く"];
 // 再診は設問コードが初診と重なる（Q3 など）ので、項目名を別に持つ
@@ -2060,12 +2222,15 @@ var KARTE_LABELS_S = {
   Q14: "睡眠の質（治療前比）", Q15: "倦怠感（治療前比）", PGIC: "PGIC（前回比）", SATIS: "治療満足度",
   SE: "副作用・気になる症状", Q11: "治療継続の希望", Q12: "迷う・中止の理由", Q13: "治療への感想・要望",
   AQ_MBS: "MBS（最もつらい随伴症状）", AQ_PF2H: "2時間以内の頭痛消失", AQ_MBS2H: "2時間以内のMBS消失",
-  AQ_REC24: "24時間以内の再発・追加服薬", AQ_AE: "痛み止めの副作用（眠気・めまい・だるさ）"
+  AQ_REC24: "24時間以内の再発・追加服薬", AQ_AE: "痛み止めの副作用（眠気・めまい・だるさ）",
+  CONCERN: "今日とくに気になること"
 };
 function buildKarteText(kind, schema, a, scores) {
   function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
   function n(v) { return has(v) ? v : null; }
   var lines = ["【頭痛外来 " + (kind === "shoki" ? "初診" : "再診") + "問診】記入日 " + (a.FORM_DATE || window.currentFormDate || "不明")];
+  var DOC_ADD_NAMES = { acc: "随伴症状", iis: "頭痛のない日の症状", asc12: "ASC-12", phq9: "PHQ-9", gad7: "GAD-7", sleep: "睡眠・疲れ", ae: "副作用" };
+  if (kind !== "shoki" && has(a.DOC_ADD)) lines.push("医師が追加した質問票: " + a.DOC_ADD.map(function (k) { return DOC_ADD_NAMES[k] || k; }).join("・"));
   schema.sections.forEach(function (sec) {
     sec.questions.forEach(function (q) {
       if (q.type === "matrix" || !isShown(q, a)) return;
@@ -2169,6 +2334,16 @@ function scaleItemScores(q, a) {
     return String(col.points);
   });
   var name = q.title || q.code;
+  if (q.symptom) {   // 随伴症状・頭痛のない日の症状：「なし」以外を程度の言葉で並べる（2026-10-25）
+    var on = [];
+    q.rows.forEach(function (r) {
+      var v = a[q.code + "_" + r.code], col = v === null || v === undefined || v === "" ? null : q.columns[Number(v)];
+      if (col && col.points > 0) on.push((r.short || r.text) + " " + String(col.label).replace(/\n.*$/, ""));
+    });
+    return { name: name, text: answered ? (on.length ? on.join("、") : "すべてなし") + (answered < q.rows.length ? "（" + answered + "/" + q.rows.length + "問）" : "") : "未回答",
+      total: answered ? total : null, answered: answered, items: items };
+  }
+  if (q.code === "ASC12" && answered === q.rows.length) name += "（" + (total <= 2 ? "アロディニアなし" : total <= 5 ? "軽度" : total <= 8 ? "中等度" : "重度") + "）";
   var text = answered
     ? total + "点" + (answered < q.rows.length ? "（" + answered + "/" + q.rows.length + "問）" : "") + "（各問 " + items.join("・") + "）"
     : "未回答";
@@ -2225,7 +2400,7 @@ function loadPatientsFromStorage() {
 function savePatientsToStorage() { localStorage.setItem("patientDatabase", JSON.stringify(allPatients)); }
 
 /* =========================================================================
-   受診データCSV（2027_migraine_visit.csv）からの取り込み・直接追記
+   受診データCSV（migraine_visit.csv・visit_*.csv）の読み込み（読むだけ）
    Chrome/Edge（File System Access API対応）では、選択したCSVファイルへ
    直接読み書きする。非対応ブラウザでは、ファイル選択（読み込みのみ）＋
    セッション内の追記履歴からのコピー／ダウンロードにフォールバックする。
@@ -2302,7 +2477,7 @@ function parseKaisekiCsvRows(rows) {
     if (!row || !row.length) continue;
     var karteRaw = row[idx["ID"]];
     if (karteRaw === null || karteRaw === undefined || String(karteRaw).trim() === "") continue;
-    var karte = String(karteRaw).trim();
+    var karte = normKarte(karteRaw);
     var dateStr = excelSerialToDateStr(row[idx["DATE"]]);
     if (!dateStr) continue;
 
@@ -2369,9 +2544,74 @@ function importKaisekiCsvText(text, statusEl, isDirectHandle) {
   }
 }
 
-async function openKaisekiCsvFile() {
+// CSV を読む（UTF-8 で文字化けしたら Shift_JIS で読み直す＝Excel で保存されたファイル）
+function readCsvFile(file) {
+  return new Promise(function (resolve, reject) {
+    function read(enc, cb) {
+      var r = new FileReader();
+      r.onload = function () { cb(String(r.result)); };
+      r.onerror = function () { reject(new Error(file.name + " を読めませんでした")); };
+      r.readAsText(file, enc);
+    }
+    read("utf-8", function (t) {
+      if (t.indexOf("�") === -1) return resolve({ text: t, sjis: false });
+      read("shift_jis", function (t2) { resolve({ text: t2, sjis: true }); });
+    });
+  });
+}
+// migraine_visit.csv と visit_*.csv を（何個でも）まとめて読み込む。ファイルには書き込まない（2026-10-25）
+// 研究コード対応表（2026-10-25）：病院ID（カルテ番号）→ 研究コード（R0001 など）。画面を開いている間だけ持つ（保存しない）
+window.ID_MAP = {};
+window.ID_MAP_N = 0;
+function isResearchCode(v) { return /^R\d{4,}$/.test(String(v || "")); }
+function resolveResearchCode(input) {
+  var k = normKarte(input);
+  if (!k) return null;
+  if (isResearchCode(k.toUpperCase())) return k.toUpperCase();
+  return window.ID_MAP[k.toUpperCase()] || null;
+}
+function loadIdMapRows(rows) {
+  var h = rows[0].map(function (x) { return String(x).replace(/^\ufeff/, "").trim(); });
+  var ic = h.indexOf("研究コード"), ih = h.indexOf("病院ID");
+  if (ic < 0 || ih < 0) return false;
+  var n = 0;
+  for (var r = 1; r < rows.length; r++) {
+    var row = rows[r]; if (!row || !row[ic] || !row[ih]) continue;
+    window.ID_MAP[normKarte(row[ih]).toUpperCase()] = String(row[ic]).trim();
+    n++;
+  }
+  window.ID_MAP_N = n;
+  return true;
+}
+async function importKaisekiCsvFiles(files) {
   var statusEl = document.getElementById("excelImportStatus");
-  if (!isFileSystemAccessSupported()) {
+  statusEl.style.color = "var(--muted)";
+  statusEl.textContent = "読み込み中…";
+  var msgs = [], newP = 0, addV = 0, skipV = 0, bad = 0;
+  for (var i = 0; i < files.length; i++) {
+    var f = files[i];
+    try {
+      var got = await readCsvFile(f);
+      var csvRows = parseCsvText(got.text);
+      if (csvRows.length && loadIdMapRows(csvRows)) { msgs.push("🔑 " + f.name + "：研究コード対応表 " + window.ID_MAP_N + " 人分を読み込みました（この画面を閉じると消えます）"); onKarteInputChange(); continue; }
+      var parsed = parseKaisekiCsvRows(csvRows);
+      var res = mergeExcelPatients(parsed.patients);
+      newP += res.newPatients; addV += res.addedVisits; skipV += res.skippedVisits;
+      if (got.sjis) msgs.push("⚠️ " + f.name + " は Excel で保存された形式でした（読み込みはできました）");
+    } catch (err) {
+      bad++;
+      msgs.push("⚠️ " + f.name + "：" + err.message);
+    }
+  }
+  savePatientsToStorage();
+  refreshPatientsList();
+  statusEl.style.color = bad ? "var(--danger)" : "var(--primary)";
+  statusEl.innerHTML = escapeHtml("✅ " + files.length + " ファイルを読み込みました：新規患者 " + newP + " 名／受診 " + addV + " 件" +
+    (skipV ? "（同じ日のデータ " + skipV + " 件は重複のため除外）" : "") + "。ファイルは書き換えていません。") +
+    (msgs.length ? "<br>" + msgs.map(escapeHtml).join("<br>") : "");
+}
+async function openKaisekiCsvFile() {
+  if (typeof window.showOpenFilePicker !== "function") {
     document.getElementById("excelFileInput").click();
     return;
   }
@@ -2379,16 +2619,14 @@ async function openKaisekiCsvFile() {
     var handles = await window.showOpenFilePicker({
       types: [{ description: "CSVファイル", accept: { "text/csv": [".csv"] } }],
       excludeAcceptAllOption: false,
-      multiple: false
+      multiple: true
     });
-    var handle = handles[0];
-    var file = await handle.getFile();
-    var text = await file.text();
-    statusEl.textContent = "読み込み中…";
-    window.kaisekiCsvHandle = handle;
-    importKaisekiCsvText(text, statusEl, true);
+    var files = [];
+    for (var i = 0; i < handles.length; i++) files.push(await handles[i].getFile());
+    await importKaisekiCsvFiles(files);
   } catch (err) {
-    if (err && err.name === "AbortError") return; // ユーザーがキャンセル
+    if (err && err.name === "AbortError") return;
+    var statusEl = document.getElementById("excelImportStatus");
     statusEl.style.color = "var(--danger)";
     statusEl.textContent = "⚠️ ファイルを開けませんでした: " + err.message;
   }
@@ -2527,20 +2765,55 @@ function kaisekiHeaderIndex(headerRow) {
   return idx;
 }
 
-// カルテ番号確定後の内容を、受診データCSVの1行として追記する。
-// 「CSVファイルを開く」でファイルを選択済み（Chrome/Edge）の場合はそのファイルへ直接
-// 読み書きし、来院回数もファイルの最新内容から数え直す。それ以外の場合は、
-// セッション内の追記履歴（localStorage）に貯め、手動でコピー／ダウンロードする運用とする。
+// 受診データの保存（2026-10-25 変更）：migraine_visit.csv には書き込まない。
+// 1受診ごとに「visit_カルテ番号_受診日.csv」（列名1行＋データ1行）を新しく保存する。
+// Chrome/Edge は最初に選んだ保存フォルダへ直接、それ以外（IE など）はダウンロードで保存する。
+// 頭痛成績表は migraine_visit.csv とこれらのファイルを一緒に読む。週1回の「visit更新」で元のCSVにまとめる。
+function normKarte(v) {
+  v = String(v == null ? "" : v).replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim();
+  var m = /^(MP)?0*(\d+)$/i.exec(v.replace(/\s/g, ""));   // 元のCSV・研究コード対応表と同じく先頭の0は付けない（MP 付きも）
+  return m ? (m[1] ? "MP" : "") + m[2] : v;
+}
+async function saveVisitFile(name, text) {
+  if (typeof window.showDirectoryPicker === "function") {
+    try {
+      if (!window.visitDirHandle) {
+        alert("受診データを保存するフォルダを選んでください（例：頭痛外来_院内版 の中の「受診データ追記」）。\nこのページを開いている間は、次から同じフォルダに自動で保存します。");
+        window.visitDirHandle = await window.showDirectoryPicker({ id: "visitfiles", mode: "readwrite" });
+      }
+      var fh = await window.visitDirHandle.getFileHandle(name, { create: true });
+      var w = await fh.createWritable();
+      await w.write(text);
+      await w.close();
+      // 読み直して、列の数がそろっているか確かめる
+      var back = parseCsvText(await (await fh.getFile()).text());
+      if (back.length !== 2 || back[1].length !== KAISEKI_CSV_HEADER.length) throw new Error("保存したファイルの確認に失敗しました");
+      return { how: "folder", where: window.visitDirHandle.name };
+    } catch (err) {
+      if (err && err.name === "AbortError") window.visitDirHandle = null;
+      else { window.visitDirHandle = null; alert("フォルダへの保存に失敗しました: " + err.message + "\nダウンロードで保存します。"); }
+    }
+  }
+  var blob = new Blob([text], { type: "text/csv;charset=utf-8;" });
+  if (window.navigator && window.navigator.msSaveOrOpenBlob) { window.navigator.msSaveOrOpenBlob(blob, name); return { how: "download" }; }
+  var link = document.createElement("a");
+  link.href = URL.createObjectURL(blob);
+  link.download = name;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  return { how: "download" };
+}
+
 async function addVisitToKaisekiCsvQueue() {
   var resultEl = document.getElementById("excelWriteResult");
   resultEl.textContent = "";
-
   if (!window.editedAnswers) {
     alert("QRデータが読み込まれていません。");
     return;
   }
   var karteInput = document.getElementById("karteInput");
-  var karte = karteInput.value.trim();
+  var karte = resolveResearchCode(karteInput.value) || normKarte(karteInput.value);
   if (!karte) {
     alert("カルテ番号を入力してください。");
     karteInput.focus();
@@ -2548,7 +2821,7 @@ async function addVisitToKaisekiCsvQueue() {
   }
   var formDate = window.currentFormDate;
   if (!formDate) {
-    alert("記入日が不明のため追記できません。");
+    alert("記入日が不明のため保存できません。");
     return;
   }
 
@@ -2556,116 +2829,47 @@ async function addVisitToKaisekiCsvQueue() {
   var scores = computeScoresLocal(window.currentKind, window.editedAnswers);
   var fields = computeKaisekiFields(window.currentKind, window.editedAnswers, scores);
 
-  var hasDirectHandle = !!window.kaisekiCsvHandle;
-  var freshRows = null;
-
-  if (hasDirectHandle) {
-    try {
-      var file = await window.kaisekiCsvHandle.getFile();
-      var text = await file.text();
-      freshRows = parseCsvText(text);
-    } catch (err) {
-      alert("CSVファイルの再読み込みに失敗したため、直接追記できませんでした。\n" + err.message + "\n\n下の「追記履歴」欄に記録しますので、手動で貼り付けてください。");
-      hasDirectHandle = false;
-    }
-  }
-
-  var karteColIdx = 0, dateColIdx = 2;
-  var hidx = null;
-  if (freshRows && freshRows.length) {
-    hidx = kaisekiHeaderIndex(freshRows[0]);
-    if (hidx["ID"] !== undefined) karteColIdx = hidx["ID"];
-    if (hidx["DATE"] !== undefined) dateColIdx = hidx["DATE"];
-  }
-
-  var visitNumber = 1;
-  var matchRowIndex = -1;
-  if (freshRows && freshRows.length > 1) {
-    var count = 0;
-    for (var r = 1; r < freshRows.length; r++) {
-      var frow = freshRows[r];
-      if (!frow || !frow.length) continue;
-      if (String(frow[karteColIdx]).trim() === karte) {
-        count++;
-        if (String(frow[dateColIdx]).trim() === formDate) matchRowIndex = r;
-      }
-    }
-    visitNumber = matchRowIndex >= 0 ? count : count + 1;
-  } else {
-    var existingPatient = allPatients.find(function (p) { return p.id === karte; });
-    visitNumber = existingPatient ? existingPatient.visits.length + 1 : 1;
-  }
-
-  var updateNote = matchRowIndex >= 0 ? "\n※同じカルテ番号・受診日の行が既にあるため、その行を上書きします。" : "";
-  var modeNote = hasDirectHandle
-    ? "\n※「2027_migraine_visit.csv」に直接追記します。"
-    : "\n※CSVファイルが未選択、またはこのブラウザでは直接追記できないため、下の「追記履歴」欄に記録します。手動でコピー／ダウンロードして貼り付けてください。";
+  // 来院回数：読み込んだデータ（migraine_visit.csv と visit_*.csv）で、この受診日より前の受診日を数える
+  var p = allPatients.find(function (x) { return normKarte(x.id) === karte; });
+  var before = {};
+  (p ? p.visits : []).forEach(function (v) { if (v.date && v.date < formDate) before[v.date] = 1; });
+  var visitNumber = Object.keys(before).length + 1;
+  var name = "visit_" + karte + "_" + formDate.replace(/-/g, "") + ".csv";
 
   if (!confirm(
-    "以下の内容をCSVに追記します。よろしいですか？\n\n" +
-    "カルテ番号: " + karte + "\n" +
+    "受診データを新しいファイルに保存します。よろしいですか？\n\n" +
+    "ファイル名: " + name + "\n" +
+    (isResearchCode(karte) ? "研究コード: " + karte + "（カルテ番号 " + normKarte(karteInput.value) + "）" : "カルテ番号: " + karte + "（研究コードは週1回のまとめで付けます）") + "\n" +
     "受診日: " + formDate + "\n" +
     "種別: " + (window.currentKind === "shoki" ? "初診" : "再診") + "\n" +
-    "来院回数（推定）: " + visitNumber + " 回目\n" +
+    "来院回数（推定）: " + visitNumber + " 回目" + (p ? "" : "（受診データCSVを読み込んでいないか、初めての方）") + "\n" +
     "HIT-6: " + (scores.hit6 != null ? scores.hit6 : "-") + " / MIBS-4: " + (scores.mibs4 != null ? scores.mibs4 : "-") +
-    updateNote + modeNote
+    "\n\n※migraine_visit.csv は書き換えません。同じ方・同じ日をもう一度保存すると、このファイルだけが新しい内容になります。"
   )) return;
 
   fields.ID = karte;
   fields.VISIT = visitNumber;
   fields.DATE = formDate;
-  // 追記履歴用は新ヘッダー順の配列
-  var row = KAISEKI_CSV_HEADER.map(function (c) { return fields[c] === undefined ? "" : fields[c]; });
+  var row = KAISEKI_CSV_HEADER.map(function (c) { return fields[c] === undefined || fields[c] === null ? "" : fields[c]; });
+  var saved = await saveVisitFile(name, kaisekiRowsToCsvText([row]));
 
-  var directWriteOk = false;
-  if (hasDirectHandle) {
-    try {
-      // ファイル側の列順に合わせて並べる（ファイルにない列は書けないので、その場合は知らせる）
-      var width = freshRows[0].length;
-      var rowForFile = [];
-      for (var ci = 0; ci < width; ci++) rowForFile.push("");
-      var lost = [];
-      Object.keys(fields).forEach(function (c) {
-        var v = fields[c];
-        if (v === null || v === undefined || v === "") return;
-        if (hidx[c] !== undefined) rowForFile[hidx[c]] = v;
-        else lost.push(c);
-      });
-      if (lost.length && !confirm("このCSVファイルには次の列がないため、その値は書き込まれません：\n" + lost.join(", ") + "\n\n新しいヘッダーのCSVに切り替えることをおすすめします。続けますか？")) {
-        throw new Error("利用者が中止しました");
-      }
-      if (matchRowIndex >= 0) {
-        freshRows[matchRowIndex] = rowForFile;
-      } else {
-        freshRows.push(rowForFile);
-      }
-      var csvText = kaisekiRowsArrayToCsvText(freshRows);
-      var writable = await window.kaisekiCsvHandle.createWritable();
-      await writable.write(csvText);
-      await writable.close();
-      directWriteOk = true;
+  // この画面の患者一覧・推移グラフにも反映（同じ日のデータがすでにあれば重ねない）
+  try {
+    mergeExcelPatients(parseKaisekiCsvRows([KAISEKI_CSV_HEADER, row]).patients);
+    savePatientsToStorage();
+    refreshPatientsList();
+  } catch (e) {}
 
-      window.kaisekiCsvRows = freshRows;
-      var parsed = parseKaisekiCsvRows(freshRows);
-      mergeExcelPatients(parsed.patients);
-      savePatientsToStorage();
-      refreshPatientsList();
-    } catch (err) {
-      alert("CSVファイルへの書き込みに失敗しました: " + err.message + "\n\n下の「追記履歴」欄に記録しますので、手動で貼り付けてください。");
-      directWriteOk = false;
-    }
-  }
-
-  // 直接書き込みができた場合も、このセッションでの追記内容は履歴として残す。
+  // 保存した内容は履歴にも残す（ダウンロードできなかったときの控え）
   var queueRows = loadKaisekiCsvQueue();
   queueRows.push(row);
   saveKaisekiCsvQueue(queueRows);
   renderKaisekiCsvQueue();
 
   resultEl.style.color = "var(--primary)";
-  resultEl.innerHTML = directWriteOk
-    ? "✅ CSVファイルに直接追記しました（来院回数 " + visitNumber + " 回目）。"
-    : "✅ 追記履歴に記録しました（来院回数 " + visitNumber + " 回目）。左側の「📋 追記履歴」欄からコピーしてCSVファイルに貼り付けてください。";
+  resultEl.textContent = saved.how === "folder"
+    ? "✅ 「" + saved.where + "」フォルダに " + name + " を保存しました（来院回数 " + visitNumber + " 回目）。"
+    : "✅ " + name + " をダウンロードしました（来院回数 " + visitNumber + " 回目）。「受診データ追記」フォルダに入れておいてください。";
 }
 
 // QRリーダーは US 配列のキーとして文字を送るため、PC が日本語（JIS）配列だと記号がずれて入る
@@ -2765,13 +2969,22 @@ function loadPayloadIntoReview(payload) {
 }
 
 function onKarteInputChange() {
-  var id = document.getElementById("karteInput").value.trim();
-  window.currentPatientId = id;
   var infoEl = document.getElementById("karteMatchInfo");
-  if (!id) {
+  if (!infoEl) return;
+  var raw = document.getElementById("karteInput").value.trim();
+  var code = resolveResearchCode(raw);
+  var id = code || normKarte(raw);
+  window.currentPatientId = id;
+  window.currentResearchCode = code;
+  if (!raw) {
     infoEl.textContent = "";
     return;
   }
+  var codeHtml = code
+    ? '<div style="margin-bottom:4px;">🔑 研究コード <b>' + escapeHtml(code) + "</b>（データにはこのコードで記録します）</div>"
+    : (window.ID_MAP_N
+      ? '<div style="margin-bottom:4px; color:var(--accent); font-weight:700;">🔑 対応表にない番号です（新しい方）。病院IDのまま保存し、週1回のまとめで研究コードを付けます。</div>'
+      : '<div style="margin-bottom:4px; color:var(--muted);">🔑 研究コード対応表が読み込まれていません（左の「受診データCSVを開く」で 研究コード対応表.csv も選ぶと、研究コードで照合します）。</div>');
   var patient = allPatients.find(function (p) { return p.id === id; });
   if (patient) {
     var last = patient.visits[patient.visits.length - 1];
@@ -2782,11 +2995,13 @@ function onKarteInputChange() {
     infoEl.innerHTML =
       '<span style="color:var(--accent); font-weight:700;">※ 該当なし</span>　このカルテ番号は初めて登録されます（新規患者として作成）。番号に誤りがないかご確認ください。';
   }
+  infoEl.innerHTML = codeHtml + infoEl.innerHTML;
+  updateBaselineBox();
 }
 
 function savePatientData() {
   var karteInput = document.getElementById("karteInput");
-  var id = karteInput.value.trim();
+  var id = karteInput.value.trim() ? (resolveResearchCode(karteInput.value) || normKarte(karteInput.value)) : "";
 
   if (!window.editedAnswers) {
     alert("QRデータが読み込まれていません。QRデータを再度読み込んでください。");
@@ -2912,26 +3127,14 @@ function exportToCSV() {
 
 document.getElementById("patientSearch").addEventListener("input", refreshPatientsList);
 document.getElementById("excelFileInput").addEventListener("change", function (e) {
-  if (e.target.files && e.target.files[0]) {
-    var statusEl = document.getElementById("excelImportStatus");
-    statusEl.textContent = "読み込み中…";
-    var reader = new FileReader();
-    reader.onload = function (ev) {
-      importKaisekiCsvText(ev.target.result, statusEl, false);
-    };
-    reader.onerror = function () {
-      statusEl.style.color = "var(--danger)";
-      statusEl.textContent = "⚠️ ファイルの読み込みに失敗しました。";
-    };
-    reader.readAsText(e.target.files[0], "utf-8");
-    e.target.value = "";
-  }
+  var fs = e.target.files ? Array.prototype.slice.call(e.target.files) : [];
+  if (fs.length) importKaisekiCsvFiles(fs).then(function () { e.target.value = ""; });
 });
 window.addEventListener("load", function () { loadPatientsFromStorage(); renderKaisekiCsvQueue(); });
 
 /* ===== migraine_baseline（整理版）に貼り付ける1行（初診のみ） =====
    BASELINE_COLS は baseline/build_baseline.py が作る列順と同じ（列を変えたら作り直して差し替える）。 */
-var BASELINE_COLS = /*BASELINE_COLS*/["研究ID", "#採用", "患者コード", "患者氏名", "ふりがな", "生年月日", "#初診時年齢", "#性別", "初診日", "仕事", "夜勤の有無", "身長(cm)", "体重(kg)", "BMI", "喫煙", "飲酒頻度", "初診時相談内容", "症例の特徴", "#家族歴", "家族歴_父", "家族歴_母", "家族歴_兄弟", "家族歴_子ども", "#発症年齢", "#罹病期間(年)", "診断", "#診断2", "#診断3", "#緊張型/群発", "#MOH", "MOH離脱のタイミング", "月15日以上の頭痛(最近3か月)", "片頭痛日数_区分(最近3か月)", "片頭痛日数(最近3か月・日/月)", "慢性片頭痛になった年齢", "#連日・持続性頭痛", "頭痛の性状_回答", "頭痛の性状_その他", "#拍動性", "#締め付け", "#頭重感", "持続時間_回答", "持続時間_その他", "持続時間", "持続時間詳細", "体動で悪化_回答", "#体動", "頭痛の側性", "#羞明", "#音過敏", "#匂い過敏", "#嘔気", "嘔吐", "#肩こり", "#めまい(随伴)", "片側の顔面自律神経症状", "前兆の頻度", "#視覚前兆", "#感覚性前兆", "#言語性前兆", "#運動性前兆", "#脳幹性前兆", "#網膜性前兆", "その他前兆", "予兆_あくび", "予兆_甘いもの欲求", "予兆_疲れやすい", "予兆_気分の落ち込み", "予兆_首こり", "#不眠/寝すぎ", "#月経", "#悪天候", "#ストレス", "飲酒など飲食物", "誘因_空腹", "誘因_目の疲れ・光", "誘因_音", "誘因_飲酒", "飲酒後の頭痛", "誘因_その他", "アロディニア", "アロディニア_回答", "#発作間欠期アロディニア", "ASC-12", "月経との関係_回答", "#婦人科/ピル", "婦人科詳細", "ホルモン療法・ピル_回答", "妊娠・授乳", "産婦人科治療", "月経症状がつらい", "婦人科補足", "#前兆ありで複合ホルモン避妊薬", "併存症_高血圧", "併存症_糖尿病", "併存症_脂質異常症", "併存症_心臓病", "併存症_脳卒中", "併存症_睡眠時無呼吸", "併存症_慢性肺疾患", "併存症_肝腎疾患", "併存症_免疫疾患", "併存症_悪性腫瘍", "初診時血圧_収縮期", "初診時血圧_拡張期", "併存症_レイノー現象", "併存症_慢性便秘", "併存症_その他の血管疾患", "#精神科疾患", "精神詳細", "精神_うつ病", "精神_双極性障害", "精神_適応障害", "精神_気分障害の治療状況", "精神_パニック障害", "精神_全般性不安障害", "精神_強迫性障害", "精神_不安障害の治療状況", "精神_統合失調症", "精神_発達障害", "精神_摂食障害", "精神_解離性障害", "精神_その他", "#自律神経失調(めまい/乗り物酔い)", "自律神経失調(めまい/乗り物酔い)詳細", "自律神経失調_回答", "普段の睡眠の状態", "睡眠_回答", "倦怠感", "予防薬投薬ある場合", "他院での頭痛加療歴詳細", "市販薬含め鎮痛剤内服", "鎮痛薬歴_市販薬", "鎮痛薬歴_ロキソプロフェン", "鎮痛薬歴_アセトアミノフェン", "鎮痛薬歴_イブプロフェン", "鎮痛薬歴_スマトリプタン", "鎮痛薬歴_リザトリプタン", "鎮痛薬歴_ゾルミトリプタン", "鎮痛薬歴_エレトリプタン", "鎮痛薬歴_エルゴタミン", "予防薬失敗クラス数", "失敗した予防薬クラス", "難治分類(2025国際合意)", "トリプタン反応性", "①MMD", "#①MHD(日)", "#①UD", "#①CCD", "#①AMD", "①AMD_ナルティーク", "①AMD_トリプタン", "①AMD_レイボー", "①AMD_その他処方", "①AMD_市販薬", "①効き目_ナルティーク", "①効き目_トリプタン", "①効き目_レイボー", "①効き目_その他処方", "①効き目_市販薬", "①maxNRS", "①MIDAS", "仕事・学業への影響", "#①HIT6", "①HIT6_1", "①HIT6_2", "①HIT6_3", "①HIT6_4", "①HIT6_5", "①HIT6_6", "#①MIBS4", "①MIBS4_1", "①MIBS4_2", "①MIBS4_3", "①MIBS4_4", "①GAD-7", "①GAD7_1", "①GAD7_2", "①GAD7_3", "①GAD7_4", "①GAD7_5", "①GAD7_6", "①GAD7_7", "①PHQ-9", "①PHQ9_1", "①PHQ9_2", "①PHQ9_3", "①PHQ9_4", "①PHQ9_5", "①PHQ9_6", "①PHQ9_7", "①PHQ9_8", "①PHQ9_9", "①中等度以上の頭痛日数", "①mTOQ-4", "①MSQ_役割制限", "①MSQ_役割防止", "①MSQ_感情", "①WPAI_欠勤%", "①WPAI_労働中の障害%", "①最も困る症状(MBS)", "①ベースラインの資料", "初診時投薬", "グループ", "#予防薬有無", "内服予防薬副作用", "#CGRP有無", "#選択したCGRP製剤", "CGRP副作用", "#ゲパント有無", "#ゲパント製品名", "ゲパント開始日", "最終カルテ", "最終フォロー時年齢", "受診日一覧", "#受診回数", "通院自己中断", "自己中断", "#自己中断有無", "#自己中断分類", "通院継続の障壁", "②受診日", "②前回外来からの日数", "②MMD", "#②MHD(日)", "#②UD", "#②CCD", "②maxNRS", "②meanNRS", "#②AMD", "#②HIT6", "#②MIBS4", "②GAD-7", "②PHQ-9", "③受診日", "③前回外来からの日数", "③MMD", "#③MHD", "#③UD", "#③CCD", "③maxNRS", "③meanNRS", "#③AMD", "#③HIT6", "#③MIBS4", "③GAD-7", "③PHQ-9", "カルテ内容", "カルテ内容要約"]/*END*/;
+var BASELINE_COLS = /*BASELINE_COLS*/["研究ID", "#採用", "研究コード", "患者氏名", "ふりがな", "生年月日", "#初診時年齢", "#性別", "初診日", "仕事", "夜勤の有無", "身長(cm)", "体重(kg)", "BMI", "喫煙", "飲酒頻度", "初診時相談内容", "症例の特徴", "#家族歴", "家族歴_父", "家族歴_母", "家族歴_兄弟", "家族歴_子ども", "#発症年齢", "#罹病期間(年)", "診断", "#診断2", "#診断3", "#緊張型/群発", "#MOH", "MOH離脱のタイミング", "月15日以上の頭痛(最近3か月)", "片頭痛日数_区分(最近3か月)", "片頭痛日数(最近3か月・日/月)", "慢性片頭痛になった年齢", "#連日・持続性頭痛", "頭痛の性状_回答", "頭痛の性状_その他", "#拍動性", "#締め付け", "#頭重感", "持続時間_回答", "持続時間_その他", "持続時間", "持続時間詳細", "体動で悪化_回答", "#体動", "頭痛の側性", "#羞明", "#音過敏", "#匂い過敏", "#嘔気", "嘔吐", "#肩こり", "#めまい(随伴)", "片側の顔面自律神経症状", "前兆の頻度", "#視覚前兆", "#感覚性前兆", "#言語性前兆", "#運動性前兆", "#脳幹性前兆", "#網膜性前兆", "その他前兆", "予兆_あくび", "予兆_甘いもの欲求", "予兆_疲れやすい", "予兆_気分の落ち込み", "予兆_首こり", "#不眠/寝すぎ", "#月経", "#悪天候", "#ストレス", "飲酒など飲食物", "誘因_空腹", "誘因_目の疲れ・光", "誘因_音", "誘因_飲酒", "飲酒後の頭痛", "誘因_その他", "アロディニア", "アロディニア_回答", "#発作間欠期アロディニア", "ASC-12", "月経との関係_回答", "#婦人科/ピル", "婦人科詳細", "ホルモン療法・ピル_回答", "妊娠・授乳", "産婦人科治療", "月経症状がつらい", "婦人科補足", "#前兆ありで複合ホルモン避妊薬", "併存症_高血圧", "併存症_糖尿病", "併存症_脂質異常症", "併存症_心臓病", "併存症_脳卒中", "併存症_睡眠時無呼吸", "併存症_慢性肺疾患", "併存症_肝腎疾患", "併存症_免疫疾患", "併存症_悪性腫瘍", "初診時血圧_収縮期", "初診時血圧_拡張期", "併存症_レイノー現象", "併存症_慢性便秘", "併存症_その他の血管疾患", "#精神科疾患", "精神詳細", "精神_うつ病", "精神_双極性障害", "精神_適応障害", "精神_気分障害の治療状況", "精神_パニック障害", "精神_全般性不安障害", "精神_強迫性障害", "精神_不安障害の治療状況", "精神_統合失調症", "精神_発達障害", "精神_摂食障害", "精神_解離性障害", "精神_その他", "#自律神経失調(めまい/乗り物酔い)", "自律神経失調(めまい/乗り物酔い)詳細", "自律神経失調_回答", "普段の睡眠の状態", "睡眠_回答", "倦怠感", "予防薬投薬ある場合", "他院での頭痛加療歴詳細", "市販薬含め鎮痛剤内服", "鎮痛薬歴_市販薬", "鎮痛薬歴_ロキソプロフェン", "鎮痛薬歴_アセトアミノフェン", "鎮痛薬歴_イブプロフェン", "鎮痛薬歴_スマトリプタン", "鎮痛薬歴_リザトリプタン", "鎮痛薬歴_ゾルミトリプタン", "鎮痛薬歴_エレトリプタン", "鎮痛薬歴_エルゴタミン", "予防薬失敗クラス数", "失敗した予防薬クラス", "難治分類(2025国際合意)", "トリプタン反応性", "①MMD", "#①MHD(日)", "#①UD", "#①CCD", "#①AMD", "①AMD_ナルティーク", "①AMD_トリプタン", "①AMD_レイボー", "①AMD_その他処方", "①AMD_市販薬", "①効き目_ナルティーク", "①効き目_トリプタン", "①効き目_レイボー", "①効き目_その他処方", "①効き目_市販薬", "①maxNRS", "①MIDAS", "仕事・学業への影響", "#①HIT6", "①HIT6_1", "①HIT6_2", "①HIT6_3", "①HIT6_4", "①HIT6_5", "①HIT6_6", "#①MIBS4", "①MIBS4_1", "①MIBS4_2", "①MIBS4_3", "①MIBS4_4", "①GAD-7", "①GAD7_1", "①GAD7_2", "①GAD7_3", "①GAD7_4", "①GAD7_5", "①GAD7_6", "①GAD7_7", "①PHQ-9", "①PHQ9_1", "①PHQ9_2", "①PHQ9_3", "①PHQ9_4", "①PHQ9_5", "①PHQ9_6", "①PHQ9_7", "①PHQ9_8", "①PHQ9_9", "①中等度以上の頭痛日数", "①mTOQ-4", "①MSQ_役割制限", "①MSQ_役割防止", "①MSQ_感情", "①WPAI_欠勤%", "①WPAI_労働中の障害%", "①最も困る症状(MBS)", "①ベースラインの資料", "初診時投薬", "グループ", "#予防薬有無", "内服予防薬副作用", "#CGRP有無", "#選択したCGRP製剤", "CGRP副作用", "#ゲパント有無", "#ゲパント製品名", "ゲパント開始日", "最終カルテ", "最終フォロー時年齢", "受診日一覧", "#受診回数", "通院自己中断", "自己中断", "#自己中断有無", "#自己中断分類", "通院継続の障壁", "②受診日", "②前回外来からの日数", "②MMD", "#②MHD(日)", "#②UD", "#②CCD", "②maxNRS", "②meanNRS", "#②AMD", "#②HIT6", "#②MIBS4", "②GAD-7", "②PHQ-9", "③受診日", "③前回外来からの日数", "③MMD", "#③MHD", "#③UD", "#③CCD", "③maxNRS", "③meanNRS", "#③AMD", "#③HIT6", "#③MIBS4", "③GAD-7", "③PHQ-9", "カルテ内容", "カルテ内容要約"]/*END*/;
 function baselineLetter(i) { var s = ""; i++; while (i > 0) { var m = (i - 1) % 26; s = String.fromCharCode(65 + m) + s; i = Math.floor((i - 1) / 26); } return s; }
 function buildBaselineRow(a, scores) {
   scores = scores || {};
@@ -2955,6 +3158,7 @@ function buildBaselineRow(a, scores) {
   function C(name) { var L = baselineLetter(colIdx[name]); return "INDEX(" + L + ":" + L + ",ROW())"; }
   function blank(name) { return C(name) + '=""'; }
 
+  R["研究コード"] = window.currentResearchCode || "";
   R["初診日"] = (function () { var d = a.FORM_DATE || window.currentFormDate || ""; return d ? String(d).replace(/-/g, "/") : ""; })();
   // 社会・体格・嗜好
   R["仕事"] = ({ "常勤・正規雇用": "常勤", "自営業・フリーランス": "自営業", "専業主婦（主夫）": "専業主婦" })[a.Q2job] || v(a.Q2job);
@@ -3105,6 +3309,105 @@ function copyBaselineRow() {
   if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(done, fallback); else fallback();
 }
 
+</script>
+<!-- QRCodeライブラリ（davidshimjs/qrcodejs, MITライセンス）をファイル内に埋め込み。オフラインでも動作します -->
+<script>
+var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this.parsedData=[];for(var u=unescape(encodeURIComponent(this.data)),d=0;d<u.length;d++)this.parsedData.push(u.charCodeAt(d));this.parsedData.length!=this.data.length&&(this.parsedData.unshift(191),this.parsedData.unshift(187),this.parsedData.unshift(239))}function b(a,b){this.typeNumber=a,this.errorCorrectLevel=b,this.modules=null,this.moduleCount=0,this.dataCache=null,this.dataList=[]}function i(a,b){if(void 0==a.length)throw new Error(a.length+"/"+b);for(var c=0;c<a.length&&0==a[c];)c++;this.num=new Array(a.length-c+b);for(var d=0;d<a.length-c;d++)this.num[d]=a[d+c]}function j(a,b){this.totalCount=a,this.dataCount=b}function k(){this.buffer=[],this.length=0}function m(){return"undefined"!=typeof CanvasRenderingContext2D}function n(){var a=!1,b=navigator.userAgent;return/android/i.test(b)&&(a=!0,aMat=b.toString().match(/android ([0-9]\.[0-9])/i),aMat&&aMat[1]&&(a=parseFloat(aMat[1]))),a}function r(a,b){for(var c=1,e=s(a),f=0,g=l.length;g>=f;f++){var h=0;switch(b){case d.L:h=l[f][0];break;case d.M:h=l[f][1];break;case d.Q:h=l[f][2];break;case d.H:h=l[f][3]}if(h>=e)break;c++}if(c>l.length)throw new Error("Too long data");return c}function s(a){var b=encodeURI(a).toString().replace(/\%[0-9a-fA-F]{2}/g,"a");return b.length+(b.length!=a?3:0)}a.prototype={getLength:function(){return this.parsedData.length},write:function(a){for(var b=0,c=this.parsedData.length;c>b;b++)a.put(this.parsedData[b],8)}},b.prototype={addData:function(b){var c=new a(b);this.dataList.push(c),this.dataCache=null},isDark:function(a,b){if(0>a||this.moduleCount<=a||0>b||this.moduleCount<=b)throw new Error(a+","+b);return this.modules[a][b]},getModuleCount:function(){return this.moduleCount},make:function(){this.makeImpl(!1,this.getBestMaskPattern())},makeImpl:function(a,c){this.moduleCount=4*this.typeNumber+17,this.modules=new Array(this.moduleCount);for(var d=0;d<this.moduleCount;d++){this.modules[d]=new Array(this.moduleCount);for(var e=0;e<this.moduleCount;e++)this.modules[d][e]=null}this.setupPositionProbePattern(0,0),this.setupPositionProbePattern(this.moduleCount-7,0),this.setupPositionProbePattern(0,this.moduleCount-7),this.setupPositionAdjustPattern(),this.setupTimingPattern(),this.setupTypeInfo(a,c),this.typeNumber>=7&&this.setupTypeNumber(a),null==this.dataCache&&(this.dataCache=b.createData(this.typeNumber,this.errorCorrectLevel,this.dataList)),this.mapData(this.dataCache,c)},setupPositionProbePattern:function(a,b){for(var c=-1;7>=c;c++)if(!(-1>=a+c||this.moduleCount<=a+c))for(var d=-1;7>=d;d++)-1>=b+d||this.moduleCount<=b+d||(this.modules[a+c][b+d]=c>=0&&6>=c&&(0==d||6==d)||d>=0&&6>=d&&(0==c||6==c)||c>=2&&4>=c&&d>=2&&4>=d?!0:!1)},getBestMaskPattern:function(){for(var a=0,b=0,c=0;8>c;c++){this.makeImpl(!0,c);var d=f.getLostPoint(this);(0==c||a>d)&&(a=d,b=c)}return b},createMovieClip:function(a,b,c){var d=a.createEmptyMovieClip(b,c),e=1;this.make();for(var f=0;f<this.modules.length;f++)for(var g=f*e,h=0;h<this.modules[f].length;h++){var i=h*e,j=this.modules[f][h];j&&(d.beginFill(0,100),d.moveTo(i,g),d.lineTo(i+e,g),d.lineTo(i+e,g+e),d.lineTo(i,g+e),d.endFill())}return d},setupTimingPattern:function(){for(var a=8;a<this.moduleCount-8;a++)null==this.modules[a][6]&&(this.modules[a][6]=0==a%2);for(var b=8;b<this.moduleCount-8;b++)null==this.modules[6][b]&&(this.modules[6][b]=0==b%2)},setupPositionAdjustPattern:function(){for(var a=f.getPatternPosition(this.typeNumber),b=0;b<a.length;b++)for(var c=0;c<a.length;c++){var d=a[b],e=a[c];if(null==this.modules[d][e])for(var g=-2;2>=g;g++)for(var h=-2;2>=h;h++)this.modules[d+g][e+h]=-2==g||2==g||-2==h||2==h||0==g&&0==h?!0:!1}},setupTypeNumber:function(a){for(var b=f.getBCHTypeNumber(this.typeNumber),c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[Math.floor(c/3)][c%3+this.moduleCount-8-3]=d}for(var c=0;18>c;c++){var d=!a&&1==(1&b>>c);this.modules[c%3+this.moduleCount-8-3][Math.floor(c/3)]=d}},setupTypeInfo:function(a,b){for(var c=this.errorCorrectLevel<<3|b,d=f.getBCHTypeInfo(c),e=0;15>e;e++){var g=!a&&1==(1&d>>e);6>e?this.modules[e][8]=g:8>e?this.modules[e+1][8]=g:this.modules[this.moduleCount-15+e][8]=g}for(var e=0;15>e;e++){var g=!a&&1==(1&d>>e);8>e?this.modules[8][this.moduleCount-e-1]=g:9>e?this.modules[8][15-e-1+1]=g:this.modules[8][15-e-1]=g}this.modules[this.moduleCount-8][8]=!a},mapData:function(a,b){for(var c=-1,d=this.moduleCount-1,e=7,g=0,h=this.moduleCount-1;h>0;h-=2)for(6==h&&h--;;){for(var i=0;2>i;i++)if(null==this.modules[d][h-i]){var j=!1;g<a.length&&(j=1==(1&a[g]>>>e));var k=f.getMask(b,d,h-i);k&&(j=!j),this.modules[d][h-i]=j,e--,-1==e&&(g++,e=7)}if(d+=c,0>d||this.moduleCount<=d){d-=c,c=-c;break}}}},b.PAD0=236,b.PAD1=17,b.createData=function(a,c,d){for(var e=j.getRSBlocks(a,c),g=new k,h=0;h<d.length;h++){var i=d[h];g.put(i.mode,4),g.put(i.getLength(),f.getLengthInBits(i.mode,a)),i.write(g)}for(var l=0,h=0;h<e.length;h++)l+=e[h].dataCount;if(g.getLengthInBits()>8*l)throw new Error("code length overflow. ("+g.getLengthInBits()+">"+8*l+")");for(g.getLengthInBits()+4<=8*l&&g.put(0,4);0!=g.getLengthInBits()%8;)g.putBit(!1);for(;;){if(g.getLengthInBits()>=8*l)break;if(g.put(b.PAD0,8),g.getLengthInBits()>=8*l)break;g.put(b.PAD1,8)}return b.createBytes(g,e)},b.createBytes=function(a,b){for(var c=0,d=0,e=0,g=new Array(b.length),h=new Array(b.length),j=0;j<b.length;j++){var k=b[j].dataCount,l=b[j].totalCount-k;d=Math.max(d,k),e=Math.max(e,l),g[j]=new Array(k);for(var m=0;m<g[j].length;m++)g[j][m]=255&a.buffer[m+c];c+=k;var n=f.getErrorCorrectPolynomial(l),o=new i(g[j],n.getLength()-1),p=o.mod(n);h[j]=new Array(n.getLength()-1);for(var m=0;m<h[j].length;m++){var q=m+p.getLength()-h[j].length;h[j][m]=q>=0?p.get(q):0}}for(var r=0,m=0;m<b.length;m++)r+=b[m].totalCount;for(var s=new Array(r),t=0,m=0;d>m;m++)for(var j=0;j<b.length;j++)m<g[j].length&&(s[t++]=g[j][m]);for(var m=0;e>m;m++)for(var j=0;j<b.length;j++)m<h[j].length&&(s[t++]=h[j][m]);return s};for(var c={MODE_NUMBER:1,MODE_ALPHA_NUM:2,MODE_8BIT_BYTE:4,MODE_KANJI:8},d={L:1,M:0,Q:3,H:2},e={PATTERN000:0,PATTERN001:1,PATTERN010:2,PATTERN011:3,PATTERN100:4,PATTERN101:5,PATTERN110:6,PATTERN111:7},f={PATTERN_POSITION_TABLE:[[],[6,18],[6,22],[6,26],[6,30],[6,34],[6,22,38],[6,24,42],[6,26,46],[6,28,50],[6,30,54],[6,32,58],[6,34,62],[6,26,46,66],[6,26,48,70],[6,26,50,74],[6,30,54,78],[6,30,56,82],[6,30,58,86],[6,34,62,90],[6,28,50,72,94],[6,26,50,74,98],[6,30,54,78,102],[6,28,54,80,106],[6,32,58,84,110],[6,30,58,86,114],[6,34,62,90,118],[6,26,50,74,98,122],[6,30,54,78,102,126],[6,26,52,78,104,130],[6,30,56,82,108,134],[6,34,60,86,112,138],[6,30,58,86,114,142],[6,34,62,90,118,146],[6,30,54,78,102,126,150],[6,24,50,76,102,128,154],[6,28,54,80,106,132,158],[6,32,58,84,110,136,162],[6,26,54,82,110,138,166],[6,30,58,86,114,142,170]],G15:1335,G18:7973,G15_MASK:21522,getBCHTypeInfo:function(a){for(var b=a<<10;f.getBCHDigit(b)-f.getBCHDigit(f.G15)>=0;)b^=f.G15<<f.getBCHDigit(b)-f.getBCHDigit(f.G15);return(a<<10|b)^f.G15_MASK},getBCHTypeNumber:function(a){for(var b=a<<12;f.getBCHDigit(b)-f.getBCHDigit(f.G18)>=0;)b^=f.G18<<f.getBCHDigit(b)-f.getBCHDigit(f.G18);return a<<12|b},getBCHDigit:function(a){for(var b=0;0!=a;)b++,a>>>=1;return b},getPatternPosition:function(a){return f.PATTERN_POSITION_TABLE[a-1]},getMask:function(a,b,c){switch(a){case e.PATTERN000:return 0==(b+c)%2;case e.PATTERN001:return 0==b%2;case e.PATTERN010:return 0==c%3;case e.PATTERN011:return 0==(b+c)%3;case e.PATTERN100:return 0==(Math.floor(b/2)+Math.floor(c/3))%2;case e.PATTERN101:return 0==b*c%2+b*c%3;case e.PATTERN110:return 0==(b*c%2+b*c%3)%2;case e.PATTERN111:return 0==(b*c%3+(b+c)%2)%2;default:throw new Error("bad maskPattern:"+a)}},getErrorCorrectPolynomial:function(a){for(var b=new i([1],0),c=0;a>c;c++)b=b.multiply(new i([1,g.gexp(c)],0));return b},getLengthInBits:function(a,b){if(b>=1&&10>b)switch(a){case c.MODE_NUMBER:return 10;case c.MODE_ALPHA_NUM:return 9;case c.MODE_8BIT_BYTE:return 8;case c.MODE_KANJI:return 8;default:throw new Error("mode:"+a)}else if(27>b)switch(a){case c.MODE_NUMBER:return 12;case c.MODE_ALPHA_NUM:return 11;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 10;default:throw new Error("mode:"+a)}else{if(!(41>b))throw new Error("type:"+b);switch(a){case c.MODE_NUMBER:return 14;case c.MODE_ALPHA_NUM:return 13;case c.MODE_8BIT_BYTE:return 16;case c.MODE_KANJI:return 12;default:throw new Error("mode:"+a)}}},getLostPoint:function(a){for(var b=a.getModuleCount(),c=0,d=0;b>d;d++)for(var e=0;b>e;e++){for(var f=0,g=a.isDark(d,e),h=-1;1>=h;h++)if(!(0>d+h||d+h>=b))for(var i=-1;1>=i;i++)0>e+i||e+i>=b||(0!=h||0!=i)&&g==a.isDark(d+h,e+i)&&f++;f>5&&(c+=3+f-5)}for(var d=0;b-1>d;d++)for(var e=0;b-1>e;e++){var j=0;a.isDark(d,e)&&j++,a.isDark(d+1,e)&&j++,a.isDark(d,e+1)&&j++,a.isDark(d+1,e+1)&&j++,(0==j||4==j)&&(c+=3)}for(var d=0;b>d;d++)for(var e=0;b-6>e;e++)a.isDark(d,e)&&!a.isDark(d,e+1)&&a.isDark(d,e+2)&&a.isDark(d,e+3)&&a.isDark(d,e+4)&&!a.isDark(d,e+5)&&a.isDark(d,e+6)&&(c+=40);for(var e=0;b>e;e++)for(var d=0;b-6>d;d++)a.isDark(d,e)&&!a.isDark(d+1,e)&&a.isDark(d+2,e)&&a.isDark(d+3,e)&&a.isDark(d+4,e)&&!a.isDark(d+5,e)&&a.isDark(d+6,e)&&(c+=40);for(var k=0,e=0;b>e;e++)for(var d=0;b>d;d++)a.isDark(d,e)&&k++;var l=Math.abs(100*k/b/b-50)/5;return c+=10*l}},g={glog:function(a){if(1>a)throw new Error("glog("+a+")");return g.LOG_TABLE[a]},gexp:function(a){for(;0>a;)a+=255;for(;a>=256;)a-=255;return g.EXP_TABLE[a]},EXP_TABLE:new Array(256),LOG_TABLE:new Array(256)},h=0;8>h;h++)g.EXP_TABLE[h]=1<<h;for(var h=8;256>h;h++)g.EXP_TABLE[h]=g.EXP_TABLE[h-4]^g.EXP_TABLE[h-5]^g.EXP_TABLE[h-6]^g.EXP_TABLE[h-8];for(var h=0;255>h;h++)g.LOG_TABLE[g.EXP_TABLE[h]]=h;i.prototype={get:function(a){return this.num[a]},getLength:function(){return this.num.length},multiply:function(a){for(var b=new Array(this.getLength()+a.getLength()-1),c=0;c<this.getLength();c++)for(var d=0;d<a.getLength();d++)b[c+d]^=g.gexp(g.glog(this.get(c))+g.glog(a.get(d)));return new i(b,0)},mod:function(a){if(this.getLength()-a.getLength()<0)return this;for(var b=g.glog(this.get(0))-g.glog(a.get(0)),c=new Array(this.getLength()),d=0;d<this.getLength();d++)c[d]=this.get(d);for(var d=0;d<a.getLength();d++)c[d]^=g.gexp(g.glog(a.get(d))+b);return new i(c,0).mod(a)}},j.RS_BLOCK_TABLE=[[1,26,19],[1,26,16],[1,26,13],[1,26,9],[1,44,34],[1,44,28],[1,44,22],[1,44,16],[1,70,55],[1,70,44],[2,35,17],[2,35,13],[1,100,80],[2,50,32],[2,50,24],[4,25,9],[1,134,108],[2,67,43],[2,33,15,2,34,16],[2,33,11,2,34,12],[2,86,68],[4,43,27],[4,43,19],[4,43,15],[2,98,78],[4,49,31],[2,32,14,4,33,15],[4,39,13,1,40,14],[2,121,97],[2,60,38,2,61,39],[4,40,18,2,41,19],[4,40,14,2,41,15],[2,146,116],[3,58,36,2,59,37],[4,36,16,4,37,17],[4,36,12,4,37,13],[2,86,68,2,87,69],[4,69,43,1,70,44],[6,43,19,2,44,20],[6,43,15,2,44,16],[4,101,81],[1,80,50,4,81,51],[4,50,22,4,51,23],[3,36,12,8,37,13],[2,116,92,2,117,93],[6,58,36,2,59,37],[4,46,20,6,47,21],[7,42,14,4,43,15],[4,133,107],[8,59,37,1,60,38],[8,44,20,4,45,21],[12,33,11,4,34,12],[3,145,115,1,146,116],[4,64,40,5,65,41],[11,36,16,5,37,17],[11,36,12,5,37,13],[5,109,87,1,110,88],[5,65,41,5,66,42],[5,54,24,7,55,25],[11,36,12],[5,122,98,1,123,99],[7,73,45,3,74,46],[15,43,19,2,44,20],[3,45,15,13,46,16],[1,135,107,5,136,108],[10,74,46,1,75,47],[1,50,22,15,51,23],[2,42,14,17,43,15],[5,150,120,1,151,121],[9,69,43,4,70,44],[17,50,22,1,51,23],[2,42,14,19,43,15],[3,141,113,4,142,114],[3,70,44,11,71,45],[17,47,21,4,48,22],[9,39,13,16,40,14],[3,135,107,5,136,108],[3,67,41,13,68,42],[15,54,24,5,55,25],[15,43,15,10,44,16],[4,144,116,4,145,117],[17,68,42],[17,50,22,6,51,23],[19,46,16,6,47,17],[2,139,111,7,140,112],[17,74,46],[7,54,24,16,55,25],[34,37,13],[4,151,121,5,152,122],[4,75,47,14,76,48],[11,54,24,14,55,25],[16,45,15,14,46,16],[6,147,117,4,148,118],[6,73,45,14,74,46],[11,54,24,16,55,25],[30,46,16,2,47,17],[8,132,106,4,133,107],[8,75,47,13,76,48],[7,54,24,22,55,25],[22,45,15,13,46,16],[10,142,114,2,143,115],[19,74,46,4,75,47],[28,50,22,6,51,23],[33,46,16,4,47,17],[8,152,122,4,153,123],[22,73,45,3,74,46],[8,53,23,26,54,24],[12,45,15,28,46,16],[3,147,117,10,148,118],[3,73,45,23,74,46],[4,54,24,31,55,25],[11,45,15,31,46,16],[7,146,116,7,147,117],[21,73,45,7,74,46],[1,53,23,37,54,24],[19,45,15,26,46,16],[5,145,115,10,146,116],[19,75,47,10,76,48],[15,54,24,25,55,25],[23,45,15,25,46,16],[13,145,115,3,146,116],[2,74,46,29,75,47],[42,54,24,1,55,25],[23,45,15,28,46,16],[17,145,115],[10,74,46,23,75,47],[10,54,24,35,55,25],[19,45,15,35,46,16],[17,145,115,1,146,116],[14,74,46,21,75,47],[29,54,24,19,55,25],[11,45,15,46,46,16],[13,145,115,6,146,116],[14,74,46,23,75,47],[44,54,24,7,55,25],[59,46,16,1,47,17],[12,151,121,7,152,122],[12,75,47,26,76,48],[39,54,24,14,55,25],[22,45,15,41,46,16],[6,151,121,14,152,122],[6,75,47,34,76,48],[46,54,24,10,55,25],[2,45,15,64,46,16],[17,152,122,4,153,123],[29,74,46,14,75,47],[49,54,24,10,55,25],[24,45,15,46,46,16],[4,152,122,18,153,123],[13,74,46,32,75,47],[48,54,24,14,55,25],[42,45,15,32,46,16],[20,147,117,4,148,118],[40,75,47,7,76,48],[43,54,24,22,55,25],[10,45,15,67,46,16],[19,148,118,6,149,119],[18,75,47,31,76,48],[34,54,24,34,55,25],[20,45,15,61,46,16]],j.getRSBlocks=function(a,b){var c=j.getRsBlockTable(a,b);if(void 0==c)throw new Error("bad rs block @ typeNumber:"+a+"/errorCorrectLevel:"+b);for(var d=c.length/3,e=[],f=0;d>f;f++)for(var g=c[3*f+0],h=c[3*f+1],i=c[3*f+2],k=0;g>k;k++)e.push(new j(h,i));return e},j.getRsBlockTable=function(a,b){switch(b){case d.L:return j.RS_BLOCK_TABLE[4*(a-1)+0];case d.M:return j.RS_BLOCK_TABLE[4*(a-1)+1];case d.Q:return j.RS_BLOCK_TABLE[4*(a-1)+2];case d.H:return j.RS_BLOCK_TABLE[4*(a-1)+3];default:return void 0}},k.prototype={get:function(a){var b=Math.floor(a/8);return 1==(1&this.buffer[b]>>>7-a%8)},put:function(a,b){for(var c=0;b>c;c++)this.putBit(1==(1&a>>>b-c-1))},getLengthInBits:function(){return this.length},putBit:function(a){var b=Math.floor(this.length/8);this.buffer.length<=b&&this.buffer.push(0),a&&(this.buffer[b]|=128>>>this.length%8),this.length++}};var l=[[17,14,11,7],[32,26,20,14],[53,42,32,24],[78,62,46,34],[106,84,60,44],[134,106,74,58],[154,122,86,64],[192,152,108,84],[230,180,130,98],[271,213,151,119],[321,251,177,137],[367,287,203,155],[425,331,241,177],[458,362,258,194],[520,412,292,220],[586,450,322,250],[644,504,364,280],[718,560,394,310],[792,624,442,338],[858,666,482,382],[929,711,509,403],[1003,779,565,439],[1091,857,611,461],[1171,911,661,511],[1273,997,715,535],[1367,1059,751,593],[1465,1125,805,625],[1528,1190,868,658],[1628,1264,908,698],[1732,1370,982,742],[1840,1452,1030,790],[1952,1538,1112,842],[2068,1628,1168,898],[2188,1722,1228,958],[2303,1809,1283,983],[2431,1911,1351,1051],[2563,1989,1423,1093],[2699,2099,1499,1139],[2809,2213,1579,1219],[2953,2331,1663,1273]],o=function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){function g(a,b){var c=document.createElementNS("http://www.w3.org/2000/svg",a);for(var d in b)b.hasOwnProperty(d)&&c.setAttribute(d,b[d]);return c}var b=this._htOption,c=this._el,d=a.getModuleCount();Math.floor(b.width/d),Math.floor(b.height/d),this.clear();var h=g("svg",{viewBox:"0 0 "+String(d)+" "+String(d),width:"100%",height:"100%",fill:b.colorLight});h.setAttributeNS("http://www.w3.org/2000/xmlns/","xmlns:xlink","http://www.w3.org/1999/xlink"),c.appendChild(h),h.appendChild(g("rect",{fill:b.colorDark,width:"1",height:"1",id:"template"}));for(var i=0;d>i;i++)for(var j=0;d>j;j++)if(a.isDark(i,j)){var k=g("use",{x:String(i),y:String(j)});k.setAttributeNS("http://www.w3.org/1999/xlink","href","#template"),h.appendChild(k)}},a.prototype.clear=function(){for(;this._el.hasChildNodes();)this._el.removeChild(this._el.lastChild)},a}(),p="svg"===document.documentElement.tagName.toLowerCase(),q=p?o:m()?function(){function a(){this._elImage.src=this._elCanvas.toDataURL("image/png"),this._elImage.style.display="block",this._elCanvas.style.display="none"}function d(a,b){var c=this;if(c._fFail=b,c._fSuccess=a,null===c._bSupportDataURI){var d=document.createElement("img"),e=function(){c._bSupportDataURI=!1,c._fFail&&_fFail.call(c)},f=function(){c._bSupportDataURI=!0,c._fSuccess&&c._fSuccess.call(c)};return d.onabort=e,d.onerror=e,d.onload=f,d.src="data:image/gif;base64,iVBORw0KGgoAAAANSUhEUgAAAAUAAAAFCAYAAACNbyblAAAAHElEQVQI12P4//8/w38GIAXDIBKE0DHxgljNBAAO9TXL0Y4OHwAAAABJRU5ErkJggg==",void 0}c._bSupportDataURI===!0&&c._fSuccess?c._fSuccess.call(c):c._bSupportDataURI===!1&&c._fFail&&c._fFail.call(c)}if(this._android&&this._android<=2.1){var b=1/window.devicePixelRatio,c=CanvasRenderingContext2D.prototype.drawImage;CanvasRenderingContext2D.prototype.drawImage=function(a,d,e,f,g,h,i,j){if("nodeName"in a&&/img/i.test(a.nodeName))for(var l=arguments.length-1;l>=1;l--)arguments[l]=arguments[l]*b;else"undefined"==typeof j&&(arguments[1]*=b,arguments[2]*=b,arguments[3]*=b,arguments[4]*=b);c.apply(this,arguments)}}var e=function(a,b){this._bIsPainted=!1,this._android=n(),this._htOption=b,this._elCanvas=document.createElement("canvas"),this._elCanvas.width=b.width,this._elCanvas.height=b.height,a.appendChild(this._elCanvas),this._el=a,this._oContext=this._elCanvas.getContext("2d"),this._bIsPainted=!1,this._elImage=document.createElement("img"),this._elImage.style.display="none",this._el.appendChild(this._elImage),this._bSupportDataURI=null};return e.prototype.draw=function(a){var b=this._elImage,c=this._oContext,d=this._htOption,e=a.getModuleCount(),f=d.width/e,g=d.height/e,h=Math.round(f),i=Math.round(g);b.style.display="none",this.clear();for(var j=0;e>j;j++)for(var k=0;e>k;k++){var l=a.isDark(j,k),m=k*f,n=j*g;c.strokeStyle=l?d.colorDark:d.colorLight,c.lineWidth=1,c.fillStyle=l?d.colorDark:d.colorLight,c.fillRect(m,n,f,g),c.strokeRect(Math.floor(m)+.5,Math.floor(n)+.5,h,i),c.strokeRect(Math.ceil(m)-.5,Math.ceil(n)-.5,h,i)}this._bIsPainted=!0},e.prototype.makeImage=function(){this._bIsPainted&&d.call(this,a)},e.prototype.isPainted=function(){return this._bIsPainted},e.prototype.clear=function(){this._oContext.clearRect(0,0,this._elCanvas.width,this._elCanvas.height),this._bIsPainted=!1},e.prototype.round=function(a){return a?Math.floor(1e3*a)/1e3:a},e}():function(){var a=function(a,b){this._el=a,this._htOption=b};return a.prototype.draw=function(a){for(var b=this._htOption,c=this._el,d=a.getModuleCount(),e=Math.floor(b.width/d),f=Math.floor(b.height/d),g=['<table style="border:0;border-collapse:collapse;">'],h=0;d>h;h++){g.push("<tr>");for(var i=0;d>i;i++)g.push('<td style="border:0;border-collapse:collapse;padding:0;margin:0;width:'+e+"px;height:"+f+"px;background-color:"+(a.isDark(h,i)?b.colorDark:b.colorLight)+';"></td>');g.push("</tr>")}g.push("</table>"),c.innerHTML=g.join("");var j=c.childNodes[0],k=(b.width-j.offsetWidth)/2,l=(b.height-j.offsetHeight)/2;k>0&&l>0&&(j.style.margin=l+"px "+k+"px")},a.prototype.clear=function(){this._el.innerHTML=""},a}();QRCode=function(a,b){if(this._htOption={width:256,height:256,typeNumber:4,colorDark:"#000000",colorLight:"#ffffff",correctLevel:d.H},"string"==typeof b&&(b={text:b}),b)for(var c in b)this._htOption[c]=b[c];"string"==typeof a&&(a=document.getElementById(a)),this._android=n(),this._el=a,this._oQRCode=null,this._oDrawing=new q(this._el,this._htOption),this._htOption.text&&this.makeCode(this._htOption.text)},QRCode.prototype.makeCode=function(a){this._oQRCode=new b(r(a,this._htOption.correctLevel),this._htOption.correctLevel),this._oQRCode.addData(a),this._oQRCode.make(),this._el.title=a,this._oDrawing.draw(this._oQRCode),this.makeImage()},QRCode.prototype.makeImage=function(){"function"==typeof this._oDrawing.makeImage&&(!this._android||this._android>=3)&&this._oDrawing.makeImage()},QRCode.prototype.clear=function(){this._oDrawing.clear()},QRCode.CorrectLevel=d}();
+</script>
+<script>
+/* 次回の追加質問 QR（2026-10-25）：saishin.html?add=phq9,gad7 のような URL を QR にする */
+var DOC_ADD_BASE = "https://ykuroi.github.io/headache-clinic-forms/saishin.html";
+var DOC_ADD_ITEMS = [["phq9", "PHQ-9（気分）"], ["gad7", "GAD-7（不安）"], ["asc12", "ASC-12（アロディニア）"], ["acc", "発作のときの随伴症状"],
+  ["iis", "頭痛のない日の症状"], ["sleep", "睡眠・疲れやすさ"], ["ae", "副作用のチェック"]];
+(function () {
+  var box = document.getElementById("docAddChecks");
+  if (!box) return;
+  box.innerHTML = DOC_ADD_ITEMS.map(function (it) {
+    return '<label style="display:flex; gap:6px; align-items:center; cursor:pointer;"><input type="checkbox" value="' + it[0] + '" onchange="updateDocAddQr();">' + it[1] + "</label>";
+  }).join("");
+})();
+function docAddSelected() {
+  return Array.prototype.map.call(document.querySelectorAll("#docAddChecks input:checked"), function (c) { return c.value; });
+}
+function docAddUrl(sel) { return DOC_ADD_BASE + "?add=" + sel.join(","); }
+function updateDocAddQr() {
+  var sel = docAddSelected(), out = document.getElementById("docAddOut"), qr = document.getElementById("docAddQr");
+  qr.innerHTML = "";
+  if (!sel.length) { out.style.display = "none"; return; }
+  out.style.display = "";
+  var url = docAddUrl(sel);
+  new QRCode(qr, { text: url, width: 180, height: 180, correctLevel: QRCode.CorrectLevel.M });
+  document.getElementById("docAddNames").textContent = "追加：" + DOC_ADD_ITEMS.filter(function (it) { return sel.indexOf(it[0]) !== -1; }).map(function (it) { return it[1]; }).join("・");
+  document.getElementById("docAddUrl").textContent = url;
+}
+function printDocAddQr() {
+  var sel = docAddSelected();
+  if (!sel.length) return;
+  var holder = document.createElement("div");
+  new QRCode(holder, { text: docAddUrl(sel), width: 400, height: 400, correctLevel: QRCode.CorrectLevel.M });
+  var cv = holder.querySelector("canvas"), src = cv ? cv.toDataURL("image/png") : (holder.querySelector("img") || {}).src;
+  var w = window.open("", "_blank");
+  if (!w) return;
+  w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>次回の再診アンケート</title><style>body{font-family:sans-serif;text-align:center;padding:24px;}img{width:60mm;height:60mm;}p{font-size:14pt;}</style></head><body>' +
+    "<h2>次回の再診アンケート</h2><p>次の受診のときに、このQRコードをスマホで読んで答えてください。<br>今回は先生からの追加質問があります。</p>" +
+    '<img src="' + src + '"><p style="font-size:11pt;">' + DOC_ADD_ITEMS.filter(function (it) { return sel.indexOf(it[0]) !== -1; }).map(function (it) { return it[1]; }).join("・") + "</p>" +
+    "<script>window.onload=function(){window.print();};<\/script></body></html>");
+  w.document.close();
+}
+</script>
+<script>
+/* 治療目標の合意シート（2026-10-25）：初診で本人が選んだ「かなえたいこと」と、いまの数字・目標を、診察で一緒に決めて印刷する */
+var GOAL_OPTIONS = ["頭痛の日を減らしたい", "頭痛の痛みを軽くしたい", "痛み止めを飲む日を減らしたい", "発作がきても早く楽になりたい",
+  "仕事・学校・家事を休まずにすごしたい", "予定（外出・旅行など）を気にせず楽しみたい", "「また頭痛が来るかも」という不安を減らしたい",
+  "吐き気・まぶしさなどのつらさを減らしたい", "妊娠・授乳中も安心できる治療にしたい", "飲む薬はできるだけ少なくしたい"];
+function openGoalSheet() {
+  var a = window.editedAnswers;
+  if (!a || window.currentKind !== "shoki") { alert("初診アンケートのQRを読み込んでから開いてください。"); return; }
+  recomputeMatrixTotals(window.currentSchema, a);
+  var sc = computeScoresLocal("shoki", a);
+  function v(x) { return x === null || x === undefined || x === "" ? "" : x; }
+  function e(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  var mmd = v(sc.mmd), amd = v(sc.amd), hit6 = a.HIT6__complete ? v(sc.hit6) : "";
+  var tm = mmd === "" ? "" : Math.floor(Number(mmd) / 2), ta = amd === "" ? "" : (Number(amd) >= 10 ? 9 : Number(amd));
+  var th = hit6 === "" ? "" : (hit6 >= 56 ? 55 : hit6 >= 50 ? 49 : hit6);
+  var goals = a.GOAL || [];
+  var today = new Date(), ds = today.getFullYear() + "-" + ("0" + (today.getMonth() + 1)).slice(-2) + "-" + ("0" + today.getDate()).slice(-2);
+  var chk = GOAL_OPTIONS.map(function (g, i) {
+    return '<label class="g"><input type="checkbox" value="' + e(g) + '"' + (goals.indexOf(g) !== -1 ? " checked" : "") + "> " + e(g) + "</label>";
+  }).join("");
+  function row(lab, now, unit, tgt, note) {
+    return "<tr><th>" + lab + "</th><td class='now'>" + (now === "" ? "−" : now) + " " + unit + "</td><td>→</td><td><input class='t' value='" + e(tgt) + "' size='4'> " + unit + "</td><td class='nt'>" + note + "</td></tr>";
+  }
+  var html = '<!doctype html><html><head><meta charset="utf-8"><title>治療目標の合意シート</title><style>' +
+    'body{font-family:"Hiragino Sans","Noto Sans JP","Yu Gothic","Meiryo",sans-serif;max-width:720px;margin:16px auto;padding:0 16px;color:#222;}' +
+    'h1{font-size:20px;border-bottom:3px solid #f0b429;padding-bottom:6px;}h2{font-size:15px;margin:18px 0 6px;color:#8a5a00;}' +
+    '.g{display:inline-block;width:48%;font-size:13px;margin:3px 0;}table{border-collapse:collapse;width:100%;font-size:14px;}' +
+    'th,td{border-bottom:1px solid #ddd;padding:6px 4px;text-align:left;}td.now{font-weight:700;color:#c2410c;}input.t{font-size:15px;font-weight:700;color:#15803d;width:3.5em;}' +
+    'td.nt{font-size:11px;color:#666;}textarea{width:100%;font-size:14px;font-family:inherit;}.sig{display:flex;gap:24px;margin-top:18px;font-size:14px;}.sig div{flex:1;border-bottom:1px solid #333;padding-bottom:18px;}' +
+    '.btns{margin:16px 0;display:flex;gap:8px;}.btns button{font-size:14px;padding:8px 14px;}#msg{color:#15803d;font-weight:700;font-size:13px;}' +
+    '@media print{.btns,#msg{display:none;}input,textarea{border:none;}}</style></head><body>' +
+    "<h1>🎯 わたしの治療目標（合意シート）</h1><div>作成日：<input id='d' value='" + ds + "' size='10'>　記入日（アンケート）：" + e(a.FORM_DATE || "") + "</div>" +
+    "<h2>かなえたいこと（本人の希望）</h2>" + chk +
+    "<div style='margin-top:6px;font-size:14px;'>いちばんかなえたいこと：<textarea id='top' rows='2'>" + e(a.GOAL_TOP || "") + "</textarea></div>" +
+    "<h2>数字の目標（一緒に決めたもの）</h2><table>" +
+    row("片頭痛の日（1ヶ月）", mmd, "日", tm, "まずは半分以下（予防治療が効いたと考える目安）") +
+    row("痛み止めを飲む日（1ヶ月）", amd, "日", ta, "月10日未満（飲みすぎによる頭痛を防ぐ目安）") +
+    row("生活への影響（HIT-6）", hit6, "点", th, "55以下＝影響が中くらいまで、49以下＝影響が少ない") +
+    "</table><h2>そのほか約束したこと（生活・薬の使い方・次の確認時期など）</h2><textarea id='etc' rows='3'></textarea>" +
+    "<div class='sig'><div>ご本人</div><div>担当医</div></div>" +
+    "<div class='btns'><button onclick='window.print()'>🖨 印刷する</button><button id='cp'>📋 カルテ用の文をコピー</button></div><div id='msg'></div>" +
+    "<script>document.getElementById('cp').onclick=function(){var g=[].slice.call(document.querySelectorAll('.g input:checked')).map(function(x){return x.value;});" +
+    "var t=[].slice.call(document.querySelectorAll('input.t')).map(function(x){return x.value;});var L=['治療目標（合意 '+document.getElementById('d').value+'）'];" +
+    "if(g.length)L.push('本人の希望: '+g.join('・'));var tp=document.getElementById('top').value.trim();if(tp)L.push('いちばんかなえたいこと: '+tp);" +
+    "var nums=[];if(t[0]!=='')nums.push('片頭痛日数 月'+t[0]+'日以下');if(t[1]!=='')nums.push('鎮痛薬 月'+t[1]+'日以下');if(t[2]!=='')nums.push('HIT-6 '+t[2]+'点以下');if(nums.length)L.push('数字の目標: '+nums.join('、'));" +
+    "var et=document.getElementById('etc').value.trim();if(et)L.push('約束: '+et.replace(/\\s*\\n\\s*/g,' ／ '));var s=L.join('\\n');" +
+    "var ta=document.createElement('textarea');ta.value=s;document.body.appendChild(ta);ta.select();try{document.execCommand('copy');document.getElementById('msg').textContent='コピーしました。電子カルテに貼り付けてください。';}catch(x){}document.body.removeChild(ta);};<\/script>" +
+    "</body></html>";
+  var w = window.open("", "_blank");
+  if (!w) { alert("新しい画面を開けませんでした（ポップアップを許可してください）。"); return; }
+  w.document.write(html);
+  w.document.close();
+}
 </script>
 </body>
 </html>
