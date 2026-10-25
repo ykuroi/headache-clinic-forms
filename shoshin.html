@@ -2024,6 +2024,29 @@ var SCHEMA_SHOKI = {
           ]
         }
       ]
+    },
+    {
+      title: "🎯 G　治療でめざしたいこと",
+      questions: [
+        {
+          code: "GOAL", type: "checkbox", label: "Q36", wide: true, fpSkip: true,
+          text: "治療で、とくにかなえたいことを選んでください（3つまで）",
+          note: "診察のときに、先生と一緒に治療の目標を決めます。",
+          options: [
+            {value:"頭痛の日を減らしたい",label:"📅 頭痛の日を減らしたい"},
+            {value:"頭痛の痛みを軽くしたい",label:"🩹 頭痛の痛みを軽くしたい"},
+            {value:"痛み止めを飲む日を減らしたい",label:"💊 痛み止めを飲む日を減らしたい"},
+            {value:"発作がきても早く楽になりたい",label:"⏱ 発作がきても早く楽になりたい"},
+            {value:"仕事・学校・家事を休まずにすごしたい",label:"🏢 仕事・学校・家事を休まずにすごしたい"},
+            {value:"予定（外出・旅行など）を気にせず楽しみたい",label:"✈️ 予定（外出・旅行など）を気にせず楽しみたい"},
+            {value:"「また頭痛が来るかも」という不安を減らしたい",label:"🌤 「また頭痛が来るかも」という不安を減らしたい"},
+            {value:"吐き気・まぶしさなどのつらさを減らしたい",label:"🤢 吐き気・まぶしさなどのつらさを減らしたい"},
+            {value:"妊娠・授乳中も安心できる治療にしたい",label:"🤱 妊娠・授乳中も安心できる治療にしたい"},
+            {value:"飲む薬はできるだけ少なくしたい",label:"🍃 飲む薬はできるだけ少なくしたい"}
+          ]
+        },
+        { code: "GOAL_TOP", type: "textarea", label: "Q37", fpSkip: true, text: "いちばんかなえたいことを、自分の言葉で書いてください（書かなくてもかまいません）", placeholder: "例）子どもの運動会に元気に参加したい" }
+      ]
     }
   ]
 };
@@ -2043,6 +2066,7 @@ function makeShokiCodec(schema) {
   var FIELDS = [{ k: "FORM_DATE", t: "date" }];
   schema.sections.forEach(function (sec) {
     sec.questions.forEach(function (q) {
+      var from = FIELDS.length;
       if (q.type === "radio" || q.type === "checkbox") {
         FIELDS.push({ k: q.code, t: q.type === "radio" ? "idx" : "bits", o: q.options.map(function (o) { return o.value; }) });
         if (q.other) FIELDS.push({ k: q.code + "_other", t: "text" });
@@ -2055,9 +2079,10 @@ function makeShokiCodec(schema) {
       } else if (q.type === "matrix") {
         FIELDS.push({ k: q.code, t: "mx", rows: q.rows.map(function (r) { return q.code + "_" + r.code; }) });
       }
+      if (q.fpSkip) for (var fi = from; fi < FIELDS.length; fi++) FIELDS[fi].skip = true;   // 末尾に足した設問（2026-10-25 治療目標）は指紋に入れない
     });
   });
-  var FP = ("0000" + hash(FIELDS.map(function (f) { return f.k + ":" + f.t + (f.o ? f.o.length : "") + (f.rows ? f.rows.length : ""); }).join(","))).slice(-4);
+  var FP = ("0000" + hash(FIELDS.filter(function (f) { return !f.skip; }).map(function (f) { return f.k + ":" + f.t + (f.o ? f.o.length : "") + (f.rows ? f.rows.length : ""); }).join(","))).slice(-4);
 
   function empty(v) { return v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0); }
   function escText(s) {
@@ -3891,8 +3916,44 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     hud.appendChild(left);
     var foot = document.getElementById("footerNav");   // 画面下の「回答内容を確認する」の上に1行で出す（上の見出しと重ならないように）
     if (foot) { foot.classList.add("gm-has-hud"); foot.insertBefore(hud, foot.firstChild); } else document.body.appendChild(hud);
-    var total = topBlocks().length;
+    // あと◯問（2026-10-25 修正）：押したOKの位置からではなく、表示中の設問のうち「まだ答えていない数」を数える。
+    // 質問票（HIT-6 など）は1問ずつ数える。「気になること」で出た質問票も数に入る。
+    var SCH = window.SCHEMA_SAISHIN || window.SCHEMA_SHOKI;
+    var QBY = {};
+    if (SCH) SCH.sections.forEach(function (sec) { sec.questions.forEach(function (q) { QBY[q.code] = q; }); });
+    function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
+    function units() {
+      var a = SCH ? FE.collect(SCH, qc, true) : {}, tot = 0, rest = 0;
+      topBlocks().forEach(function (b) {
+        var q = QBY[b.getAttribute("data-code")], done;
+        if (q && q.type === "matrix") {
+          q.rows.forEach(function (r) { tot++; if (!has(a[q.code + "_" + r.code])) rest++; });
+          return;
+        }
+        tot++;
+        if (!q) done = !!b.querySelector(".gm-okbar.gm-cleared");
+        else if (q.type === "daytree") done = b.getAttribute("data-dt-complete") === "1" || has(a.Q2_headache) && (a.Q2_headache === 0 || has(a.Q1_days));
+        else if (q.type === "numbergroup") done = (q.fields || []).some(function (f) { return has(a[f.code]); });
+        else if (q.type === "nrsmatrix" || q.type === "sideeffects") done = (q.rows || []).every(function (r) { return has(a[q.code + "_" + r.code]); });
+        else done = has(a[q.code]);
+        if (!done) rest++;
+      });
+      return { tot: tot, rest: rest };
+    }
+    var total = units().tot, started = false;
     left.textContent = "ぜんぶで " + total + " 問";
+    function refreshHud(pop) {
+      var u = units();
+      total = u.tot;
+      if (u.rest < u.tot) started = true;   // 1問でも答えたら「あと◯問」に切り替える
+      left.textContent = !started ? "ぜんぶで " + u.tot + " 問" : u.rest > 0 ? "あと " + u.rest + " 問" : "ぜんぶ回答！";
+      if (pop) replayClass(left, "gm-stamp-pop");
+      return u;
+    }
+    var hudTimer = null;
+    ["click", "input", "change"].forEach(function (ev) {
+      qc.addEventListener(ev, function () { clearTimeout(hudTimer); hudTimer = setTimeout(function () { refreshHud(false); }, 250); });
+    });
 
     var cheered = {};
     var bubbleTimer = null;
@@ -3941,12 +4002,10 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       while (b && b.parentElement.closest(".qblock")) b = b.parentElement.closest(".qblock");
       if (!b) return;
       var all = topBlocks();
-      total = all.length;
       var idx = all.indexOf(b);
       if (idx < 0) return;
-      var remaining = all.length - idx - 1;
-      left.textContent = remaining > 0 ? "あと " + remaining + " 問" : "ぜんぶ回答！";
-      replayClass(left, "gm-stamp-pop");
+      started = true;
+      var remaining = refreshHud(true).rest;
       // このセクションの最後の設問まで来たら
       var sec = b.closest(".qsection");
       var si = sections.indexOf(sec);
@@ -4281,6 +4340,106 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   }
   var rsEl = document.getElementById("resultScreen");
   if (rsEl && window.MutationObserver) new MutationObserver(mount).observe(rsEl, { childList: true });
+})();
+</script>
+<!-- ===== 治療目標（2026-10-25）：Q36・Q37 で選んだ「かなえたいこと」と、いまの数字から目標の案を見える形にする ===== -->
+<style>
+.hz-goal{background:#fff;border:2px solid #f0b429;border-radius:18px;padding:14px 12px 12px;margin:0 0 14px;}
+.hz-goal h3{margin:0 0 2px;font-size:1.05rem;color:#8a5a00;}
+.hz-goal .hz-g-sub{margin:0 0 10px;font-size:.8rem;color:#6b7280;}
+.hz-g-chips{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px;}
+.hz-g-chips span{background:#fff8e6;border:1px solid #f0b429;border-radius:999px;padding:5px 10px;font-size:.85rem;font-weight:700;}
+.hz-g-top{background:#fffdf5;border-left:4px solid #f0b429;padding:8px 10px;margin:0 0 12px;font-size:.92rem;font-weight:700;}
+.hz-g-row{border-top:1px dashed #e5e7eb;padding:10px 0 4px;}
+.hz-g-row.hz-g-hi{background:#fffbea;border-radius:10px;padding:10px 6px 4px;}
+.hz-g-lab{font-size:.88rem;font-weight:800;margin-bottom:6px;}
+.hz-g-line{display:flex;align-items:center;gap:8px;font-size:.78rem;margin:3px 0;}
+.hz-g-line b{display:inline-block;width:3.2em;color:#6b7280;font-weight:700;}
+.hz-g-dots{display:grid;grid-template-columns:repeat(15,1fr);gap:2px;flex:1;}
+.hz-g-dots i{display:block;aspect-ratio:1;border-radius:50%;background:#e5e7eb;}
+.hz-g-dots.now i.on{background:#e8734a;}
+.hz-g-dots.tgt i.on{background:#2f9e74;}
+.hz-g-bar{flex:1;height:12px;background:#e5e7eb;border-radius:6px;position:relative;overflow:hidden;}
+.hz-g-bar i{position:absolute;left:0;top:0;bottom:0;border-radius:6px;}
+.hz-g-val{min-width:5.6em;text-align:right;font-weight:800;font-size:.82rem;}
+.hz-g-goaltext{font-size:.8rem;color:#1f7a55;font-weight:800;margin:2px 0 0 4px;}
+.hz-g-foot{font-size:.74rem;color:#6b7280;margin-top:8px;}
+</style>
+<script>
+(function () {
+  var rs = document.getElementById("resultScreen");
+  if (!rs || !window.MutationObserver) return;
+  var ICON = { "頭痛の日を減らしたい": "📅", "頭痛の痛みを軽くしたい": "🩹", "痛み止めを飲む日を減らしたい": "💊", "発作がきても早く楽になりたい": "⏱",
+    "仕事・学校・家事を休まずにすごしたい": "🏢", "予定（外出・旅行など）を気にせず楽しみたい": "✈️", "「また頭痛が来るかも」という不安を減らしたい": "🌤",
+    "吐き気・まぶしさなどのつらさを減らしたい": "🤢", "妊娠・授乳中も安心できる治療にしたい": "🤱", "飲む薬はできるだけ少なくしたい": "🍃" };
+  function esc(s) { return String(s == null ? "" : s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function n(v) { return v === null || v === undefined || v === "" || !isFinite(Number(v)) ? null : Number(v); }
+  function dots(cls, k) { var h = ""; for (var i = 0; i < 30; i++) h += "<i" + (i < k ? ' class="on"' : "") + "></i>"; return '<div class="hz-g-dots ' + cls + '">' + h + "</div>"; }
+  function bar(v, max, color) { return '<div class="hz-g-bar"><i style="width:' + Math.max(0, Math.min(100, v / max * 100)) + "%;background:" + color + '"></i></div>'; }
+  // 目標の案（診察で先生と決める）：片頭痛日数は半分以下（予防治療の「効いた」の目安）、痛み止めは月10日未満（使いすぎ頭痛を避ける目安）
+  function build(a, sc) {
+    var goals = a.GOAL || [], top = String(a.GOAL_TOP || "").trim();
+    var mmd = n(a.Q2b_mig), amd = n(a.Q19_total); if (amd === null) amd = n(a.Q2b_med);
+    var hit6 = sc && sc.hit6 != null && a.HIT6__complete !== false ? n(sc.hit6) : null;
+    if (!goals.length && !top && mmd === null && amd === null) return null;
+    function hi(keys) { return keys.some(function (k) { return goals.indexOf(k) !== -1; }) ? " hz-g-hi" : ""; }
+    var rows = "";
+    if (mmd !== null) {
+      var tm = Math.floor(mmd / 2);
+      rows += '<div class="hz-g-row' + hi(["頭痛の日を減らしたい", "予定（外出・旅行など）を気にせず楽しみたい", "仕事・学校・家事を休まずにすごしたい"]) + '"><div class="hz-g-lab">📅 片頭痛の日（1ヶ月）</div>' +
+        '<div class="hz-g-line"><b>いま</b>' + dots("now", mmd) + '<span class="hz-g-val">' + mmd + "日</span></div>" +
+        (mmd > 0 ? '<div class="hz-g-line"><b>目標</b>' + dots("tgt", tm) + '<span class="hz-g-val">' + tm + "日以下</span></div>" +
+          '<div class="hz-g-goaltext">→ まずは半分以下に</div>' : '<div class="hz-g-goaltext">→ このままキープ</div>') + "</div>";
+    }
+    if (amd !== null) {
+      rows += '<div class="hz-g-row' + hi(["痛み止めを飲む日を減らしたい", "飲む薬はできるだけ少なくしたい"]) + '"><div class="hz-g-lab">💊 痛み止めを飲む日（1ヶ月）</div>' +
+        '<div class="hz-g-line"><b>いま</b>' + dots("now", amd) + '<span class="hz-g-val">' + amd + "日</span></div>" +
+        (amd >= 10 ? '<div class="hz-g-line"><b>目標</b>' + dots("tgt", 9) + '<span class="hz-g-val">9日以下</span></div><div class="hz-g-goaltext">→ 月10日未満に（飲みすぎによる頭痛を防ぐ目安）</div>'
+          : '<div class="hz-g-goaltext">→ 月10日未満をキープ</div>') + "</div>";
+    }
+    if (hit6 !== null) {
+      var th = hit6 >= 56 ? 55 : hit6 >= 50 ? 49 : null;
+      rows += '<div class="hz-g-row' + hi(["仕事・学校・家事を休まずにすごしたい", "頭痛の痛みを軽くしたい"]) + '"><div class="hz-g-lab">📊 生活への影響（HIT-6）</div>' +
+        '<div class="hz-g-line"><b>いま</b>' + bar(hit6 - 36, 42, "#e8734a") + '<span class="hz-g-val">' + hit6 + "点</span></div>" +
+        (th !== null ? '<div class="hz-g-line"><b>目標</b>' + bar(th - 36, 42, "#2f9e74") + '<span class="hz-g-val">' + th + "点以下</span></div>" : '<div class="hz-g-goaltext">→ このままキープ</div>') + "</div>";
+    }
+    var box = document.createElement("div");
+    box.className = "hz-goal";
+    box.innerHTML = "<h3>🎯 わたしの治療目標（案）</h3>" +
+      '<p class="hz-g-sub">診察のときに、この画面を先生に見せて、一緒に目標を決めましょう。</p>' +
+      (goals.length ? '<div class="hz-g-chips">' + goals.map(function (g) { return "<span>" + (ICON[g] || "⭐") + " " + esc(g) + "</span>"; }).join("") + "</div>" : "") +
+      (top ? '<div class="hz-g-top">💬 「' + esc(top) + "」</div>" : "") +
+      rows +
+      '<div class="hz-g-foot">※数字の目標は、よく使われる目安から作った「案」です。体の状態や生活に合わせて、先生と相談して決めます。</div>';
+    return box;
+  }
+  function mount() {
+    if (!rs.classList.contains("active") || rs.querySelector(".hz-goal")) return;
+    var r = window.__hzResult; if (!r) return;
+    var box = build(r.answers || {}, r.scores || {});
+    if (!box) return;
+    var rw = rs.querySelector(".gm-reward");
+    if (!rw) return;   // 成績表カードのすぐ下に出す
+    rs.insertBefore(box, rw.nextSibling);
+  }
+  new MutationObserver(mount).observe(rs, { childList: true, attributes: true, attributeFilter: ["class"] });
+})();
+// Q36 は3つまで
+(function () {
+  var q = document.querySelector('#qContainer .qblock[data-code="GOAL"]');
+  if (!q) return;
+  var msg = document.createElement("div");
+  msg.style.cssText = "font-size:.8rem;color:#b45309;font-weight:700;min-height:1.2em;margin-top:4px;";
+  var opts = q.querySelector(".options");
+  if (opts) opts.parentNode.insertBefore(msg, opts.nextSibling);
+  q.addEventListener("click", function (e) {
+    var b = e.target.closest(".opt-btn"); if (!b) return;
+    var sel = q.querySelectorAll(".opt-btn.selected");
+    if (sel.length > 3 && b.classList.contains("selected")) {
+      b.classList.remove("selected");
+      msg.textContent = "選べるのは3つまでです。ほかを外してから選んでください。";
+    } else msg.textContent = "";
+  });
 })();
 </script>
 </body>
