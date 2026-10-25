@@ -1302,7 +1302,14 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
     FE._applyConditionals(schema, containerEl);
   };
 
-  /* 条件分岐表示 (showIf: {code, in:[...]}) */
+  /* 条件分岐表示 (showIf: {code, in:[...]} / {code, gt:数} / それらの配列＝すべて満たすとき) */
+  FE.showIfMet = function (cond, answers) {
+    if (Array.isArray(cond)) return cond.every(function (c) { return FE.showIfMet(c, answers); });
+    var val = answers[cond.code];
+    if (cond.gt !== undefined) return val !== null && val !== undefined && val !== "" && Number(val) > cond.gt;
+    if (Array.isArray(val)) return cond.in.some(function (v) { return val.indexOf(v) !== -1; });
+    return cond.in.indexOf(val) !== -1;
+  };
   FE._applyConditionals = function (schema, containerEl) {
     var allQuestions = [];
     schema.sections.forEach(function (sec) {
@@ -1316,21 +1323,21 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
         if (!q.showIf) return;
         var block = containerEl.querySelector('.qblock[data-code="' + q.code + '"]');
         if (!block) return;
-        var val = answers[q.showIf.code];
-        var show;
-        if (Array.isArray(val)) {
-          show = q.showIf.in.some(function (v) {
-            return val.indexOf(v) !== -1;
-          });
-        } else {
-          show = q.showIf.in.indexOf(val) !== -1;
-        }
+        var show = FE.showIfMet(q.showIf, answers);
         block.classList.toggle("hidden", !show);
+        if (!show && q.clearWhenHidden) {   // 隠れた設問の答えは残さない（2026-10-25）
+          Array.prototype.forEach.call(block.querySelectorAll(".opt-btn.selected"), function (b) { b.classList.remove("selected"); });
+          var oi = block.querySelector(".other-input");
+          if (oi) oi.value = "";
+        }
       });
     }
     FE._onAnswerChanged = function () {
       evalAll();
     };
+    // 数値欄（痛み止めの日数など）の入力でも表示を切り替える（2026-10-25）
+    containerEl.addEventListener("input", function () { evalAll(); });
+    containerEl.addEventListener("change", function () { evalAll(); });
     evalAll();
   };
 
@@ -2002,6 +2009,14 @@ var SAISHIN_CODEC = (function () {
   // 2026-10-20 追加：スマホ問診票そのものの満足度（1〜10）と意見。結果画面で答える。CSVには入れずカルテ文に出す
   add("APP_SAT", "APP_SAT", "num", null, false);
   add("APP_CMT", "APP_CMT", "text", null, false);
+  // 2026-10-25 追加：急性期治療薬の評価（MBS＝最もつらい随伴症状、2時間以内の消失、24時間以内の再発、副作用）。CSVには入れずカルテ文に出す
+  var FREQ4 = { "ほとんど毎回": 3, "半分以上": 2, "半分より少ない": 1, "ほとんどない": 0 };
+  add("MBS", "AQ_MBS", "map", { "頭痛以外につらい症状はない": 0, "吐き気・吐く": 1, "光がまぶしくてつらい（光過敏）": 2, "音がうるさくてつらい（音過敏）": 3, "においがつらい（におい過敏）": 4, "その他": 5 }, false);
+  add("MBS_O", "AQ_MBS_other", "text", null, false);
+  add("PF2H", "AQ_PF2H", "map", FREQ4, false);
+  add("MBSF2H", "AQ_MBS2H", "map", FREQ4, false);
+  add("REC24", "AQ_REC24", "map", FREQ4, false);
+  add("AE_ACUTE", "AQ_AE", "map", { "ない": 0, "ときどき": 1, "よくある": 2 }, false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
   var CSV_COLS = ["DATE", "CC", "MMD", "MHD", "UD", "CCD", "TRG", "TRG_O", "maxNRS", "meanNRS", "ASSOC",
@@ -2262,6 +2277,63 @@ var SCHEMA_SAISHIN = {
             {value:"△ それほど効かない",label:"△ それほど効かない"},
             {value:"✗ 全然効かない",label:"✗ 全然効かない"},
             {value:"N 病院でもらったその他の痛み止めを使っていない",label:"N 使用なし"}
+          ]
+        },
+        {
+          code: "AQ_MBS", type: "radio", label: "Q6-1", wide: true, other: true, clearWhenHidden: true,
+          showIf: { code: "Q6_total", gt: 0 },
+          text: "頭痛のとき、頭痛以外でいちばんつらい症状はどれですか？（1つ選んでください）",
+          note: "※ふだん使っている痛み止めの効き目を、くわしくうかがいます（Q6-1〜Q6-5）",
+          options: [
+            {value:"吐き気・吐く",label:"吐き気・吐く"},
+            {value:"光がまぶしくてつらい（光過敏）",label:"光がまぶしくてつらい（光過敏）"},
+            {value:"音がうるさくてつらい（音過敏）",label:"音がうるさくてつらい（音過敏）"},
+            {value:"においがつらい（におい過敏）",label:"においがつらい（におい過敏）"},
+            {value:"その他",label:"その他"},
+            {value:"頭痛以外につらい症状はない",label:"頭痛以外につらい症状はない"}
+          ]
+        },
+        {
+          code: "AQ_PF2H", type: "radio", label: "Q6-2", wide: true, clearWhenHidden: true,
+          showIf: { code: "Q6_total", gt: 0 },
+          text: "痛み止めを飲んで2時間以内に、頭痛が完全に消えることはどのくらいありましたか？",
+          options: [
+            {value:"ほとんど毎回",label:"ほとんど毎回"},
+            {value:"半分以上",label:"半分以上"},
+            {value:"半分より少ない",label:"半分より少ない"},
+            {value:"ほとんどない",label:"ほとんどない"}
+          ]
+        },
+        {
+          code: "AQ_MBS2H", type: "radio", label: "Q6-3", wide: true, clearWhenHidden: true,
+          showIf: [{ code: "Q6_total", gt: 0 }, { code: "AQ_MBS", in: ["吐き気・吐く", "光がまぶしくてつらい（光過敏）", "音がうるさくてつらい（音過敏）", "においがつらい（におい過敏）", "その他"] }],
+          text: "その症状も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
+          options: [
+            {value:"ほとんど毎回",label:"ほとんど毎回"},
+            {value:"半分以上",label:"半分以上"},
+            {value:"半分より少ない",label:"半分より少ない"},
+            {value:"ほとんどない",label:"ほとんどない"}
+          ]
+        },
+        {
+          code: "AQ_REC24", type: "radio", label: "Q6-4", wide: true, clearWhenHidden: true,
+          showIf: { code: "Q6_total", gt: 0 },
+          text: "いったん治まった頭痛が、24時間以内にぶり返して、また薬を飲むことはありましたか？",
+          options: [
+            {value:"ほとんど毎回",label:"ほとんど毎回"},
+            {value:"半分以上",label:"半分以上"},
+            {value:"半分より少ない",label:"半分より少ない"},
+            {value:"ほとんどない",label:"ほとんどない"}
+          ]
+        },
+        {
+          code: "AQ_AE", type: "radio", label: "Q6-5", wide: true, clearWhenHidden: true,
+          showIf: { code: "Q6_total", gt: 0 },
+          text: "痛み止めを飲んだあと、眠気・めまい・だるさで困ることはありましたか？",
+          options: [
+            {value:"ない",label:"ない"},
+            {value:"ときどき",label:"ときどき"},
+            {value:"よくある",label:"よくある"}
           ]
         },
         {
@@ -3675,6 +3747,30 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   setupSingleOk("Q9", sliderTouched, "Q9");
   setupSingleOk("Q9las", sliderTouched, null);
   setupSingleOk("Q9rx", sliderTouched, null);
+  ["AQ_MBS", "AQ_PF2H", "AQ_MBS2H", "AQ_REC24", "AQ_AE"].forEach(function (c, i) {
+    setupSingleOk(c, function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q6-" + (i + 1));
+  });
+  // Q6-1 の「その他」の記入欄は「その他」を選んだときだけ。Q6-3 の文に選んだ症状を入れる
+  (function () {
+    var m = document.querySelector('#qContainer .qblock[data-code="AQ_MBS"]');
+    var t = document.querySelector('#qContainer .qblock[data-code="AQ_MBS2H"] .qtext');
+    if (!m || !t) return;
+    var oi = m.querySelector(".other-input");
+    var node = t.lastChild, base = node ? node.nodeValue : "";
+    function upd() {
+      var sel = m.querySelector(".opt-btn.selected"), v = sel ? sel.getAttribute("data-value") : "";
+      if (oi) {
+        oi.style.display = v === "その他" ? "" : "none";
+        if (v !== "その他") oi.value = "";
+        oi.placeholder = "どんな症状か書いてください";
+      }
+      var name = v === "その他" ? (oi && oi.value.trim()) || "その症状" : v.replace(/（.*）$/, "");
+      if (node) node.nodeValue = v && v !== "頭痛以外につらい症状はない" ? base.replace("その症状", name === "その症状" ? name : "「" + name + "」") : base;
+    }
+    m.addEventListener("click", function () { setTimeout(upd, 0); });
+    m.addEventListener("input", upd);
+    upd();
+  })();
   setupSingleOk("Q10", sliderTouched, "Q7");
   setupSingleOk("Q14", sliderTouched, "Q8");      // 睡眠（画面上の番号は Q8）
   setupSingleOk("Q15", sliderTouched, "Q9");      // 疲れやすさ（Q9）
@@ -4318,6 +4414,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     bubble.addEventListener("click", toggle);
   }
 
+  addTip("AQ_MBS", "💡 豆知識",
+    "痛み止めの効き目は、頭痛が消えるかだけでなく、<b>頭痛以外でいちばんつらい症状</b>（はき気・まぶしさ・音のつらさなど）が消えるかでも判断します。<b>2時間以内に頭痛もつらい症状も消えて、ぶり返さない</b>のが理想です。");
   addTip("Q5", "💡 豆知識",
     "片頭痛では、はき気や光・音への過敏さなど、<b>頭痛以外の症状</b>をともなうことがよくあります。これらは、発作のときに脳が刺激に敏感になっている状態を表していると考えられています。");
 
