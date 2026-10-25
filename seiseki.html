@@ -101,17 +101,17 @@ body.viewer .sheet{margin:4px auto 20px;}
 <div class="ctrl">
   <header>
     <h1>📈 頭痛成績表</h1>
-    <p>受診ごとの記録（migraine_visit.csv）から、患者さんにお渡しできるA4の成績表を作ります。データはこのパソコンの中だけで処理し、どこにも送りません。</p>
+    <p>受診ごとの記録（migraine_visit.csv と「受診データ追記」フォルダの visit_*.csv）から、患者さんにお渡しできるA4の成績表を作ります。ファイルはまとめて選べます（Ctrl＋クリック）。データはこのパソコンの中だけで処理し、どこにも送らず、ファイルも書き換えません。</p>
   </header>
   <div class="bar">
     <label>① データ</label>
-    <input type="file" id="file" accept=".csv">
+    <input type="file" id="file" accept=".csv" multiple>
     <button class="btn sub" id="demo">架空の症例で試す</button>
     <span id="status"></span>
   </div>
   <div class="bar">
     <label>② 患者</label>
-    <input type="text" id="search" placeholder="カルテ番号で検索" style="width:9em">
+    <input type="text" id="search" placeholder="研究コード・病院IDで検索" style="width:9em">
     <select id="pt"><option value="">（データを読み込んでください）</option></select>
     <label>表示する回数</label>
     <select id="nvis">
@@ -119,7 +119,7 @@ body.viewer .sheet{margin:4px auto 20px;}
       <option value="12" selected>直近12回</option>
       <option value="20">直近20回（最大）</option>
     </select>
-    <label><input type="checkbox" id="showId"> カルテ番号を載せる</label>
+    <label><input type="checkbox" id="showId"> 研究コードを載せる</label>
   </div>
   <div class="bar">
     <button class="btn acc" id="print">🖨 印刷・PDFで保存</button>
@@ -191,18 +191,25 @@ body.viewer .sheet{margin:4px auto 20px;}
     if (isFinite(n) && n > 20000 && n < 80000) { var d = new Date(Math.round((n - 25569) * 864e5)); return d.toISOString().slice(0, 10); }
     return null;
   }
-  function fromRows(rows) {
+  function normId(v) {   // 先頭の0・全角数字の違いで別人にならないように
+    v = String(v == null ? "" : v).replace(/[０-９]/g, function (c) { return String.fromCharCode(c.charCodeAt(0) - 0xFEE0); }).trim();
+    var m = /^(MP)?0*(\d+)$/i.exec(v.replace(/\s/g, ""));
+    return m ? (m[1] ? "MP" : "") + m[2] : v;
+  }
+  function fromRows(rows, into) {
     var h = rows[0].map(function (x) { return String(x).trim(); }), ix = {};
     h.forEach(function (n, i) { if (ix[n] === undefined) ix[n] = i; });
     if (ix.ID === undefined || ix.DATE === undefined) throw new Error("ID と DATE の列が見つかりません");
-    var map = {};
+    var map = into || {};
     for (var r = 1; r < rows.length; r++) {
       var w = rows[r]; if (!w || w.length < 2) continue;
-      var id = String(w[ix.ID] || "").trim(), date = normDate(w[ix.DATE]);
+      var id = normId(w[ix.ID]), date = normDate(w[ix.DATE]);
       if (!id || !date) continue;
       var v = { date: date };
       ["MMD", "MHD", "AMD", "HIT6", "MIBS4", "GAD7", "PHQ9"].forEach(function (k) { v[k] = ix[k] === undefined ? null : num(w[ix[k]]); });
-      (map[id] = map[id] || []).push(v);
+      var list = (map[id] = map[id] || []), same = -1;
+      for (var j = 0; j < list.length; j++) if (list[j].date === date) same = j;
+      if (same >= 0) list[same] = v; else list.push(v);   // 同じ日が重なったら、あとから読んだファイル（visit_*.csv）を使う
     }
     Object.keys(map).forEach(function (k) { map[k].sort(function (a, b) { return a.date < b.date ? -1 : 1; }); });
     return map;
@@ -364,7 +371,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     var showId = document.getElementById("showId").checked;
     sheet.innerHTML =
       '<div class="sh-head"><div class="sh-title">頭痛成績表</div><div class="sh-meta">' +
-      (showId ? "カルテ番号：" + esc(id) + "<br>" : "") + "今回の記録：" + cur.date + "<br>表示：" + vis.length + " 回分（全 " + all.length + " 回）</div></div>" +
+      (showId ? "研究コード：" + esc(id) + "<br>" : "") + "今回の記録：" + cur.date + "<br>表示：" + vis.length + " 回分（全 " + all.length + " 回）</div></div>" +
       '<div class="top">' + sevHtml + '<div class="tiles">' + tiles + "</div></div>" +
       '<div class="sh-sec">受診ごとの頭痛重症度</div>' + strip +
       '<div style="height:3mm"></div>' +
@@ -382,22 +389,56 @@ body.viewer .sheet{margin:4px auto 20px;}
 
   function fillPatients() {
     var q = document.getElementById("search").value.trim(), sel = document.getElementById("pt");
-    var ids = Object.keys(DATA).filter(function (k) { return !q || k.indexOf(q) >= 0; }).sort();
-    sel.innerHTML = ids.length ? ids.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + "（" + DATA[k].length + "回）</option>"; }).join("") : '<option value="">該当なし</option>';
+    var qc = q ? H2C[normId(q).toUpperCase()] : null;   // 病院IDを入れたら研究コードに読みかえる
+    var ids = Object.keys(DATA).filter(function (k) { return !q || k === qc || k.indexOf(q) >= 0 || (C2H[k] && C2H[k].indexOf(normId(q)) === 0); }).sort();
+    sel.innerHTML = ids.length ? ids.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + (C2H[k] ? "［病院ID " + esc(C2H[k]) + "］" : "") + "（" + DATA[k].length + "回）</option>"; }).join("") : '<option value="">該当なし</option>';
     render();
   }
   function setData(d, msg) { DATA = d; document.getElementById("status").textContent = msg; fillPatients(); }
 
+  // 複数のCSVをまとめて読む。migraine_visit.csv を先に、visit_*.csv をあとに重ねる。UTF-8 で化けたら Shift_JIS（Excel 保存）で読み直す
   document.getElementById("file").addEventListener("change", function (e) {
-    var f = e.target.files && e.target.files[0]; if (!f) return;
-    var rd = new FileReader();
-    rd.onload = function () {
-      try { var d = fromRows(parseCsv(rd.result)); setData(d, "読み込みました：" + Object.keys(d).length + " 人"); }
-      catch (err) { document.getElementById("status").textContent = "読み込めませんでした：" + err.message; }
-    };
-    rd.readAsText(f, "utf-8");
+    var fs = Array.prototype.slice.call(e.target.files || []);
+    if (!fs.length) return;
+    fs.sort(function (a, b) { return (/^visit_/i.test(a.name) ? 1 : 0) - (/^visit_/i.test(b.name) ? 1 : 0); });
+    // 選ぶたびに足していく（migraine_visit.csv と「受診データ追記」フォルダは別々に選べる）。架空の症例を表示中なら入れ替える
+    var d = LOADED, okN = 0, warn = [], info = [], i = 0;
+    function next() {
+      if (i >= fs.length) {
+        var n = Object.keys(d).length;
+        LOADED_FILES += okN;
+        e.target.value = "";
+        if (n) setData(d, "読み込みました：合計 " + LOADED_FILES + " ファイル・" + n + " 人（続けて別のフォルダのファイルも追加できます）" + (info.length ? "　🔑 " + info.join(" / ") : "") + (warn.length ? "　⚠️ " + warn.join(" / ") : ""));
+        else document.getElementById("status").textContent = warn.length ? "読み込めませんでした：" + warn.join(" / ") : "🔑 " + info.join(" / ") + "。続けて受診データのCSVを選んでください";
+        return;
+      }
+      var f = fs[i++];
+      function read(enc, cb) { var rd = new FileReader(); rd.onload = function () { cb(String(rd.result)); }; rd.onerror = function () { warn.push(f.name + " を読めません"); next(); }; rd.readAsText(f, enc); }
+      read("utf-8", function (t) {
+        function use(text, sj) {
+          try {
+            var rr = parseCsv(text);
+            if (loadMap(rr)) { info.push("研究コード対応表を読み込みました（病院IDでも検索できます）"); }
+            else { fromRows(rr, d); okN++; if (sj) warn.push(f.name + " は Excel で保存された形式"); }
+          }
+          catch (err) { warn.push(f.name + "：" + err.message); }
+          next();
+        }
+        if (t.indexOf("\uFFFD") === -1) use(t, false); else read("shift_jis", function (t2) { use(t2, true); });
+      });
+    }
+    next();
   });
-  document.getElementById("demo").addEventListener("click", function () { setData(demo(), "架空の症例を表示しています（実在の患者さんではありません）"); });
+  var LOADED = {}, LOADED_FILES = 0;
+  // 研究コード対応表（研究コード,病院ID,…）：病院IDで検索できるようにする。画面を閉じると消える
+  var H2C = {}, C2H = {};
+  function loadMap(rows) {
+    var h = (rows[0] || []).map(function (x) { return String(x).trim(); }), ic = h.indexOf("研究コード"), ih = h.indexOf("病院ID");
+    if (ic < 0 || ih < 0) return false;
+    for (var r = 1; r < rows.length; r++) { var w = rows[r]; if (!w || !w[ic] || !w[ih]) continue; H2C[normId(w[ih]).toUpperCase()] = w[ic].trim(); C2H[w[ic].trim()] = normId(w[ih]); }
+    return true;
+  }
+  document.getElementById("demo").addEventListener("click", function () { LOADED = {}; LOADED_FILES = 0; setData(demo(), "架空の症例を表示しています（実在の患者さんではありません）"); });
   ["pt", "nvis", "showId"].forEach(function (i) { document.getElementById(i).addEventListener("change", render); });
   document.getElementById("search").addEventListener("input", fillPatients);
   document.getElementById("print").addEventListener("click", function () { window.print(); });
