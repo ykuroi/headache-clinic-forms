@@ -2415,7 +2415,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q10", type: "slider_named", label: "Q11", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          code: "Q10", type: "slider_named", label: "Q11", text: "痛み止めの使用量は、頭痛外来に通う前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
             {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
@@ -3188,6 +3188,15 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-in-flow.gm-dc-eff{flex:0 0 116px;margin:0 !important;padding:0 !important;border:none !important;}
 .gm-dc-eff > .qtext,.gm-dc-eff .slider-hint,.gm-dc-eff .qnote{display:none;}
 .gm-vpanel{display:flex;gap:10px;align-items:stretch;margin:8px 0 4px;}
+/* 円グラフつき縦スライダー（頻度の質問：上＝いつも 100%、下＝ない 0%、2026-10-27） */
+.gm-pie{width:118px;height:118px;border-radius:50%;position:relative;background:conic-gradient(var(--pc,#27ae60) calc(var(--pp,0)*1%),#e8eef0 0);transition:background .25s;box-shadow:inset 0 0 0 1px rgba(0,0,0,.06);}
+.gm-pie::after{content:"";position:absolute;inset:22px;border-radius:50%;background:#fff;}
+.gm-pie-pct{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:1;font-size:1.35rem;font-weight:800;color:var(--pc,#555);}
+.gm-pie-wait .gm-pie-pct{font-size:1.6rem;color:#b0bec5;}
+.gm-pp-panel .gm-vp-ticks.gm-vp-words{width:92px;}
+.gm-pp-panel .gm-vp-body{height:210px;}
+.gm-pp-panel .gm-vs-track::before{background:linear-gradient(var(--top,#27ae60),var(--bot,#e74c3c));}
+.gm-qcard .gm-pp-panel{margin-top:10px;}
 .gm-vp-left{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#f8faf9;border:1px solid var(--border);padding:10px;text-align:center;}
 .gm-vp-face{font-size:3.2rem;line-height:1.15;}
 .gm-vp-word{font-size:.9rem;font-weight:800;padding:3px 10px;border-radius:14px;color:var(--muted);}
@@ -4096,6 +4105,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         opts.appendChild(o);
       });
       card.appendChild(opts);
+      if (q.code === "HIT6") {   // HIT-6 は円グラフつき縦スライダー（上＝いつもある 100%、2026-10-27）
+        opts.style.display = "none";
+        var hp = [0, 25, 50, 75, 100];
+        pieSlider(card, null, q.columns.map(function (c, ci) { return { label: opts.children[ci].textContent, pct: hp[ci] }; }),
+          function () { return chosen(r); },
+          function (ci) { opts.children[ci].click(); }, false);
+      }
       bar.appendChild(msg);
       bar.appendChild(btn);
       card.appendChild(bar);
@@ -4501,6 +4517,84 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     if (inp.getAttribute("data-touched") === "1") cur = Number(inp.value);
     draw();
   }
+  /* 円グラフつき縦スライダー（2026-10-27）
+     levels：下から上の順に {label, pct}。上へ動かすほど円グラフが埋まる。
+     getIdx()：今の答え（levels の番号、なければ null）、setIdx(i)：答えを入れる（元の選択肢ボタンを押す）
+     highGood：上（100%）が良い答えなら true（色：緑）、悪い答えなら false（色：赤） */
+  function pieSlider(host, before, levels, getIdx, setIdx, highGood) {
+    var n = levels.length - 1;
+    var panel = mk("div", "gm-vpanel gm-pp-panel");
+    panel.style.setProperty("--top", highGood ? "#27ae60" : "#e74c3c");
+    panel.style.setProperty("--bot", highGood ? "#e74c3c" : "#27ae60");
+    host.insertBefore(panel, before || null);
+    var left = mk("div", "gm-vp-left");
+    var pie = mk("div", "gm-pie gm-pie-wait");
+    var pct = mk("div", "gm-pie-pct", "？");
+    pie.appendChild(pct);
+    var lab = mk("div", "gm-vp-word", "上下に動かしてね");
+    left.appendChild(pie); left.appendChild(lab);
+    var right = mk("div", "gm-vp-right");
+    var body = mk("div", "gm-vp-body");
+    var track = mk("div", "gm-vs-track");
+    var thumb = mk("div", "gm-vs-thumb");
+    var ticks = mk("div", "gm-vp-ticks gm-vp-words");
+    function pos(i) { return (n - i) / n * 100; }
+    levels.forEach(function (lv, i) {
+      var dot = mk("div", "gm-vs-dot"); dot.style.top = pos(i) + "%"; track.appendChild(dot);
+      var tk = mk("div", "gm-vp-tick", lv.label); tk.style.top = pos(i) + "%"; tk.setAttribute("data-v", i);
+      tk.addEventListener("click", function () { set(i); });
+      ticks.appendChild(tk);
+    });
+    track.appendChild(thumb); body.appendChild(track); body.appendChild(ticks); right.appendChild(body);
+    panel.appendChild(left); panel.appendChild(right);
+    function color(p) {   // 0〜100 → 赤〜黄〜緑（highGood でないときは逆）
+      var g = highGood ? p / 100 : 1 - p / 100;
+      return g >= 0.67 ? "#27ae60" : g >= 0.34 ? "#e6a700" : "#e74c3c";
+    }
+    function draw() {
+      var cur = getIdx();
+      panel.classList.toggle("gm-vs-touched", cur !== null);
+      pie.classList.toggle("gm-pie-wait", cur === null);
+      Array.prototype.forEach.call(ticks.children, function (t) { t.classList.toggle("on", Number(t.getAttribute("data-v")) === cur); });
+      if (cur === null) {
+        thumb.style.top = "50%"; thumb.style.background = "#b0bec5";
+        pie.style.setProperty("--pp", 0); pct.textContent = "？"; lab.textContent = "上下に動かしてね";
+        lab.style.background = ""; lab.style.color = ""; return;
+      }
+      var p = levels[cur].pct, c = color(p);
+      thumb.style.top = pos(cur) + "%"; thumb.style.background = c;
+      pie.style.setProperty("--pp", p); pie.style.setProperty("--pc", c);
+      pct.textContent = p + "%";
+      lab.textContent = levels[cur].label; lab.style.background = c; lab.style.color = "#fff";
+    }
+    function set(i) { if (i !== getIdx()) { setIdx(i); replayClass(pie, "gm-pop"); } draw(); }
+    function fromY(y) {
+      var r = track.getBoundingClientRect();
+      var t = Math.max(0, Math.min(1, (y - r.top) / r.height));
+      set(n - Math.round(t * n));
+    }
+    track.addEventListener("pointerdown", function (ev) {
+      ev.preventDefault();
+      if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+      fromY(ev.clientY);
+    });
+    track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+    draw();
+    return { redraw: draw };
+  }
+  // Q（AQ_PF2H）痛み止めで2時間以内に頭痛が消えた頻度：選択肢ボタンの代わりに円グラフつき縦スライダー
+  (function () {
+    var b = document.querySelector('#qContainer .qblock[data-code="AQ_PF2H"]');
+    var opts = b && b.querySelector(".options");
+    if (!opts) return;
+    var btns = Array.prototype.slice.call(opts.querySelectorAll(".opt-btn")).reverse();   // 下＝ほとんどない → 上＝ほとんど毎回
+    var pcts = [0, 25, 75, 100];
+    opts.style.display = "none";
+    var ps = pieSlider(b, opts, btns.map(function (x, i) { return { label: x.textContent, pct: pcts[i] }; }),
+      function () { for (var i = 0; i < btns.length; i++) if (btns[i].classList.contains("selected")) return i; return null; },
+      function (i) { if (!btns[i].classList.contains("selected")) btns[i].click(); }, true);
+    b.addEventListener("click", function () { setTimeout(ps.redraw, 0); });
+  })();
   function setEnds(inp, left, right) {   // 両端の小さな言葉（左＝悪い、右＝良い）
     var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
     if (!row) return;
