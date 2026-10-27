@@ -1,7 +1,8 @@
 // 頭痛外来アンケート オフライン用（shoshin・saishin）
 // 一度ネットで開けば、以後はネットなしで起動・回答・QR作成ができる。
-// ネットがあるときは裏で最新版を取り直し、次に開いたとき新しい版になる。
-var CACHE = "hz-forms-v1";
+// 2026-10-27：ネットがあるときは毎回ネットの最新版を出す（ネットなし・つながらないときだけ保存しておいた版）。
+// 以前は保存した版を先に出していたので、更新しても1回目は古い版が出ていた。
+var CACHE = "hz-forms-v2";
 var FILES = [
   "./shoshin.html", "./saishin.html",
   "./shoshin.webmanifest", "./saishin.webmanifest",
@@ -21,12 +22,11 @@ self.addEventListener("fetch", function (e) {
   var url = new URL(e.request.url);
   if (url.origin !== location.origin) return;
   e.respondWith(caches.open(CACHE).then(function (c) {
-    return c.match(e.request, { ignoreSearch: true }).then(function (hit) {
-      var net = fetch(e.request).then(function (res) {
-        if (res && res.ok) c.put(e.request, res.clone());
-        return res;
-      }).catch(function () { return hit; });
-      return hit || net;
+    return fetch(e.request, { cache: "no-cache" }).then(function (res) {
+      if (res && res.ok) c.put(e.request, res.clone());
+      return res;
+    }).catch(function () {
+      return c.match(e.request, { ignoreSearch: true });
     });
   }));
 });
