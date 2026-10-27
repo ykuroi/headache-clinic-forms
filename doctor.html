@@ -638,6 +638,10 @@ var SAISHIN_CODEC = (function () {
     for (var i = 1; i <= sc[1]; i++) add(sc[0] + "_" + i, sc[0] + "_" + i, "num", null, false);
   });
   // 先生が前もって追加した質問票（saishin.html?add=… の QR から開いたとき）
+  // 2026-10-27 追加：Q5 を随伴症状の複数選択（Q5sym）＋いちばんひどかった症状（Q5worst）に変更。旧 Q5（ASSOC：随伴症状の変化）は空になる。CSVには入れずカルテ文に出す
+  var ACS = ["吐き気", "嘔吐", "光過敏", "音過敏", "臭い過敏", "めまい", "ふらつき", "耳鳴り", "とくになし"];
+  add("ACS", "Q5sym", "multi", ACS, false);
+  add("ACS_W", "Q5worst", "map", { "吐き気": 1, "嘔吐": 2, "光過敏": 3, "音過敏": 4, "臭い過敏": 5, "めまい": 6, "ふらつき": 7, "耳鳴り": 8 }, false);
   add("DOC_ADD", "DOC_ADD", "multi", ["acc", "iis", "asc12", "phq9", "gad7", "sleep", "ae"], false);
 
   // 解析用CSVの列（ID・VISIT は医師端末で付ける。OLD_* は2026年10月以前の旧形式データ）
@@ -1345,6 +1349,8 @@ var SCHEMA_SAISHIN = {
         },
         {
           code: "Q5", type: "slider_named", label: "Q5", text: "この1ヶ月は、はき気・光過敏・音過敏などの頭痛以外の症状は、どうでしたか？",
+          showIf: { code: "Q5", in: ["◎ とてもよくなった", "◯ 少しよくなった", "△ 変わらない", "✗ 少し悪くなった", "✗✗ 明らかに悪くなった", "N もともとなかった"] },   // 2026-10-26 までの旧QRだけ
+
           note: "※光過敏：まぶしいのが辛いと感じる<br>※音過敏：うるさいのが辛いと感じる",
           options: [
             {value:"◎ とてもよくなった",label:"◎ とてもよくなった"},
@@ -1353,6 +1359,36 @@ var SCHEMA_SAISHIN = {
             {value:"✗ 少し悪くなった",label:"✗ 少し悪くなった"},
             {value:"✗✗ 明らかに悪くなった",label:"✗✗ 明らかに悪くなった"},
             {value:"N もともとなかった",label:"N もともとなかった"}
+          ]
+        },
+        {
+          code: "Q5sym", type: "checkbox", label: "Q5", wide: true,
+          text: "頭痛に伴って出てくる症状（随伴症状）について教えてください。この1ヶ月の頭痛のときに出た症状をすべて選んでください（複数可）",
+          options: [
+            {value:"吐き気",label:"吐き気"},
+            {value:"嘔吐",label:"嘔吐"},
+            {value:"光過敏",label:"光過敏"},
+            {value:"音過敏",label:"音過敏"},
+            {value:"臭い過敏",label:"臭い過敏"},
+            {value:"めまい",label:"めまい"},
+            {value:"ふらつき",label:"ふらつき"},
+            {value:"耳鳴り",label:"耳鳴り"},
+            {value:"とくになし",label:"とくになし"}
+          ]
+        },
+        {
+          code: "Q5worst", type: "radio", label: "Q5-2", wide: true,
+          showIf: { code: "Q5sym", minCount: 1 },
+          text: "そのうち、1番ひどかった随伴症状は何ですか？",
+          options: [
+            {value:"吐き気",label:"吐き気"},
+            {value:"嘔吐",label:"嘔吐"},
+            {value:"光過敏",label:"光過敏"},
+            {value:"音過敏",label:"音過敏"},
+            {value:"臭い過敏",label:"臭い過敏"},
+            {value:"めまい",label:"めまい"},
+            {value:"ふらつき",label:"ふらつき"},
+            {value:"耳鳴り",label:"耳鳴り"}
           ]
         },
         {
@@ -1418,8 +1454,8 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_MBS", type: "radio", label: "Q6-1", wide: true, other: true, clearWhenHidden: true,
-          showIf: { code: "Q6_total", gt: 0 },
+          code: "AQ_MBS", type: "radio", label: "旧Q6-1", wide: true, other: true, clearWhenHidden: true,
+          showIf: [{ code: "Q6_total", gt: 0 }, { code: "AQ_MBS", in: ["吐き気・吐く", "光がまぶしくてつらい（光過敏）", "音がうるさくてつらい（音過敏）", "においがつらい（におい過敏）", "その他"].concat(["頭痛以外につらい症状はない"]) }],   // 2026-10-26 までの旧QRだけ（今は Q5-2 で代用）
           text: "頭痛のとき、頭痛以外でいちばんつらい症状はどれですか？（1つ選んでください）",
           note: "※ふだん使っている痛み止めの効き目を、くわしくうかがいます（Q6-1〜Q6-5）",
           options: [
@@ -1432,7 +1468,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_PF2H", type: "radio", label: "Q6-2", wide: true, clearWhenHidden: true,
+          code: "AQ_PF2H", type: "radio", label: "Q6-1", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
           text: "痛み止めを飲んで2時間以内に、頭痛が完全に消えることはどのくらいありましたか？",
           options: [
@@ -1443,9 +1479,9 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_MBS2H", type: "radio", label: "Q6-3", wide: true, clearWhenHidden: true,
-          showIf: [{ code: "Q6_total", gt: 0 }, { code: "AQ_MBS", in: ["吐き気・吐く", "光がまぶしくてつらい（光過敏）", "音がうるさくてつらい（音過敏）", "においがつらい（におい過敏）", "その他"] }],
-          text: "その症状も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
+          code: "AQ_MBS2H", type: "radio", label: "Q6-2", wide: true, clearWhenHidden: true,
+          showIf: { code: "Q6_total", gt: 0 },
+          text: "いちばんつらい症状（Q5-2・旧Q6-1）も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
           options: [
             {value:"ほとんど毎回",label:"ほとんど毎回"},
             {value:"半分以上",label:"半分以上"},
@@ -1454,7 +1490,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_REC24", type: "radio", label: "Q6-4", wide: true, clearWhenHidden: true,
+          code: "AQ_REC24", type: "radio", label: "Q6-3", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
           text: "いったん治まった頭痛が、24時間以内にぶり返して、また薬を飲むことはありましたか？",
           options: [
@@ -1904,6 +1940,7 @@ function hasAnyAnswer(q, a) {
 function showIfMet(cond, answers) {
   if (Array.isArray(cond)) return cond.every(function (c) { return showIfMet(c, answers); });
   var val = answers[cond.code];
+  if (cond.minCount !== undefined) return Array.isArray(val) && val.length >= cond.minCount && val.indexOf("とくになし") === -1;
   if (cond.gt !== undefined) return val !== null && val !== undefined && val !== "" && Number(val) > cond.gt;
   if (Array.isArray(val)) return cond.in.some(function (v) { return val.indexOf(v) !== -1; });
   return cond.in.indexOf(val) !== -1;
@@ -2217,6 +2254,7 @@ var KARTE_EFF = ["全然効かない", "それほど効かない", "よく効く
 // 再診は設問コードが初診と重なる（Q3 など）ので、項目名を別に持つ
 var KARTE_LABELS_S = {
   SOUDAN: "相談したいこと", TRIGGER: "誘因", Q3: "最大の強さ(NRS)", Q4: "平均の強さ(NRS)", Q5: "随伴症状の変化",
+  Q5sym: "随伴症状", Q5worst: "最もつらい随伴症状(MBS)",
   Q6: "痛み止めの日数", Q7: "効き目（ナルティーク）", Q8: "効き目（トリプタン）", Q9: "効き目（市販薬）",
   Q9las: "効き目（レイボー）", Q9rx: "効き目（その他の処方薬）", Q10: "痛み止めの量（治療前比）",
   Q14: "睡眠の質（治療前比）", Q15: "倦怠感（治療前比）", PGIC: "PGIC（前回比）", SATIS: "治療満足度",
