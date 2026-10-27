@@ -1304,10 +1304,10 @@ var SCHEMA_SAISHIN = {
             {group:"🛌 生活リズム"},
             {value:"睡眠不足",label:"睡眠不足"},
             {value:"寝すぎ・寝だめ",label:"寝すぎ・寝だめ"},
-            {value:"食事抜き・空腹",label:"食事を抜いた・空腹"},
+            {value:"食事抜き・空腹",label:"空腹"},
             {value:"水分不足",label:"水分不足"},
             {value:"運動",label:"激しい運動・運動のあと"},
-            {value:"疲れ・過労",label:"疲れ・過労"},
+            {value:"疲れ・過労",label:"疲れ"},
             {value:"肩こり・姿勢",label:"首・肩のこり、悪い姿勢"},
             {group:"💭 気持ち・ストレス"},
             {value:"ストレス",label:"ストレス（仕事・学業・人間関係など）"},
@@ -1322,13 +1322,13 @@ var SCHEMA_SAISHIN = {
             {value:"アルコール",label:"お酒（赤ワイン・ビールなど）"},
             {value:"特定の食品",label:"チョコレート・チーズ・ナッツ・柑橘類"},
             {value:"加工食品",label:"ハム・ソーセージ・うま味調味料など"},
-            {value:"カフェイン過剰",label:"コーヒー・お茶などのとりすぎ"},
-            {value:"カフェイン中断",label:"コーヒー・お茶などを急にやめた"},
+            {value:"カフェイン過剰",label:"カフェイン（コーヒー・お茶など）の取りすぎ"},
+            {value:"カフェイン中断",label:"カフェイン（コーヒー・お茶など）を急にやめた"},
             {group:"🌦 環境"},
             {value:"天気",label:"天気の変化（低気圧・台風・雨の前）"},
             {value:"気温・湿度",label:"気温差・湿度の変化"},
             {value:"光",label:"強い光（日光・蛍光灯・画面のまぶしさ）"},
-            {value:"音",label:"大きな音・騒音"},
+            {value:"音",label:"大きな音"},
             {value:"におい",label:"強いにおい（香水・タバコ・柔軟剤など）"},
             {value:"人混み・乗り物",label:"人混み・乗り物・旅行"},
             {value:"入浴",label:"入浴・サウナ"},
@@ -1377,7 +1377,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q5worst", type: "radio", label: "Q5-2", wide: true,
+          code: "Q5worst", type: "radio", label: "Q6", wide: true,
           showIf: { code: "Q5sym", minCount: 1 },
           text: "そのうち、1番ひどかった随伴症状は何ですか？",
           options: [
@@ -1392,7 +1392,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q6", type: "numbergroup", label: "Q6", text: "この1ヶ月に痛み止めを使った日数は？",
+          code: "Q6", type: "numbergroup", label: "Q7", text: "この1ヶ月に痛み止めを使った日数は？",
           note: "※合計は「痛み止めを使った日」の数です。1日に2種類使った日は、内訳ではそれぞれに数えてください",
           fields: [
             { code: "Q6_total", label: "合計", unit: "日/月" },
@@ -1468,7 +1468,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_PF2H", type: "radio", label: "Q6-1", wide: true, clearWhenHidden: true,
+          code: "AQ_PF2H", type: "radio", label: "Q8", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
           text: "痛み止めを飲んで2時間以内に、頭痛が完全に消えることはどのくらいありましたか？",
           options: [
@@ -1479,9 +1479,9 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_MBS2H", type: "radio", label: "Q6-2", wide: true, clearWhenHidden: true,
+          code: "AQ_MBS2H", type: "radio", label: "Q9", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
-          text: "いちばんつらい症状（Q5-2・旧Q6-1）も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
+          text: "いちばんつらい症状（Q6・旧Q6-1）も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
           options: [
             {value:"ほとんど毎回",label:"ほとんど毎回"},
             {value:"半分以上",label:"半分以上"},
@@ -1490,7 +1490,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_REC24", type: "radio", label: "Q6-3", wide: true, clearWhenHidden: true,
+          code: "AQ_REC24", type: "radio", label: "Q10", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
           text: "いったん治まった頭痛が、24時間以内にぶり返して、また薬を飲むことはありましたか？",
           options: [
@@ -1501,7 +1501,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          code: "Q10", type: "slider_named", label: "Q11", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
             {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
@@ -1555,7 +1555,7 @@ var SCHEMA_SAISHIN = {
       title: "■ 全体的な変化・治療満足度",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q8", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "PGIC", type: "slider_named", label: "Q12", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
           options: [
             {value:"-3",label:"-3 著明悪化"},
             {value:"-2",label:"-2 中等悪化"},
@@ -1567,7 +1567,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q9", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          code: "SATIS", type: "nrsmatrix", label: "Q13", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
           rows: [
             {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
             {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
@@ -1581,7 +1581,7 @@ var SCHEMA_SAISHIN = {
       title: "🔎 今日とくに気になること",
       questions: [
         {
-          code: "CONCERN", type: "checkbox", label: "Q10", wide: true,
+          code: "CONCERN", type: "checkbox", label: "Q14", wide: true,
           text: "今日、とくに気になっていることを選んでください（複数可）",
           note: "選んだことについての質問だけが、この下に追加されます。",
           options: [
@@ -1787,7 +1787,7 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q11", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q15", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -1803,7 +1803,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q12", text: "治療について感じていること・ご要望を自由にご記入ください" }
+        { code: "Q13", type: "textarea", label: "Q16", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
