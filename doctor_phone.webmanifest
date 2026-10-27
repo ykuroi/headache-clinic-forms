@@ -1,0 +1,15 @@
+{
+  "id": "./doctor_phone.html",
+  "name": "頭痛外来 医師用QR（スマホ）",
+  "short_name": "医師QR",
+  "start_url": "./doctor_phone.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6f78",
+  "lang": "ja",
+  "icons": [
+    { "src": "icon_doctor_192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon_doctor_512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" }
+  ]
+}
