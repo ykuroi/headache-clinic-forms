@@ -2701,15 +2701,17 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q15", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q15", text: "これからも、今の治療を続けたいですか？", wide: true,
+          note: "お薬・注射など、いま受けている治療についての、今の気持ちで選んでください。決めきれないときは「迷っている・相談して決めたい」で大丈夫です（先生と一緒に考えます）。",
           options: [
-            {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
-            {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
-            {value:"中止したい",label:"中止したい（↓理由を教えてください）"}
+            // 2026-10-27 3択に（「どちらかといえば続けたい」「あまり続けたくない」は画面から外した。値・コード表は不変）
+            {value:"ぜひ続けたい",label:"続けたい"},
+            {value:"迷っている",label:"迷っている・相談して決めたい"},
+            {value:"中止したい",label:"やめたい（↓理由を教えてください）"}
           ]
         },
         {
-          code: "Q12", type: "checkbox", text: "「迷っている」「中止したい」場合の理由（複数可）", other: true, wide: true,
+          code: "Q12", type: "checkbox", text: "「迷っている・相談して決めたい」「やめたい」を選んだ理由（複数可）", other: true, wide: true,
           showIf: { code: "Q11", in: ["迷っている","中止したい"] },
           options: [
             {value:"効果が感じられない",label:"効果が感じられない"},{value:"副作用がつらい",label:"副作用がつらい"},
@@ -3197,6 +3199,16 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-pp-panel .gm-vp-body{height:210px;}
 .gm-pp-panel .gm-vs-track::before{background:linear-gradient(var(--top,#27ae60),var(--bot,#e74c3c));}
 .gm-qcard .gm-pp-panel{margin-top:10px;}
+.gm-pp-opts > .opt-btn:not(.gm-pp-skip){display:none;}
+.gm-pp-opts{display:flex;justify-content:center;margin-top:6px;}
+.gm-pp-opts > .gm-pp-skip{flex:0 1 auto;font-size:.8rem;padding:6px 14px;min-height:0;}
+/* 治療を続けたいか：顔のボタンを横一列に（2026-10-27） */
+.gm-facerow .options{display:grid !important;grid-template-columns:repeat(3,1fr);gap:8px;}
+.gm-facerow .options .opt-btn{display:flex;flex-direction:column;align-items:center;justify-content:flex-start;gap:6px;padding:14px 4px;font-size:.9rem;font-weight:700;line-height:1.25;text-align:center;min-height:0;width:auto;}
+.gm-facerow .options .opt-btn .gm-fr-emo{font-size:2.6rem;line-height:1;}
+.gm-facerow .options > :not(.opt-btn){grid-column:1/-1;}
+.gm-facerow .options .opt-btn{word-break:keep-all;overflow-wrap:anywhere;}
+.gm-facerow .options .opt-btn.selected .gm-fr-emo{transform:scale(1.15);}
 .gm-vp-left{flex:1 1 auto;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;border-radius:12px;background:#f8faf9;border:1px solid var(--border);padding:10px;text-align:center;}
 .gm-vp-face{font-size:3.2rem;line-height:1.15;}
 .gm-vp-word{font-size:.9rem;font-weight:800;padding:3px 10px;border-radius:14px;color:var(--muted);}
@@ -3207,6 +3219,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-vp-small .gm-vp-body{height:170px;}
 .gm-vp-small .gm-vp-face{font-size:2.4rem;}
 .gm-vs-track{position:relative;width:30px;height:100%;touch-action:none;cursor:pointer;flex:0 0 30px;}
+.gm-vp-right{touch-action:none;-webkit-user-select:none;user-select:none;cursor:pointer;}
 .gm-vs-track::before{content:"";position:absolute;left:12px;top:0;bottom:0;width:6px;border-radius:3px;background:linear-gradient(#27ae60,#f1c40f,#e74c3c);opacity:.35;}
 .gm-vs-dot{position:absolute;left:11px;width:8px;height:8px;margin-top:-4px;border-radius:50%;background:#fff;border:1px solid #b0bec5;}
 .gm-vs-thumb{position:absolute;left:1px;width:28px;height:28px;margin-top:-14px;border-radius:50%;border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.3);transition:top .12s;}
@@ -4105,12 +4118,16 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         opts.appendChild(o);
       });
       card.appendChild(opts);
-      if (q.code === "HIT6") {   // HIT-6 は円グラフつき縦スライダー（上＝いつもある 100%、2026-10-27）
-        opts.style.display = "none";
-        var hp = [0, 25, 50, 75, 100];
-        pieSlider(card, null, q.columns.map(function (c, ci) { return { label: opts.children[ci].textContent, pct: hp[ci] }; }),
-          function () { return chosen(r); },
-          function (ci) { opts.children[ci].click(); }, false);
+      if (q.code === "HIT6" || q.code === "MIBS4") {   // HIT-6・MIBS-4 は円グラフつき縦スライダー（上＝いつも 100%、2026-10-27）
+        // MIBS-4 の「わからない/該当なし」はスライダーに入れず、下に小さなボタンとして残す
+        var cols = [];
+        q.columns.forEach(function (c, ci) { if (!/わからない/.test(c.label)) cols.push(ci); else opts.children[ci].classList.add("gm-pp-skip"); });
+        opts.classList.add("gm-pp-opts");
+        var hp = cols.map(function (ci, k) { return Math.round(k / (cols.length - 1) * 100); });
+        var pp = pieSlider(card, opts, cols.map(function (ci, k) { return { label: opts.children[ci].textContent, pct: hp[k] }; }),
+          function () { var c = chosen(r), k = cols.indexOf(c); return k === -1 ? null : k; },
+          function (k) { opts.children[cols[k]].click(); }, false);
+        opts.addEventListener("click", function () { setTimeout(pp.redraw, 0); });
       }
       bar.appendChild(msg);
       bar.appendChild(btn);
@@ -4508,12 +4525,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var k = Math.round(t * max);
       set(topVal === 0 ? k : max - k);
     }
-    track.addEventListener("pointerdown", function (ev) {
+    // 右の枠全体で指を受ける（細い線から指が外れても画面がスクロールしないように、2026-10-27）
+    right.addEventListener("pointerdown", function (ev) {
       ev.preventDefault();
-      if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+      if (right.setPointerCapture) right.setPointerCapture(ev.pointerId);
       fromY(ev.clientY);
     });
-    track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+    right.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
     if (inp.getAttribute("data-touched") === "1") cur = Number(inp.value);
     draw();
   }
@@ -4573,12 +4591,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var t = Math.max(0, Math.min(1, (y - r.top) / r.height));
       set(n - Math.round(t * n));
     }
-    track.addEventListener("pointerdown", function (ev) {
+    // 右の枠全体で指を受ける（細い線から指が外れても画面がスクロールしないように、2026-10-27）
+    right.addEventListener("pointerdown", function (ev) {
       ev.preventDefault();
-      if (track.setPointerCapture) track.setPointerCapture(ev.pointerId);
+      if (right.setPointerCapture) right.setPointerCapture(ev.pointerId);
       fromY(ev.clientY);
     });
-    track.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
+    right.addEventListener("pointermove", function (ev) { if (ev.buttons || ev.pressure > 0) fromY(ev.clientY); });
     draw();
     return { redraw: draw };
   }
@@ -4594,6 +4613,18 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       function () { for (var i = 0; i < btns.length; i++) if (btns[i].classList.contains("selected")) return i; return null; },
       function (i) { if (!btns[i].classList.contains("selected")) btns[i].click(); }, true);
     b.addEventListener("click", function () { setTimeout(ps.redraw, 0); });
+  })();
+  // 治療を続けたいか（Q11）：言葉だけのボタンを、顔つきのボタン5つの横並びに（記録する値は今までと同じ）
+  (function () {
+    var b = document.querySelector('#qContainer .qblock[data-code="Q11"]');
+    if (!b) return;
+    var look = { "ぜひ続けたい": ["😆", "続けたい"], "迷っている": ["🤔", "迷っている・相談して決めたい"], "中止したい": ["✋", "やめたい"] };
+    b.classList.add("gm-facerow");
+    Array.prototype.forEach.call(b.querySelectorAll(".opt-btn"), function (x) {
+      var l = look[x.getAttribute("data-value")];
+      if (!l) return;
+      x.innerHTML = "<span class='gm-fr-emo'>" + l[0] + "</span><span>" + l[1] + "</span>";
+    });
   })();
   function setEnds(inp, left, right) {   // 両端の小さな言葉（左＝悪い、右＝良い）
     var row = inp.closest(".slider-container").querySelector(".slider-labels-row");
