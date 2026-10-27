@@ -3047,10 +3047,12 @@ var QRCode;!function(){function a(a){this.mode=c.MODE_8BIT_BYTE,this.data=a,this
 .dt-dots button.done{background:#27ae60;border-color:#27ae60;color:#fff;}
 .dt-dots button.on.done{box-shadow:0 0 0 3px rgba(39,174,96,.3);}
 .dt-dots button:disabled{opacity:.35;cursor:default;}
+.dt-dots button.skip{opacity:1;background:#eceff1;border-color:#cfd8dc;color:#90a4ae;}
 @media (prefers-reduced-motion: reduce){.dt-car,.dt-car-track{transition:none;}}
 /* 入力し終えたステップ */
 .dt-step{position:relative;transition:border-color .3s, background .3s;}
 .dt-step.gm-done{border-color:#27ae60;background:#f3fbf5;}
+.dt-step.gm-done .dt-step-title{padding-right:72px;}   /* 右上の「✓ OK!」と文字が重ならないように */
 .dt-step.gm-done::after{
   content:"✓ OK!";position:absolute;top:8px;right:10px;
   font-size:.78rem;font-weight:800;color:#fff;background:#27ae60;
@@ -3609,7 +3611,11 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       car.style.height = h ? h + "px" : "";
       steps.forEach(function (s, i) { s.setAttribute("aria-hidden", i === active ? "false" : "true"); });
       dotBtns.forEach(function (d, i) {
-        d.style.display = needed(i) ? "" : "none";
+        // 2026-10-27 丸は①②③を最初から全部出す。①の答えで不要になった欄は✗（例：頭痛0日なら②）
+        var skip = !needed(i) && skipped(i);
+        d.textContent = skip ? "✗" : "①②③④⑤⑥".charAt(i);
+        d.classList.toggle("skip", skip);
+        d.title = skip ? "答えなくてよい質問です" : "";
         d.disabled = !isShown(i);
         d.classList.toggle("on", i === active);
         d.classList.toggle("done", confirmed[i]);
@@ -3625,6 +3631,12 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     window.addEventListener("resize", fit);
 
     function needed(i) { return !steps[i].classList.contains("hidden"); }
+    // ①が入っていて、その答えで不要になった欄（頭痛0日→②、頭痛のない日0日→③）
+    function skipped(i) {
+      var ha = inputs[0].value === "" ? null : Number(inputs[0].value);
+      if (ha === null || !confirmed[0]) return false;
+      return (i === 1 && ha === 0) || (i === 2 && ha === 30);
+    }
     function isShown(i) { return needed(i) && !steps[i].classList.contains("gm-wait"); }
     function valid(i) {
       var err = steps[i].querySelector(".dt-err");
