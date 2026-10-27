@@ -1373,6 +1373,17 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
         var bl = Array.prototype.filter.call(sec.querySelectorAll(".qblock"), function (x) { return !x.parentElement.closest(".qblock"); });
         sec.classList.toggle("hidden", bl.length > 0 && bl.every(function (x) { return x.classList.contains("hidden"); }));
       });
+      // 設問番号は、いま表示されている設問だけで通し番号にする（出ない設問があっても番号が飛ばない、2026-10-27）
+      var qn = 0;
+      Array.prototype.forEach.call(containerEl.querySelectorAll(".qblock"), function (x) {
+        if (x.parentElement.closest(".qblock")) return;
+        var t = x.querySelector(".qcode");
+        if (!t || t.closest(".qblock") !== x) return;
+        if (!t.hasAttribute("data-orig")) t.setAttribute("data-orig", t.textContent);
+        if (!/^Q\d+$/.test(t.getAttribute("data-orig"))) return;
+        if (x.classList.contains("hidden") || x.closest("section.hidden")) return;
+        t.textContent = "Q" + (++qn);
+      });
     }
     FE._onAnswerChanged = function () {
       evalAll();
@@ -2234,10 +2245,10 @@ var SCHEMA_SAISHIN = {
             {group:"🛌 生活リズム"},
             {value:"睡眠不足",label:"睡眠不足"},
             {value:"寝すぎ・寝だめ",label:"寝すぎ・寝だめ"},
-            {value:"食事抜き・空腹",label:"食事を抜いた・空腹"},
+            {value:"食事抜き・空腹",label:"空腹"},
             {value:"水分不足",label:"水分不足"},
             {value:"運動",label:"激しい運動・運動のあと"},
-            {value:"疲れ・過労",label:"疲れ・過労"},
+            {value:"疲れ・過労",label:"疲れ"},
             {value:"肩こり・姿勢",label:"首・肩のこり、悪い姿勢"},
             {group:"💭 気持ち・ストレス"},
             {value:"ストレス",label:"ストレス（仕事・学業・人間関係など）"},
@@ -2245,20 +2256,20 @@ var SCHEMA_SAISHIN = {
             {value:"緊張・不安",label:"緊張・不安"},
             {group:"🌸 ホルモン（女性）"},
             {value:"月経前後",label:"月経（生理）の前後"},
-            {value:"排卵期",label:"排卵のころ"},
+            // 「排卵のころ」は 2026-10-27 に画面から削除（コード表の番号は欠番として残す）
             {value:"妊娠・産後・更年期",label:"妊娠・産後・更年期"},
             {value:"ホルモン剤",label:"ピルなどホルモン剤"},
             {group:"🍷 飲食物"},
             {value:"アルコール",label:"お酒（赤ワイン・ビールなど）"},
             {value:"特定の食品",label:"チョコレート・チーズ・ナッツ・柑橘類"},
             {value:"加工食品",label:"ハム・ソーセージ・うま味調味料など"},
-            {value:"カフェイン過剰",label:"コーヒー・お茶などのとりすぎ"},
-            {value:"カフェイン中断",label:"コーヒー・お茶などを急にやめた"},
+            {value:"カフェイン過剰",label:"カフェイン（コーヒー・お茶など）の取りすぎ"},
+            {value:"カフェイン中断",label:"カフェイン（コーヒー・お茶など）を急にやめた"},
             {group:"🌦 環境"},
             {value:"天気",label:"天気の変化（低気圧・台風・雨の前）"},
             {value:"気温・湿度",label:"気温差・湿度の変化"},
             {value:"光",label:"強い光（日光・蛍光灯・画面のまぶしさ）"},
-            {value:"音",label:"大きな音・騒音"},
+            {value:"音",label:"大きな音"},
             {value:"におい",label:"強いにおい（香水・タバコ・柔軟剤など）"},
             {value:"人混み・乗り物",label:"人混み・乗り物・旅行"},
             {value:"入浴",label:"入浴・サウナ"},
@@ -2287,13 +2298,13 @@ var SCHEMA_SAISHIN = {
             {value:"音過敏",label:"音過敏（うるさくてつらい）"},
             {value:"臭い過敏",label:"臭い過敏（においがつらい）"},
             {value:"めまい",label:"めまい（ぐるぐる回る感じ）"},
-            {value:"ふらつき",label:"ふらつき"},
+            {value:"ふらつき",label:"ふらつき（くらっとする感じ）"},
             {value:"耳鳴り",label:"耳鳴り"},
             {value:"とくになし",label:"頭痛以外の症状はなかった",exclusive:true}
           ]
         },
         {
-          code: "Q5worst", type: "radio", label: "Q5-2", wide: true, clearWhenHidden: true, optionsFrom: "Q5sym",
+          code: "Q5worst", type: "radio", label: "Q6", wide: true, clearWhenHidden: true, optionsFrom: "Q5sym",
           showIf: { code: "Q5sym", minCount: 2 },
           text: "そのうち、1番ひどかった随伴症状は何ですか？（1つ選んでください）",
           options: [
@@ -2303,12 +2314,12 @@ var SCHEMA_SAISHIN = {
             {value:"音過敏",label:"音過敏（うるさくてつらい）"},
             {value:"臭い過敏",label:"臭い過敏（においがつらい）"},
             {value:"めまい",label:"めまい（ぐるぐる回る感じ）"},
-            {value:"ふらつき",label:"ふらつき"},
+            {value:"ふらつき",label:"ふらつき（くらっとする感じ）"},
             {value:"耳鳴り",label:"耳鳴り"}
           ]
         },
         {
-          code: "Q6", type: "numbergroup", label: "Q6", text: "この1ヶ月に痛み止めを使った日数は？",
+          code: "Q6", type: "numbergroup", label: "Q7", text: "この1ヶ月に痛み止めを使った日数は？",
           note: "※合計は「痛み止めを使った日」の数です。1日に2種類使った日は、内訳ではそれぞれに数えてください",
           fields: [
             { code: "Q6_total", label: "合計", unit: "日/月" },
@@ -2370,9 +2381,9 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_PF2H", type: "radio", label: "Q6-1", wide: true, clearWhenHidden: true,
+          code: "AQ_PF2H", type: "radio", label: "Q8", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
-          note: "※ふだん使っている痛み止めの効き目を、くわしくうかがいます（Q6-1〜Q6-3）",
+          note: "※ふだん使っている痛み止めの効き目を、くわしくうかがいます（このあと3問）",
           text: "痛み止めを飲んで2時間以内に、頭痛が完全に消えることはどのくらいありましたか？",
           options: [
             {value:"ほとんど毎回",label:"ほとんど毎回"},
@@ -2382,7 +2393,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_MBS2H", type: "radio", label: "Q6-2", wide: true, clearWhenHidden: true,
+          code: "AQ_MBS2H", type: "radio", label: "Q9", wide: true, clearWhenHidden: true,
           showIf: [{ code: "Q6_total", gt: 0 }, { code: "Q5worst", in: ["吐き気", "嘔吐", "光過敏", "音過敏", "臭い過敏", "めまい", "ふらつき", "耳鳴り"] }],
           text: "Q5 でいちばんひどかった症状（その症状）も、痛み止めを飲んで2時間以内に完全になくなりましたか？",
           options: [
@@ -2393,7 +2404,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "AQ_REC24", type: "radio", label: "Q6-3", wide: true, clearWhenHidden: true,
+          code: "AQ_REC24", type: "radio", label: "Q10", wide: true, clearWhenHidden: true,
           showIf: { code: "Q6_total", gt: 0 },
           text: "いったん治まった頭痛が、24時間以内にぶり返して、また薬を飲むことはありましたか？",
           options: [
@@ -2404,7 +2415,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "Q10", type: "slider_named", label: "Q7", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
+          code: "Q10", type: "slider_named", label: "Q11", text: "痛み止めの使用量は、治療を始める前と比べてどうですか？",
           note: "🙂「痛み止めを飲む量が減ると、頭痛が良くなる人が多いですよ」",
           options: [
             {value:"◎ 明らかに減った（半分以下）",label:"◎ 明らかに減った"},
@@ -2458,7 +2469,7 @@ var SCHEMA_SAISHIN = {
       title: "■ 全体的な変化・治療満足度",
       questions: [
         {
-          code: "PGIC", type: "slider_named", label: "Q8", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
+          code: "PGIC", type: "slider_named", label: "Q12", text: "全体的にみて、前回病院にきた時と比べて調子はどうですか？（PGIC）",
           options: [
             {value:"-3",label:"-3 著明悪化"},
             {value:"-2",label:"-2 中等悪化"},
@@ -2470,7 +2481,7 @@ var SCHEMA_SAISHIN = {
           ]
         },
         {
-          code: "SATIS", type: "nrsmatrix", label: "Q9", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
+          code: "SATIS", type: "nrsmatrix", label: "Q13", text: "治療満足度　（0＝不満 〜 10＝とても満足）",
           rows: [
             {code:"kikime",label:"効き目",note:"頭痛を減らす効果について"},
             {code:"tsukaiyasusa",label:"使いやすさ",note:"打ちやすさ(飲みやすさ)"},
@@ -2484,7 +2495,7 @@ var SCHEMA_SAISHIN = {
       title: "🔎 今日とくに気になること",
       questions: [
         {
-          code: "CONCERN", type: "checkbox", label: "Q10", wide: true,
+          code: "CONCERN", type: "checkbox", label: "Q14", wide: true,
           text: "今日、とくに気になっていることを選んでください（複数可）",
           note: "選んだことについての質問だけが、この下に追加されます。",
           options: [
@@ -2690,7 +2701,7 @@ var SCHEMA_SAISHIN = {
       title: "💭 今後の治療について",
       questions: [
         {
-          code: "Q11", type: "radio", label: "Q11", text: "今後も今の注射治療を続けたいですか？", wide: true,
+          code: "Q11", type: "radio", label: "Q15", text: "今後も今の注射治療を続けたいですか？", wide: true,
           options: [
             {value:"ぜひ続けたい",label:"ぜひ続けたい"},{value:"どちらかといえば続けたい",label:"どちらかといえば続けたい"},
             {value:"迷っている",label:"迷っている"},{value:"あまり続けたくない",label:"あまり続けたくない"},
@@ -2706,7 +2717,7 @@ var SCHEMA_SAISHIN = {
             {value:"頭痛が十分改善したので卒業したい",label:"頭痛が十分改善したので卒業したい"},{value:"その他",label:"その他"}
           ]
         },
-        { code: "Q13", type: "textarea", label: "Q12", text: "治療について感じていること・ご要望を自由にご記入ください" }
+        { code: "Q13", type: "textarea", label: "Q16", text: "治療について感じていること・ご要望を自由にご記入ください" }
       ]
     }
   ]
@@ -3834,6 +3845,11 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
   setupPainPair("Q3", "Q4", "Q3・Q4");
 
   /* ---------------- 1問だけの OK ボタン（Q5 など） ---------------- */
+  // 「Qn クリア！」の番号は、いま画面に出ている通し番号を使う
+  function curLabel(q, label) {
+    var t = q && q.querySelector(".qcode");
+    return label && /^Q\d/.test(label) && t ? t.textContent : label;
+  }
   function setupSingleOk(code, isReady, label) {
     var q = document.querySelector('#qContainer .qblock[data-code="' + code + '"]');
     if (!q) return;
@@ -3864,7 +3880,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         refresh();
         if (!cleared) {
           cleared = true;
-          banner("🎉 " + label + " クリア！", function () { scrollToEl(nextVisibleQuestion(q)); });
+          banner("🎉 " + curLabel(q, label) + " クリア！", function () { scrollToEl(nextVisibleQuestion(q)); });
         }
       });
     });
@@ -3879,7 +3895,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     return !!(inp && inp.getAttribute("data-touched") === "1");
   }
   setupSingleOk("Q5sym", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q5");   // 随伴症状（2026-10-27）
-  setupSingleOk("Q5worst", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q5-2");
+  setupSingleOk("Q5worst", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q6");
 
   // 治療満足度（Q14）の「副作用」行：0・10 の下に意味を追記
   (function () {
@@ -3924,16 +3940,16 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     for (var i = 0; i < a.length; i++) if (a[i].getAttribute("data-touched") !== "1") return false;
     return true;
   }
-  setupSingleOk("Q6", function (q) { var t = q.querySelector('input[data-code="Q6_total"]'); return !!(t && t.value !== ""); }, "Q6");
-  setupSingleOk("Q7", sliderTouched, "Q7");
-  setupSingleOk("Q8", sliderTouched, "Q8");
-  setupSingleOk("Q9", sliderTouched, "Q9");
+  setupSingleOk("Q6", function (q) { var t = q.querySelector('input[data-code="Q6_total"]'); return !!(t && t.value !== ""); }, "Q7");
+  setupSingleOk("Q7", sliderTouched, null);   // 薬カードの中の効き目
+  setupSingleOk("Q8", sliderTouched, null);
+  setupSingleOk("Q9", sliderTouched, null);
   setupSingleOk("Q9las", sliderTouched, null);
   setupSingleOk("Q9rx", sliderTouched, null);
   ["AQ_PF2H", "AQ_MBS2H", "AQ_REC24"].forEach(function (c, i) {
-    setupSingleOk(c, function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q6-" + (i + 1));
+    setupSingleOk(c, function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q" + (i + 8));
   });
-  // Q6-2 の文に、Q5 でいちばんひどかった症状を入れる（2026-10-27）
+  // Q9（AQ_MBS2H）の文に、Q5 でいちばんひどかった症状を入れる（2026-10-27）
   (function () {
     var sym = document.querySelector('#qContainer .qblock[data-code="Q5sym"]');
     var w = document.querySelector('#qContainer .qblock[data-code="Q5worst"]');
@@ -3949,14 +3965,14 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     [sym, w].forEach(function (b) { b.addEventListener("click", function () { setTimeout(upd, 0); }); });
     upd();
   })();
-  setupSingleOk("Q10", sliderTouched, "Q7");
-  setupSingleOk("PGIC", sliderTouched, "Q8");
-  setupSingleOk("SATIS", allSlidersTouched, "Q9");
-  setupSingleOk("CONCERN", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q10");   // 今日とくに気になること（2026-10-25）
+  setupSingleOk("Q10", sliderTouched, "Q11");
+  setupSingleOk("PGIC", sliderTouched, "Q12");
+  setupSingleOk("SATIS", allSlidersTouched, "Q13");
+  setupSingleOk("CONCERN", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q14");   // 今日とくに気になること（2026-10-25）
   setupSingleOk("Q14", sliderTouched, "睡眠");    // 「眠り・疲れやすさ」を選んだ人だけ
   setupSingleOk("Q15", sliderTouched, "疲れやすさ");
   setupSingleOk("AQ_AE", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "副作用①");   // 「薬の副作用」を選んだ人だけ
-  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q11"); // 今後の治療
+  setupSingleOk("Q11", function (q) { return !!q.querySelector(".opt-btn.selected"); }, "Q15"); // 今後の治療
 
   /* ---------------- 副作用チェック：とくになし（全部なし） ---------------- */
   (function () {
@@ -4335,7 +4351,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       done = true;
       refresh();
       explode(btn, function () {
-        if (!cleared) { cleared = true; banner("🎉 Q6 クリア！", function () { scrollToEl(nextVisibleQuestion(q6)); }); }
+        if (!cleared) { cleared = true; banner("🎉 " + curLabel(q6, "Q7") + " クリア！", function () { scrollToEl(nextVisibleQuestion(q6)); }); }
       });
     });
     refresh();
