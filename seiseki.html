@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>頭痛成績表</title>
 <style>
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%;}   /* iPhone が長い文だけ勝手に字を大きくするのを止める */
 :root{
   --primary:#2f6f6b; --primary-dark:#204d4a; --accent:#e8734a;
   --bg:#f6f4ef; --card:#fff; --text:#2a2a2a; --muted:#767676; --border:#e2ddd2;
@@ -390,7 +391,7 @@ body.viewer .sheet{margin:4px auto 20px;}
   function fillPatients() {
     var q = document.getElementById("search").value.trim(), sel = document.getElementById("pt");
     var qc = q ? H2C[normId(q).toUpperCase()] : null;   // 病院IDを入れたら研究コードに読みかえる
-    var ids = Object.keys(DATA).filter(function (k) { return !q || k === qc || k.indexOf(q) >= 0 || (C2H[k] && C2H[k].indexOf(normId(q)) === 0); }).sort();
+    var ids = Object.keys(DATA).filter(function (k) { return !q || k === qc || k.indexOf(q) >= 0 || k.indexOf(normId(q)) >= 0 || (C2H[k] && C2H[k].indexOf(normId(q)) === 0); }).sort();
     sel.innerHTML = ids.length ? ids.map(function (k) { return '<option value="' + esc(k) + '">' + esc(k) + (C2H[k] ? "［病院ID " + esc(C2H[k]) + "］" : "") + "（" + DATA[k].length + "回）</option>"; }).join("") : '<option value="">該当なし</option>';
     render();
   }
@@ -405,6 +406,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     var d = LOADED, okN = 0, warn = [], info = [], i = 0;
     function next() {
       if (i >= fs.length) {
+        mergeByMap(d);
         var n = Object.keys(d).length;
         LOADED_FILES += okN;
         e.target.value = "";
@@ -432,6 +434,21 @@ body.viewer .sheet{margin:4px auto 20px;}
   var LOADED = {}, LOADED_FILES = 0;
   // 研究コード対応表（研究コード,病院ID,…）：病院IDで検索できるようにする。画面を閉じると消える
   var H2C = {}, C2H = {};
+  // 病院IDのまま保存された visit_*.csv（doctor で対応表を読まずに保存したとき）を、対応表の研究コードの患者にまとめる。
+  // 同じ日が重なったら病院ID側（あとから保存した visit_*.csv）を使う
+  function mergeByMap(d) {
+    Object.keys(d).forEach(function (k) {
+      var c = H2C[k.toUpperCase()];
+      if (!c || c === k) return;
+      var list = (d[c] = d[c] || []);
+      d[k].forEach(function (v) {
+        for (var j = 0; j < list.length; j++) if (list[j].date === v.date) { list[j] = v; return; }
+        list.push(v);
+      });
+      list.sort(function (x, y) { return x.date < y.date ? -1 : 1; });
+      delete d[k];
+    });
+  }
   function loadMap(rows) {
     var h = (rows[0] || []).map(function (x) { return String(x).trim(); }), ic = h.indexOf("研究コード"), ih = h.indexOf("病院ID");
     if (ic < 0 || ih < 0) return false;
