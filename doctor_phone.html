@@ -1609,12 +1609,12 @@ var SCHEMA_SAISHIN = {
           text: "今日、とくに気になっていることを選んでください（複数可）",
           note: "選んだことについての質問だけが、この下に追加されます。",
           options: [
-            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・まぶしさ・音のつらさ"},
-            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"},
-            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"},
+            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・光・音"},
+            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調"},
+            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが痛い"},
             {value:"気分の落ち込み",label:"😔 気分の落ち込み"},
             {value:"不安・心配",label:"😟 不安・心配"},
-            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害で治療中、または治療したことがある"},
+            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害の治療歴"},
             {value:"眠り・疲れやすさ",label:"🌙 眠り・疲れやすさ"},
             {value:"薬の副作用",label:"💊 薬の副作用"},
             {value:"とくにない",label:"とくにない",exclusive:true}
@@ -2290,6 +2290,8 @@ var KARTE_LABELS_S = {
 function buildKarteText(kind, schema, a, scores) {
   function has(v) { return !(v === null || v === undefined || v === "" || (Array.isArray(v) && v.length === 0)); }
   function n(v) { return has(v) ? v : null; }
+  function abbrDays(list) { return list.filter(function (d) { return has(d[1]); }).map(function (d) { return d[0] + "(" + d[1] + ")"; }).join(" "); }
+  var amdDone = false;
   var lines = ["【頭痛外来 " + (kind === "shoki" ? "初診" : "再診") + "問診】記入日 " + (a.FORM_DATE || window.currentFormDate || "不明")];
   var DOC_ADD_NAMES = { acc: "随伴症状", iis: "頭痛のない日の症状", asc12: "ASC-12", phq9: "PHQ-9", gad7: "GAD-7", sleep: "睡眠・疲れ", ae: "副作用" };
   if (kind !== "shoki" && has(a.DOC_ADD)) lines.push("医師が追加した質問票: " + a.DOC_ADD.map(function (k) { return DOC_ADD_NAMES[k] || k; }).join("・"));
@@ -2318,15 +2320,23 @@ function buildKarteText(kind, schema, a, scores) {
         return;
       }
       if (kind !== "shoki" && typeof a[q.code] === "string" && /^N /.test(a[q.code])) return;   // 「使っていない」は書かない
-      if (q.code === "Q2b") {   // この1ヶ月の頭痛日数（ツリー）
-        var ha = n(a.Q2b_headache);
-        if (ha === null) return;
-        var p = ["頭痛 " + ha + "日"];
-        if (n(a.Q2b_mig) !== null) p.push("うち片頭痛 " + a.Q2b_mig + "日");
-        if (n(a.Q2b_clear) !== null) p.push("スッキリ " + a.Q2b_clear + "日");
-        if (n(a.Q2b_unclear) !== null) p.push("スッキリしない " + a.Q2b_unclear + "日");
-        if (n(a.Q2b_med) !== null) p.push("痛み止め " + a.Q2b_med + "日");
-        lines.push("この1ヶ月: " + p.join("、"));
+      // この1ヶ月の日数は略号で1行にまとめる（2026-10-29）：この1ヶ月：MHD(12) MMD(8) CCD(10) UD(8) AMD(6)
+      if (q.code === "Q2b") {   // 初診：この1ヶ月の頭痛日数（ツリー）
+        var t = abbrDays([["MHD", a.Q2b_headache], ["MMD", a.Q2b_mig], ["CCD", a.Q2b_clear], ["UD", a.Q2b_unclear], ["AMD", a.Q2b_med]]);
+        if (t) lines.push("この1ヶ月：" + t);
+        return;
+      }
+      if (kind !== "shoki" && q.code === "DAYS") {   // 再診：頭痛日数（ツリー）＋痛み止めの日数（Q6 合計）
+        var t2 = abbrDays([["MHD", a.Q2_headache], ["MMD", a.Q1_days], ["CCD", a.Q2_clear], ["UD", a.Q2_unclear], ["AMD", a.Q6_total]]);
+        if (t2) { lines.push("この1ヶ月：" + t2); amdDone = has(a.Q6_total); }
+        return;
+      }
+      if (kind !== "shoki" && q.code === "Q6") {   // 再診：痛み止めの日数は AMD、内訳だけ別の行に
+        var br = [["naru", "ナルティーク"], ["trip", "トリプタン"], ["rayvow", "レイボー"], ["rx", "その他処方"], ["otc", "市販薬"]].filter(function (d) {
+          return n(a["Q6_" + d[0]]) !== null;
+        }).map(function (d) { return d[1] + "(" + a["Q6_" + d[0]] + ")"; });
+        if (!amdDone && has(a.Q6_total)) lines.push("この1ヶ月：AMD(" + a.Q6_total + ")");
+        if (br.length) lines.push("AMD内訳：" + br.join(" "));
         return;
       }
       if (q.code === "Q19") {   // 現在の鎮痛薬（日数と効き目）
