@@ -2499,12 +2499,12 @@ var SCHEMA_SAISHIN = {
           text: "今日、とくに気になっていることを選んでください（複数可）",
           note: "選んだことについての質問だけが、この下に追加されます。",
           options: [
-            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・まぶしさ・音のつらさ"},
-            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）"},
-            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが敏感（髪をとかす・メガネ・枕などで痛い）"},
+            {value:"発作のときの吐き気・まぶしさ・音のつらさ",label:"🤢 発作のときの吐き気・光・音"},
+            {value:"頭痛のない日の不調（首や肩のこり・めまい・耳鳴りなど）",label:"🌤 頭痛のない日の不調"},
+            {value:"皮ふが敏感（髪をとかす・メガネ・枕などで痛い）",label:"🪮 頭痛のとき皮ふが痛い"},
             {value:"気分の落ち込み",label:"😔 気分の落ち込み"},
             {value:"不安・心配",label:"😟 不安・心配"},
-            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害で治療中、または治療したことがある"},
+            {value:"うつ病・不安障害で治療中、または治療したことがある",label:"🏥 うつ病・不安障害の治療歴"},
             {value:"眠り・疲れやすさ",label:"🌙 眠り・疲れやすさ"},
             {value:"薬の副作用",label:"💊 薬の副作用"},
             {value:"とくにない",label:"とくにない",exclusive:true}
@@ -3346,6 +3346,9 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 .gm-tip-bubble::after{left:-8px;border-width:6px 9px 6px 0;border-color:transparent #fffaf0 transparent transparent;bottom:16px;}
 .gm-tip-title{display:inline-block;font-weight:800;color:#fff;background:#f0ad4e;border-radius:10px;padding:0 9px;font-size:.78rem;margin-bottom:4px;}
 .gm-tip-text b{color:#c0392b;}
+.gm-tip-drug{margin:6px 0 10px;}
+.gm-tip-drugname{font-weight:800;color:var(--primary);border-left:4px solid var(--primary);padding-left:6px;margin-bottom:2px;}
+.gm-tip-text .gm-drug-list{margin:4px 0 4px 1.2em;padding:0;}
 .gm-tip-chara{position:relative;cursor:pointer;border:none;background:none;padding:0;-webkit-tap-highlight-color:transparent;}
 .gm-tip.gm-closed .gm-tip-chara svg{animation:gm-bob 1.6s ease-in-out infinite;}
 @keyframes gm-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-5px)}}
@@ -4130,13 +4133,13 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
         opts.appendChild(o);
       });
       card.appendChild(opts);
-      if (q.code === "HIT6" || q.code === "MIBS4") {   // HIT-6・MIBS-4 は円グラフつき縦スライダー（上＝いつも 100%、2026-10-27）
+      if (q.code === "HIT6" || q.code === "MIBS4" || q.code === "PHQ9" || q.code === "GAD7") {   // PHQ-9・GAD-7 も（2026-10-29）   // HIT-6・MIBS-4 は円グラフつき縦スライダー（上＝いつも 100%、2026-10-27）
         // MIBS-4 の「わからない/該当なし」はスライダーに入れず、下に小さなボタンとして残す
         var cols = [];
         q.columns.forEach(function (c, ci) { if (!/わからない/.test(c.label)) cols.push(ci); else opts.children[ci].classList.add("gm-pp-skip"); });
         opts.classList.add("gm-pp-opts");
         var hp = cols.map(function (ci, k) { return Math.round(k / (cols.length - 1) * 100); });
-        var pp = pieSlider(card, opts, cols.map(function (ci, k) { return { label: opts.children[ci].textContent, pct: hp[k] }; }),
+        var pp = pieSlider(card, opts, cols.map(function (ci, k) { return { label: opts.children[ci].textContent.replace(/\s*[（(]\d+点[)）]\s*/, ""), pct: hp[k] }; }),
           function () { var c = chosen(r), k = cols.indexOf(c); return k === -1 ? null : k; },
           function (k) { opts.children[cols[k]].click(); }, false);
         opts.addEventListener("click", function () { setTimeout(pp.redraw, 0); });
@@ -4551,7 +4554,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
      levels：下から上の順に {label, pct}。上へ動かすほど円グラフが埋まる。
      getIdx()：今の答え（levels の番号、なければ null）、setIdx(i)：答えを入れる（元の選択肢ボタンを押す）
      highGood：上（100%）が良い答えなら true（色：緑）、悪い答えなら false（色：赤） */
-  function pieSlider(host, before, levels, getIdx, setIdx, highGood) {
+  function pieSlider(host, before, levels, getIdx, setIdx, highGood, noPct) {   // noPct：円の中に％を出さない（2026-10-29）
     var n = levels.length - 1;
     var panel = mk("div", "gm-vpanel gm-pp-panel");
     panel.style.setProperty("--top", highGood ? "#27ae60" : "#e74c3c");
@@ -4594,7 +4597,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
       var p = levels[cur].pct, c = color(p);
       thumb.style.top = pos(cur) + "%"; thumb.style.background = c;
       pie.style.setProperty("--pp", p); pie.style.setProperty("--pc", c);
-      pct.textContent = p + "%";
+      pct.textContent = noPct ? "" : p + "%";
       lab.textContent = levels[cur].label; lab.style.background = c; lab.style.color = "#fff";
     }
     function set(i) { if (i !== getIdx()) { setIdx(i); replayClass(pie, "gm-pop"); } draw(); }
@@ -4614,8 +4617,9 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     return { redraw: draw };
   }
   // Q（AQ_PF2H）痛み止めで2時間以内に頭痛が消えた頻度：選択肢ボタンの代わりに円グラフつき縦スライダー
-  (function () {
-    var b = document.querySelector('#qContainer .qblock[data-code="AQ_PF2H"]');
+  // 2026-10-29 AQ_MBS2H（症状が消えた頻度、上＝良い）・AQ_REC24（ぶり返し、上＝悪い）も同じ形に
+  [["AQ_PF2H", true], ["AQ_MBS2H", true], ["AQ_REC24", false]].forEach(function (aq) { (function () {
+    var b = document.querySelector('#qContainer .qblock[data-code="' + aq[0] + '"]');
     var opts = b && b.querySelector(".options");
     if (!opts) return;
     var btns = Array.prototype.slice.call(opts.querySelectorAll(".opt-btn")).reverse();   // 下＝ほとんどない → 上＝ほとんど毎回
@@ -4623,9 +4627,9 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     opts.style.display = "none";
     var ps = pieSlider(b, opts, btns.map(function (x, i) { return { label: x.textContent, pct: pcts[i] }; }),
       function () { for (var i = 0; i < btns.length; i++) if (btns[i].classList.contains("selected")) return i; return null; },
-      function (i) { if (!btns[i].classList.contains("selected")) btns[i].click(); }, true);
+      function (i) { if (!btns[i].classList.contains("selected")) btns[i].click(); }, aq[1]);
     b.addEventListener("click", function () { setTimeout(ps.redraw, 0); });
-  })();
+  })(); });
   // 治療を続けたいか（Q11）：言葉だけのボタンを、顔つきのボタン5つの横並びに（記録する値は今までと同じ）
   (function () {
     var b = document.querySelector('#qContainer .qblock[data-code="Q11"]');
@@ -4709,7 +4713,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
 
   // キャラクター（または「タップしてね」）を押すと吹き出しが飛び出す。もう一度押すと閉じる。
   var tipCount = 0;
-  function addTip(afterCode, title, html, teaser) {
+  function addTip(afterCode, title, html, teaser, top) {   // top：問いの文のすぐ下に置く（2026-10-29）
     var q = document.querySelector('#qContainer .qblock[data-code="' + afterCode + '"]');
     if (!q) return;
     var tip = mk("div", "gm-tip gm-closed");
@@ -4729,7 +4733,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     tip.appendChild(chara);
     tip.appendChild(tease);
     tip.appendChild(bubble);
-    q.appendChild(tip);
+    var qt = top && q.querySelector(".qtext");
+    if (qt) q.insertBefore(tip, qt.nextSibling); else q.appendChild(tip);
     function toggle() {
       var opening = tip.classList.contains("gm-closed");
       tip.classList.toggle("gm-closed", !opening);
@@ -4801,7 +4806,8 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     q.insertBefore(d, qt ? qt.nextSibling : q.firstChild);
   }
 
-  addInfo("Q6", "💊 豆知識：急性期薬、痛み止めについて", "（タップでひらく）", [
+  // Q6 の急性期薬の豆知識もずつうくんの吹き出しに（2026-10-29、旧：折りたたみの addInfo）
+  addTip("Q6", "💊 豆知識：急性期薬、痛み止めについて", [
     ["ナルティーク",
      "「<b>ゲパント</b>」という新しい種類の片頭痛薬で、片頭痛を起こす物質（CGRP）の受け皿をブロックする飲み薬です。発作のときに飲む治療薬としても、決められた飲み方で続ける予防薬としても使えます。"],
     ["トリプタン",
@@ -4815,7 +4821,7 @@ header.app-header .progress-bar{background:linear-gradient(90deg,#f0ad4e,#e8734a
     ["レイボー",
      "他の頭痛薬と違って、レイボーは<b>脳の中にも届いて</b>効くため、はき気やめまい感など頭痛以外の症状がつらいときにも頼りになる薬です。当院では、頭痛が出てしばらくして、頭痛以外の症状も重なってきたときに飲むと、スッキリすることがあるとお伝えしています。<br>" +
      "⚠️ <b>飲んだあとは、めまいや眠気が出ることがあるため、車の運転や危険をともなう作業は控えてください。</b>"]
-  ]);
+  ].map(function (it) { return '<div class="gm-tip-drug"><div class="gm-tip-drugname">' + it[0] + '</div>' + it[1] + '</div>'; }).join(""), null, true);
 
 
   /* ---------------- 続けたくなる工夫（2026-10-12）：あと◯問・セクションのハンコ・ときどき特別演出・ずつうくんの応援・振動・最後のごほうび ----------------
