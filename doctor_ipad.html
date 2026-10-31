@@ -439,7 +439,7 @@ if ("serviceWorker" in navigator && (location.protocol === "https:" || location.
           ファイルは書き換えません。Excel で開いて保存しないでください。
         </div>
         <button class="btn-secondary" id="btnOpenKaisekiCsv" onclick="openKaisekiCsvFile();" style="width:100%; margin-bottom:8px;">📂 CSVファイルを開く</button>
-        <input type="file" id="excelFileInput" accept=".csv" multiple style="width:100%; font-size:0.82rem;">
+        <input type="file" id="excelFileInput" accept=".csv,text/csv,text/comma-separated-values,text/plain,application/vnd.ms-excel" multiple style="width:100%; font-size:0.82rem;">
         <div id="excelImportStatus" style="font-size:0.8rem; margin-top:8px; color:var(--muted);"></div>
       </div>
 
