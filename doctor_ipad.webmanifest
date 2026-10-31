@@ -1,0 +1,25 @@
+{
+  "id": "./doctor_ipad.html",
+  "name": "頭痛外来 医師用QR（iPad）",
+  "short_name": "医師QR iPad",
+  "start_url": "./doctor_ipad.html",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#1f6f78",
+  "lang": "ja",
+  "icons": [
+    {
+      "src": "icon_doctor_192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icon_doctor_512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
