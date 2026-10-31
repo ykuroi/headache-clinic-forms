@@ -2309,7 +2309,7 @@ function buildKarteText(kind, schema, a, scores) {
       }
       if (kind !== "shoki" && q.code === "Q6") {   // 再診：痛み止めの日数は AMD、内訳だけ別の行に
         var br = [["naru", "ナルティーク"], ["trip", "トリプタン"], ["rayvow", "レイボー"], ["rx", "その他処方"], ["otc", "市販薬"]].filter(function (d) {
-          return n(a["Q6_" + d[0]]) !== null;
+          return Number(a["Q6_" + d[0]]) > 0;   // 0日の薬は書かない
         }).map(function (d) { return d[1] + "(" + a["Q6_" + d[0]] + ")"; });
         if (!amdDone && has(a.Q6_total)) lines.push("この1ヶ月：AMD(" + a.Q6_total + ")");
         if (br.length) lines.push("AMD内訳：" + br.join(" "));
