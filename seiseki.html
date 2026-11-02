@@ -197,9 +197,44 @@ body.viewer .sheet{margin:4px auto 20px;}
     var m = /^(MP)?0*(\d+)$/i.exec(v.replace(/\s/g, ""));
     return m ? (m[1] ? "MP" : "") + m[2] : v;
   }
+  // 同じ日の記録が重なったとき：受診データ（visit）を優先し、空いている項目だけ初診データ（baseline）で埋める
+  function putVisit(list, v) {
+    for (var j = 0; j < list.length; j++) if (list[j].date === v.date) {
+      var a = list[j], keep = v.base && !a.base ? a : v, fill = keep === v ? a : v;
+      if (a.base !== v.base) Object.keys(fill).forEach(function (k) { if (keep[k] == null) keep[k] = fill[k]; });
+      list[j] = keep; return;
+    }
+    list.push(v);
+  }
+  // migraine_baseline.csv（初診1人1行）：初診日の①の値を1回目の記録にする（2026-10-31）
+  var BASE_COLS = { MMD: "①MMD", MHD: "①MHD", AMD: "①AMD", HIT6: "①HIT6", MIBS4: "①MIBS4", GAD7: "①GAD-7", PHQ9: "①PHQ-9" };
+  function baseName(n) { return String(n).trim().replace(/^#/, "").replace(/[（(][^）)]*[）)]$/, ""); }
+  function fromBaseline(rows, h, map) {
+    var ix = {};
+    h.forEach(function (n, i) { var b = baseName(n); if (ix[b] === undefined) ix[b] = i; });
+    var iDate = ix["初診日"], iIds = ["患者コード", "研究コード", "研究ID"].map(function (n) { return ix[n]; }).filter(function (i) { return i !== undefined; });
+    var n = 0;
+    for (var r = 1; r < rows.length; r++) {
+      var w = rows[r]; if (!w || w.length < 2) continue;
+      var id = "";
+      iIds.forEach(function (i) { var x = String(w[i] || "").trim(); if (!id && /^R\d+$/i.test(x)) id = x.toUpperCase(); });
+      if (!id) iIds.forEach(function (i) { if (!id) id = normId(w[i]); });
+      var date = normDate(w[iDate]);
+      if (!id || !date) continue;
+      var v = { date: date, base: true }, any = false;
+      Object.keys(BASE_COLS).forEach(function (k) { var i = ix[BASE_COLS[k]]; v[k] = i === undefined ? null : num(w[i]); if (v[k] != null) any = true; });
+      if (!any) continue;
+      putVisit(map[id] = map[id] || [], v); n++;
+    }
+    Object.keys(map).forEach(function (k) { map[k].sort(function (a, b) { return a.date < b.date ? -1 : 1; }); });
+    return n;
+  }
   function fromRows(rows, into) {
     var h = rows[0].map(function (x) { return String(x).trim(); }), ix = {};
     h.forEach(function (n, i) { if (ix[n] === undefined) ix[n] = i; });
+    if (ix.ID === undefined && h.some(function (n) { return baseName(n) === "初診日"; }) && h.some(function (n) { return baseName(n) === "①MMD"; })) {
+      var map0 = into || {}; BASE_N += fromBaseline(rows, h, map0); return map0;
+    }
     if (ix.ID === undefined || ix.DATE === undefined) throw new Error("ID と DATE の列が見つかりません");
     var map = into || {};
     for (var r = 1; r < rows.length; r++) {
@@ -209,8 +244,8 @@ body.viewer .sheet{margin:4px auto 20px;}
       var v = { date: date };
       ["MMD", "MHD", "AMD", "HIT6", "MIBS4", "GAD7", "PHQ9"].forEach(function (k) { v[k] = ix[k] === undefined ? null : num(w[ix[k]]); });
       var list = (map[id] = map[id] || []), same = -1;
-      for (var j = 0; j < list.length; j++) if (list[j].date === date) same = j;
-      if (same >= 0) list[same] = v; else list.push(v);   // 同じ日が重なったら、あとから読んだファイル（visit_*.csv）を使う
+      for (var j = 0; j < list.length; j++) if (list[j].date === date && !list[j].base) same = j;
+      if (same >= 0) list[same] = v; else putVisit(list, v);   // 同じ日が重なったら、あとから読んだファイル（visit_*.csv）を使う
     }
     Object.keys(map).forEach(function (k) { map[k].sort(function (a, b) { return a.date < b.date ? -1 : 1; }); });
     return map;
@@ -410,7 +445,7 @@ body.viewer .sheet{margin:4px auto 20px;}
         var n = Object.keys(d).length;
         LOADED_FILES += okN;
         e.target.value = "";
-        if (n) setData(d, "読み込みました：合計 " + LOADED_FILES + " ファイル・" + n + " 人（続けて別のフォルダのファイルも追加できます）" + (info.length ? "　🔑 " + info.join(" / ") : "") + (warn.length ? "　⚠️ " + warn.join(" / ") : ""));
+        if (n) setData(d, "読み込みました：合計 " + LOADED_FILES + " ファイル・" + n + " 人" + (BASE_N ? "（初診データ " + BASE_N + " 人分を含む）" : "") + "（続けて別のフォルダのファイルも追加できます）" + (info.length ? "　🔑 " + info.join(" / ") : "") + (warn.length ? "　⚠️ " + warn.join(" / ") : ""));
         else document.getElementById("status").textContent = warn.length ? "読み込めませんでした：" + warn.join(" / ") : "🔑 " + info.join(" / ") + "。続けて受診データのCSVを選んでください";
         return;
       }
@@ -431,7 +466,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     }
     next();
   });
-  var LOADED = {}, LOADED_FILES = 0;
+  var LOADED = {}, LOADED_FILES = 0, BASE_N = 0;
   // 研究コード対応表（研究コード,病院ID,…）：病院IDで検索できるようにする。画面を閉じると消える
   var H2C = {}, C2H = {};
   // 病院IDのまま保存された visit_*.csv（doctor で対応表を読まずに保存したとき）を、対応表の研究コードの患者にまとめる。
@@ -442,8 +477,8 @@ body.viewer .sheet{margin:4px auto 20px;}
       if (!c || c === k) return;
       var list = (d[c] = d[c] || []);
       d[k].forEach(function (v) {
-        for (var j = 0; j < list.length; j++) if (list[j].date === v.date) { list[j] = v; return; }
-        list.push(v);
+        for (var j = 0; j < list.length; j++) if (list[j].date === v.date && !list[j].base && !v.base) { list[j] = v; return; }
+        putVisit(list, v);
       });
       list.sort(function (x, y) { return x.date < y.date ? -1 : 1; });
       delete d[k];
@@ -455,7 +490,7 @@ body.viewer .sheet{margin:4px auto 20px;}
     for (var r = 1; r < rows.length; r++) { var w = rows[r]; if (!w || !w[ic] || !w[ih]) continue; H2C[normId(w[ih]).toUpperCase()] = w[ic].trim(); C2H[w[ic].trim()] = normId(w[ih]); }
     return true;
   }
-  document.getElementById("demo").addEventListener("click", function () { LOADED = {}; LOADED_FILES = 0; setData(demo(), "架空の症例を表示しています（実在の患者さんではありません）"); });
+  document.getElementById("demo").addEventListener("click", function () { LOADED = {}; LOADED_FILES = 0; BASE_N = 0; setData(demo(), "架空の症例を表示しています（実在の患者さんではありません）"); });
   ["pt", "nvis", "showId"].forEach(function (i) { document.getElementById(i).addEventListener("change", render); });
   document.getElementById("search").addEventListener("input", fillPatients);
   document.getElementById("print").addEventListener("click", function () { window.print(); });
